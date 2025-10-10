@@ -45,3 +45,42 @@ update: ## Update version numbers across project files. Usage: make update <new_
 
 %:
 	@:
+
+
+
+MODEL = Qwen/Qwen3-32B
+BACKEND ?= flashinfer
+TOKENS = 8192
+BATCH ?= 16
+PROFILE = #--profile
+OVERRIDE = #--json-model-override-args '{"num_hidden_layers": 1}'
+OUTPUT ?= output/offline_q3-32b_
+TOKEN ?= 1024
+EXTRA ?= #--enable-deterministic-inference
+POST ?= 
+
+run_offline:
+	python3 -m sglang.bench_offline_throughput --model-path ${MODEL} ${PROFILE} ${OVERRIDE} \
+		--num-prompts ${BATCH} --attention-backend ${BACKEND} \
+		--dataset-name random --random-input ${TOKEN} --random-output ${TOKEN} ${EXTRA} > ${OUTPUT}${POST}${BACKEND}_b${BATCH}_${TOKEN}.txt;
+
+run_offline_det:
+	$(MAKE) run_offline EXTRA="--enable-deterministic-inference" POST="det_";
+
+run_test_perf:
+	mkdir -p output
+	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
+	for token in ${TOKENS}; do \
+		$(MAKE) run_offline TOKEN=$${token}; \
+		$(MAKE) run_offline_det TOKEN=$${token}; \
+	done
+
+extract_test_deterministic_perf:
+	@echo "Extracting and displaying benchmark results:"
+	for file in ${OUTPUT}*.txt; do \
+		echo "Results from $$file:"; \
+		grep -A11 "Offline Throughput Benchmark Result" $$file; \
+	done
+
+#	python3 -m sglang.bench_offline_throughput --model-path ${MODEL} --num-prompts 256 --attention-backend flashinfer --dataset-name random --random-input 8192 --random-output 8192 | grep -A11 "Offline Throughput Benchmark Result"
+#	python3 -m sglang.bench_offline_throughput --model-path ${MODEL} --num-prompts 256 --attention-backend flashinfer --dataset-name random --random-input 8192 --random-output 8192 --enable-deterministic-inference | grep -A11 "Offline Throughput Benchmark Result"
