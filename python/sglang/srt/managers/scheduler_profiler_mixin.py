@@ -186,6 +186,8 @@ class SchedulerProfilerMixin:
         if self.torch_profiler is not None:
             self.torch_profiler.stop()
             if not _is_npu:
+                print(self.torch_profiler.key_averages().table(sort_by="cuda_time_total", row_limit=10), flush=True)
+                '''
                 self.torch_profiler.export_chrome_trace(
                     os.path.join(
                         self.torch_profiler_output_dir,
@@ -195,6 +197,7 @@ class SchedulerProfilerMixin:
                         + ".trace.json.gz",
                     )
                 )
+                '''
             torch.distributed.barrier(self.tp_cpu_group)
 
         if self.rpd_profiler is not None:

@@ -230,7 +230,7 @@ def throughput_test_once(
             "SGLANG_TORCH_PROFILER_DIR" in os.environ
         ), "Please set SGLANG_TORCH_PROFILER_DIR."
         os.makedirs(os.environ["SGLANG_TORCH_PROFILER_DIR"], exist_ok=True)
-        backend.start_profile()
+        backend.start_profile(activities=["GPU"], with_stack=False)
 
     st = time.perf_counter()
     gen_out = backend.generate(prompt=prompt, sampling_params=sampling_params)
@@ -240,7 +240,7 @@ def throughput_test_once(
         dir = os.getenv("SGLANG_TORCH_PROFILER_DIR")
         known_files = set(os.listdir(dir))
         backend.stop_profile()
-        monitor_trace_file(known_files, dir)
+        #monitor_trace_file(known_files, dir)
 
     if backend_name == "runtime":
         gen_out = json.loads(gen_out)
