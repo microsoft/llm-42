@@ -247,6 +247,7 @@ from sgl_kernel.elementwise import (
 from sgl_kernel.fused_moe import fused_marlin_moe
 from sgl_kernel.gemm import (
     awq_dequantize,
+    bf16_batch_invariant_mm,
     bmm_fp8,
     cutlass_scaled_fp4_mm,
     dsv3_fused_a_gemm,

@@ -182,6 +182,11 @@ void gelu_quick(at::Tensor& out, const at::Tensor& input);
  * From csrc/gemm
  */
 torch::Tensor awq_dequantize(torch::Tensor qweight, torch::Tensor scales, torch::Tensor qzeros);
+torch::Tensor bf16_batch_invariant_mm(
+    const torch::Tensor& mat_a,
+    const torch::Tensor& mat_b,
+    const torch::Dtype& out_dtype,
+    const c10::optional<torch::Tensor>& bias);
 void cutlass_scaled_fp4_mm(
     torch::Tensor& D,
     torch::Tensor const& A,

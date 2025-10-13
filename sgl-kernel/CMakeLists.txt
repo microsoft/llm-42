@@ -123,7 +123,7 @@ if(CCACHE_FOUND AND ENABLE_CCACHE AND DEFINED ENV{CCACHE_DIR})
 endif()
 
 # Enable gencode below SM90
-option(ENABLE_BELOW_SM90 "Enable below SM90" ON)
+option(ENABLE_BELOW_SM90 "Enable below SM90" OFF)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
     set(ENABLE_BELOW_SM90 OFF)
@@ -220,7 +220,7 @@ if (ENABLE_BELOW_SM90)
     )
 endif()
 
-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_SM100A)
+if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" AND SGL_KERNEL_ENABLE_SM100A)
     list(APPEND SGL_KERNEL_CUDA_FLAGS
         "-gencode=arch=compute_100a,code=sm_100a"
         "-gencode=arch=compute_120a,code=sm_120a"
@@ -248,7 +248,7 @@ if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.4")
     )
 endif()
 
-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_FP4)
+if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" AND SGL_KERNEL_ENABLE_FP4)
     list(APPEND SGL_KERNEL_CUDA_FLAGS
         "-DENABLE_NVFP4=1"
     )
@@ -271,6 +271,7 @@ set(SOURCES
     "csrc/common_extension.cc"
 
     "csrc/gemm/awq_kernel.cu"
+    "csrc/gemm/bf16_batch_invariant_gemm_kernel.cu"
     "csrc/gemm/bmm_fp8.cu"
     "csrc/gemm/dsv3_fused_a_gemm.cu"
     "csrc/gemm/dsv3_router_gemm_bf16_out.cu"
@@ -349,7 +350,7 @@ set_target_properties(common_ops_sm90_build PROPERTIES
     OUTPUT_NAME "common_ops"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm90"
 )
-
+#[[
 # Build SM100+ library with precise math (same namespace, different directory)
 Python_add_library(common_ops_sm100_build MODULE USE_SABI ${SKBUILD_SABI_VERSION} WITH_SOABI ${SOURCES})
 
@@ -370,6 +371,7 @@ set_target_properties(common_ops_sm100_build PROPERTIES
     OUTPUT_NAME "common_ops"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm100"
 )
+]]
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 execute_process(
@@ -396,7 +398,7 @@ add_subdirectory(
     ${CMAKE_CURRENT_BINARY_DIR}/mscclpp-build
 )
 target_link_libraries(common_ops_sm90_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
-target_link_libraries(common_ops_sm100_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
+#target_link_libraries(common_ops_sm100_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
 
 # flash attention
 target_compile_definitions(common_ops_sm90_build PRIVATE
@@ -404,17 +406,19 @@ target_compile_definitions(common_ops_sm90_build PRIVATE
     FLASHATTENTION_DISABLE_DROPOUT
     FLASHATTENTION_DISABLE_UNEVEN_K
 )
+#[[
 target_compile_definitions(common_ops_sm100_build PRIVATE
     FLASHATTENTION_DISABLE_BACKWARD
     FLASHATTENTION_DISABLE_DROPOUT
     FLASHATTENTION_DISABLE_UNEVEN_K
 )
+]]
 
 # Install to different subdirectories
 # CMake will find the built libraries in their respective LIBRARY_OUTPUT_DIRECTORY locations
 # and install them to the specified destinations
 install(TARGETS common_ops_sm90_build LIBRARY DESTINATION sgl_kernel/sm90)
-install(TARGETS common_ops_sm100_build LIBRARY DESTINATION sgl_kernel/sm100)
+#install(TARGETS common_ops_sm100_build LIBRARY DESTINATION sgl_kernel/sm100)
 
 # ============================ Optional Install ============================= #
 # set flash-attention sources file
@@ -518,6 +522,7 @@ install(TARGETS spatial_ops LIBRARY DESTINATION sgl_kernel)
 # ============================ DeepGEMM (JIT) ============================= #
 # Create a separate library for DeepGEMM's Python API.
 # This keeps its compilation isolated from the main common_ops.
+#[[
 set(DEEPGEMM_SOURCES
     "${repo-deepgemm_SOURCE_DIR}/csrc/python_api.cpp"
 )
@@ -559,7 +564,7 @@ install(DIRECTORY "${repo-cutlass_SOURCE_DIR}/include/cute/"
 
 install(DIRECTORY "${repo-cutlass_SOURCE_DIR}/include/cutlass/"
         DESTINATION "deep_gemm/include/cutlass")
-
+]]
 # triton_kernels
 install(DIRECTORY "${repo-triton_SOURCE_DIR}/python/triton_kernels/triton_kernels/"
         DESTINATION "triton_kernels"

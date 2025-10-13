@@ -10,6 +10,8 @@ def awq_dequantize(
 ) -> torch.ByteTensor:
     return torch.ops.sgl_kernel.awq_dequantize.default(qweight, scales, qzeros)
 
+def bf16_batch_invariant_mm(mat_a, mat_b, out_dtype, bias=None):
+    return torch.ops.sgl_kernel.bf16_batch_invariant_mm.default(mat_a, mat_b, out_dtype, bias)
 
 def int8_scaled_mm(mat_a, mat_b, scales_a, scales_b, out_dtype, bias=None):
     return torch.ops.sgl_kernel.int8_scaled_mm.default(
