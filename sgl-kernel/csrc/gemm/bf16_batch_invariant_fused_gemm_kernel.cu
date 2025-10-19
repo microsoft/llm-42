@@ -1,4 +1,5 @@
 #include <ATen/cuda/CUDAContext.h>
+#include <c10/cuda/CUDAGuard.h>
 #include <cudaTypedefs.h>
 #include <cutlass/arch/arch.h>
 #include <cutlass/arch/memory.h>
@@ -200,10 +201,11 @@ struct DeviceGemmbf16RowwiseSm90 {
 
 
 template <typename Gemm, bool WithBias>
-typename Gemm::Arguments prepare_sm90_bf16_batch_invariant_args(
+std::tuple<typename Gemm::Arguments, typename Gemm::Arguments> prepare_sm90_bf16_batch_invariant_fused_args(
     torch::Tensor& out,
     const torch::Tensor& a,
     const torch::Tensor& b,
+    const double split_frac,
     const c10::optional<torch::Tensor>& bias) {
   using ElementT = typename Gemm::ElementA;
   using ElementOutput = typename Gemm::ElementD;
@@ -216,183 +218,169 @@ typename Gemm::Arguments prepare_sm90_bf16_batch_invariant_args(
   int32_t m = a.size(0);
   int32_t n = b.size(1);
   int32_t k = a.size(1);
+
+  int32_t m1 = static_cast<int32_t>(m * split_frac);
+  int32_t m2 = m - m1;
+
   ElementT const* ptr_a = reinterpret_cast<ElementT const*>(a.data_ptr());
+  ElementT const* ptr_a1, *ptr_a2;
+  if (a.stride(0) == 1) {
+    // column major
+    TORCH_CHECK(a.stride(1) == m, "mat_a is not a column major or row major tensor");
+    ptr_a1 = ptr_a;
+    ptr_a2 = ptr_a + m1;
+  } else {
+    // row major
+    TORCH_CHECK(a.stride(1) == 1, "mat_a is not a column major or row major tensor");
+    ptr_a1 = ptr_a;
+    ptr_a2 = ptr_a + m1 * k;
+  }
+
   ElementT const* ptr_b = reinterpret_cast<ElementT const*>(b.data_ptr());
-  ElementOutput const* ptr_bias = nullptr;
+
+  ElementOutput const* ptr_bias1 = nullptr, *ptr_bias2 = nullptr;
   if constexpr (WithBias) {
     TORCH_CHECK(bias.has_value())
-    ptr_bias = reinterpret_cast<ElementOutput const*>(bias.value().data_ptr());
+    ElementOutput const* ptr_bias = reinterpret_cast<ElementOutput const*>(bias.value().data_ptr());
+    if (bias->stride(0) == 1) {
+      // column major
+      TORCH_CHECK(false, "column-major bias is not supported");
+    } else {
+      // row major
+      TORCH_CHECK(bias->stride(1) == 1, "bias is not a row major tensor");
+      ptr_bias1 = ptr_bias;
+      ptr_bias2 = ptr_bias + m1 * n;
+    }
   }
   ElementOutput* ptr_d = reinterpret_cast<ElementOutput*>(out.data_ptr());
-  StrideA stride_a = cutlass::make_cute_packed_stride(StrideA{}, make_shape(m, k, 1));
+  ElementOutput* ptr_d1 = ptr_d;
+  ElementOutput* ptr_d2 = ptr_d + m1 * n;
+
+  StrideA stride_a1 = cutlass::make_cute_packed_stride(StrideA{}, make_shape(m1, k, 1));
+  StrideA stride_a2 = cutlass::make_cute_packed_stride(StrideA{}, make_shape(m2, k, 1));
   StrideB stride_b = cutlass::make_cute_packed_stride(StrideB{}, make_shape(n, k, 1));
   StrideC stride_c;
-  StrideD stride_d = cutlass::make_cute_packed_stride(StrideD{}, make_shape(m, n, 1));
-  typename Gemm::Arguments args = {
+  StrideD stride_d1 = cutlass::make_cute_packed_stride(StrideD{}, make_shape(m1, n, 1));
+  StrideD stride_d2 = cutlass::make_cute_packed_stride(StrideD{}, make_shape(m2, n, 1));
+  typename Gemm::Arguments args1 = {
       cutlass::gemm::GemmUniversalMode::kGemm,
-      {m, n, k, 1},
-      {ptr_a, stride_a, ptr_b, stride_b},
+      {m1, n, k, 1},
+      {ptr_a1, stride_a1, ptr_b, stride_b},
       {{},  // epilogue.thread
        nullptr,
        stride_c,
-       ptr_d,
-       stride_d}};
+       ptr_d1,
+       stride_d1}};
+  typename Gemm::Arguments args2 = {
+      cutlass::gemm::GemmUniversalMode::kGemm,
+      {m2, n, k, 1},
+      {ptr_a2, stride_a2, ptr_b, stride_b},
+      {{},  // epilogue.thread
+       nullptr,
+       stride_c,
+       ptr_d2,
+       stride_d2}};
   if constexpr (WithBias) {
-    args.epilogue.thread = {
+    args1.epilogue.thread = {
         {}, // Accum
-        {ptr_bias},
+        {ptr_bias1},
+        {}, // Add
+    };
+    args2.epilogue.thread = {
+        {}, // Accum
+        {ptr_bias2},
         {}, // Add
     };
   }
 
-  return args;
-}
-
-#define checkCublasStatus(status) \
-    {                                      \
-    if (status != CUBLAS_STATUS_SUCCESS) { \
-        fprintf(stderr, "cuBLAS API failed with status %s on line %d\n", cublasGetStatusName(status), __LINE__); \
-        throw std::logic_error("cuBLAS API failed");\
-    }\
-}
-
-template<typename ElementA>
-void cublasGEMM(cublasLtHandle_t ltHandle,
-             cublasOperation_t transa,
-             cublasOperation_t transb,
-             int m,
-             int n,
-             int k,
-             const void *A,
-             const void *B,
-             void *C,
-             void *workspace,
-             size_t workspaceSize,
-             cudaStream_t stream) {
-    cublasLtMatmulDesc_t operationDesc = NULL;
-    cublasLtMatrixLayout_t Adesc = NULL, Bdesc = NULL, Cdesc = NULL;
-    cublasLtMatmulPreference_t preference = NULL;
-
-    int lda = k;
-    int ldb = k;
-    int ldc = m;
-
-    int returnedResults                             = 0;
-    cublasLtMatmulHeuristicResult_t heuristicResult = {};
-
-    cudaDataType_t computeType = CUDA_R_16F;
-    if constexpr(std::is_same_v<ElementA, cutlass::bfloat16_t>) {
-      computeType = CUDA_R_16BF;
-    }
-
-    // create operation desciriptor; see cublasLtMatmulDescAttributes_t for details about defaults; here we just need to
-    // set the transforms for A and B
-    checkCublasStatus(cublasLtMatmulDescCreate(&operationDesc, CUBLAS_COMPUTE_32F, CUDA_R_32F));
-    checkCublasStatus(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSA, &transa, sizeof(transa)));
-    checkCublasStatus(cublasLtMatmulDescSetAttribute(operationDesc, CUBLASLT_MATMUL_DESC_TRANSB, &transb, sizeof(transb)));
-
-    // create matrix descriptors, we are good with the details here so no need to set any extra attributes
-    checkCublasStatus(cublasLtMatrixLayoutCreate(&Adesc, computeType, transa == CUBLAS_OP_N ? m : k, transa == CUBLAS_OP_N ? k : m, lda));
-    checkCublasStatus(cublasLtMatrixLayoutCreate(&Bdesc, computeType, transb == CUBLAS_OP_N ? k : n, transb == CUBLAS_OP_N ? n : k, ldb));
-    checkCublasStatus(cublasLtMatrixLayoutCreate(&Cdesc, computeType, m, n, ldc));
-
-    fprintf(stderr, "Matrix A: %d x %d, lda=%d\n", transa == CUBLAS_OP_N ? m : k, transa == CUBLAS_OP_N ? k : m, lda);
-    fprintf(stderr, "Matrix B: %d x %d, ldb=%d\n", transb == CUBLAS_OP_N ? k : n, transb == CUBLAS_OP_N ? n : k, ldb);
-    fprintf(stderr, "Matrix C: %d x %d, ldc=%d\n", m, n, ldc);
-
-    // create preference handle; here we could use extra attributes to disable tensor ops or to make sure algo selected
-    // will work with badly aligned A, B, C; here for simplicity we just assume A,B,C are always well aligned (e.g.
-    // directly come from cudaMalloc)
-    checkCublasStatus(cublasLtMatmulPreferenceCreate(&preference));
-    checkCublasStatus(cublasLtMatmulPreferenceSetAttribute(preference, CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES, &workspaceSize, sizeof(workspaceSize)));
-
-    // we just need the best available heuristic to try and run matmul. There is no guarantee this will work, e.g. if A
-    // is badly aligned, you can request more (e.g. 32) algos and try to run them one by one until something works
-    checkCublasStatus(cublasLtMatmulAlgoGetHeuristic(ltHandle, operationDesc, Adesc, Bdesc, Cdesc, Cdesc, preference, 1, &heuristicResult, &returnedResults));
-
-    if (returnedResults == 0) {
-        checkCublasStatus(CUBLAS_STATUS_NOT_SUPPORTED);
-    }
-
-    const float alpha = 1.0f;
-    const float beta = 0.0f;
-    checkCublasStatus(cublasLtMatmul(ltHandle,
-                                     operationDesc,
-                                     &alpha,
-                                     A,
-                                     Adesc,
-                                     B,
-                                     Bdesc,
-                                     &beta,
-                                     nullptr,
-                                     Cdesc,
-                                     C,
-                                     Cdesc,
-                                     &heuristicResult.algo,
-                                     workspace,
-                                     workspaceSize,
-                                     stream));
-
-    // descriptors are no longer needed as all GPU work was already enqueued
-    if (preference) checkCublasStatus(cublasLtMatmulPreferenceDestroy(preference));
-    if (Cdesc) checkCublasStatus(cublasLtMatrixLayoutDestroy(Cdesc));
-    if (Bdesc) checkCublasStatus(cublasLtMatrixLayoutDestroy(Bdesc));
-    if (Adesc) checkCublasStatus(cublasLtMatrixLayoutDestroy(Adesc));
-    if (operationDesc) checkCublasStatus(cublasLtMatmulDescDestroy(operationDesc));
+  return {args1, args2};
 }
 
 template <typename Gemm, bool WithBias>
-void launch_sm90_bf16_batch_invariant_mm(
+void launch_sm90_bf16_batch_invariant_fused_mm(
     torch::Tensor& out,
     const torch::Tensor& a,
     const torch::Tensor& b,
+    const double split_frac,
     const c10::optional<torch::Tensor>& bias) {
-  auto stream = at::cuda::getCurrentCUDAStream(a.get_device());
-  // cuBLAS path
-  /*{
-    // PyTorch is row major by default. cuBLASLt is column major by default.
-    // We need row major D as expected.
-    // A ^ T * B = D, so D ^ T = B ^ T * A
-    int m = a.size(0);
-    int n = b.size(1);
-    int k = a.size(1);
 
-    cublasLtHandle_t ltHandle = at::cuda::getCurrentCUDABlasLtHandle();
-    size_t workspace_size = 1 << 25; // 32MB
-    auto const workspace_options = torch::TensorOptions().dtype(torch::kUInt16).device(a.device());
-    auto workspace = torch::empty(workspace_size, workspace_options);
+  int32_t m = a.size(0);
+  int32_t m1 = static_cast<int32_t>(m * split_frac);
+  int32_t m2 = m - m1;
 
-    cublasOperation_t transa = CUBLAS_OP_N;
-    cublasOperation_t transb = CUBLAS_OP_T;
+  auto mixed_args = prepare_sm90_bf16_batch_invariant_fused_args<Gemm, WithBias>(out, a, b, split_frac, bias);
 
-    cublasGEMM<typename Gemm::ElementA>(ltHandle,
-              transb,
-              transa,
-              n,
-              m,
-              k,
-              b.data_ptr(),
-              a.data_ptr(),
-              out.data_ptr(),
-              workspace.data_ptr(),
-              workspace_size,
-              stream);
-  }*/
-  // Torch path
-  //torch::mm_out(out, a, b);
+  auto args1 = std::get<0>(mixed_args);
+  auto args2 = std::get<1>(mixed_args);
 
-  auto args = prepare_sm90_bf16_batch_invariant_args<Gemm, WithBias>(out, a, b, bias);
   Gemm gemm_op;
-
-  size_t workspace_size = gemm_op.get_workspace_size(args);
   auto const workspace_options = torch::TensorOptions().dtype(torch::kUInt16).device(a.device());
-  auto workspace = torch::empty(workspace_size, workspace_options);
-  auto can_implement = gemm_op.can_implement(args);
+
+  torch::Tensor workspace1, workspace2;
+
+  if (m1 > 0) {
+    size_t workspace_size1 = gemm_op.get_workspace_size(args1);
+    workspace1 = torch::empty(workspace_size1, workspace_options);
+  }
+  /*if (m2 > 0) {
+    size_t workspace_size2 = gemm_op.get_workspace_size(args2);
+    workspace2 = torch::empty(workspace_size2, workspace_options);
+  }*/
+
+  auto stream = at::cuda::getCurrentCUDAStream(a.get_device());
+
+  static cudaStream_t stream1 = nullptr;
+  // stream2 = nullptr;
+  static at::cuda::CUDAStream stream2 = at::cuda::getStreamFromPool();
+  static cudaEvent_t event1 = nullptr, event2 = nullptr;
+  if (stream1 == nullptr) {
+    cudaStreamCreateWithFlags(&stream1, cudaStreamNonBlocking);
+    cudaEventCreateWithFlags(&event1, cudaEventDisableTiming);
+    cudaEventCreateWithFlags(&event2, cudaEventDisableTiming);
+  }
+
+  // Wait for previous kernels to finish
+  cudaEventRecord(event1, stream);
+  cudaStreamWaitEvent(stream1, event1, 0);
+  cudaStreamWaitEvent(stream2.stream(), event1, 0);
+
+  auto can_implement = gemm_op.can_implement(args1);
   TORCH_CHECK(can_implement == cutlass::Status::kSuccess)
 
-  auto status = gemm_op.run(args, workspace.data_ptr(), stream);
+  if (m2 > 0) {
+    {
+      c10::cuda::CUDAStreamGuard guard(stream2);
+      torch::Tensor a2 = torch::from_blob(
+          static_cast<void*>(
+              reinterpret_cast<typename Gemm::ElementA*>(a.data_ptr()) + m1 * a.size(1)),
+          {m2, a.size(1)},
+          a.strides(),
+          a.options());
+      torch::Tensor out2 = torch::from_blob(
+          static_cast<void*>(
+              reinterpret_cast<typename Gemm::ElementD*>(out.data_ptr()) + m1 * out.size(1)),
+          {m2, out.size(1)},
+          out.strides(),
+          out.options());
+      torch::mm_out(
+          out2,
+          a2,
+          b);
+      //auto status = gemm_op.run(args2, workspace2.data_ptr(), stream2);
+      //TORCH_CHECK(status == cutlass::Status::kSuccess)
+    }
+  }
 
-  TORCH_CHECK(status == cutlass::Status::kSuccess)
+  if (m1 > 0) {
+    auto status = gemm_op.run(args1, workspace1.data_ptr(), stream1);
+    TORCH_CHECK(status == cutlass::Status::kSuccess)
+  }
+
+  cudaEventRecord(event1, stream1);
+  cudaEventRecord(event2, stream2.stream());
+  cudaStreamWaitEvent(stream, event1, 0);
+  cudaStreamWaitEvent(stream, event2, 0);
+
 }
 
 template <
@@ -403,10 +391,11 @@ template <
     typename ClusterShape,
     typename MainloopScheduleType,
     typename TileSchedulerType>
-void sm90_bf16_batch_invariant_dispatch_bias(
+void sm90_bf16_batch_invariant_fused_dispatch_bias(
     torch::Tensor& out,
     const torch::Tensor& a,
     const torch::Tensor& b,
+    const double split_frac,
     const c10::optional<torch::Tensor>& bias,
     bool fast_accum = true,
     bool use_persistent = false) {
@@ -429,7 +418,7 @@ void sm90_bf16_batch_invariant_dispatch_bias(
           EpilogueScheduleTypeBias,
           TileSchedulerType,
           true>::Gemm;
-      return launch_sm90_bf16_batch_invariant_mm<Gemm, true>(out, a, b, bias);
+      return launch_sm90_bf16_batch_invariant_fused_mm<Gemm, true>(out, a, b, split_frac, bias);
     } else {
       using EpilogueScheduleType = cutlass::epilogue::TmaWarpSpecialized;
       using Gemm = typename DeviceGemmbf16RowwiseSm90<
@@ -444,18 +433,23 @@ void sm90_bf16_batch_invariant_dispatch_bias(
           EpilogueScheduleType,
           TileSchedulerType,
           false>::Gemm;
-      return launch_sm90_bf16_batch_invariant_mm<Gemm, false>(out, a, b, bias);
+      return launch_sm90_bf16_batch_invariant_fused_mm<Gemm, false>(out, a, b, split_frac, bias);
     }
   });
 }
 
 template <typename OutType, typename LayoutA, typename LayoutB>
-void sm90_bf16_batch_invariant_dispatch_shape(
+void sm90_bf16_batch_invariant_fused_dispatch_shape(
     torch::Tensor& out,
     const torch::Tensor& a,
     const torch::Tensor& b,
+    double split_frac,
     const c10::optional<torch::Tensor>& bias) {
-  uint32_t const m = a.size(0);
+  // Disable splitting to avoid zero-padding tile for det kernel.
+  if (a.size(0) <= 64 && split_frac != 0.0) {
+    split_frac = 1.0;
+  }
+  uint32_t const m = static_cast<int32_t>(a.size(0) * split_frac);
   using PingpongScheduler = cutlass::gemm::KernelTmaWarpSpecializedPingpong;
   using BasicScheduler = cutlass::gemm::KernelTmaWarpSpecialized;
   using CooperativeScheduler = cutlass::gemm::KernelTmaWarpSpecializedCooperative;
@@ -469,59 +463,56 @@ void sm90_bf16_batch_invariant_dispatch_shape(
   using ChosenTileScheduler = PersistentTileScheduler;
   if (m <= 64) {
     // m in [1, 64]
-    return sm90_bf16_batch_invariant_dispatch_bias<
+    return sm90_bf16_batch_invariant_fused_dispatch_bias<
         OutType,
         LayoutA,
         LayoutB,
         Shape<_64, _64, _128>,
         Shape<_1, _1, _1>,
         ChosenSmallScheduler,
-        BasicTileScheduler>(out, a, b, bias);
+        BasicTileScheduler>(out, a, b, split_frac, bias);
   } else if (m < 256) {
     // m in (64, 256]
-    return sm90_bf16_batch_invariant_dispatch_bias<
+    return sm90_bf16_batch_invariant_fused_dispatch_bias<
         OutType,
         LayoutA,
         LayoutB,
         Shape<_64, _64, _128>,
         Shape<_1, _1, _1>,
         ChosenSmallScheduler,
-        ChosenTileScheduler>(out, a, b, bias);
+        ChosenTileScheduler>(out, a, b, split_frac, bias);
   } else {
     // m in (1024, inf)
-    return sm90_bf16_batch_invariant_dispatch_bias<
+    return sm90_bf16_batch_invariant_fused_dispatch_bias<
         OutType,
         LayoutA,
         LayoutB,
         Shape<_128, _128, _64>,
         Shape<_2, _1, _1>,
         ChosenBigScheduler,
-        ChosenTileScheduler>(out, a, b, bias);
+        ChosenTileScheduler>(out, a, b, split_frac, bias);
   }
 }
 #endif
 
-torch::Tensor bf16_batch_invariant_mm(
+torch::Tensor bf16_batch_invariant_fused_mm(
     const torch::Tensor& mat_a,
     const torch::Tensor& mat_b,
     const torch::Dtype& out_dtype,
+    const double split_frac,
     const c10::optional<torch::Tensor>& bias,
     const c10::optional<torch::Tensor>& out_tensor) {
-  //fprintf(stderr, "A shape: [%d, %d], B shape: [%d, %d]\n", mat_a.size(0), mat_a.size(1), mat_b.size(0), mat_b.size(1));
-  //fprintf(stderr, "A stride: [%d, %d], B stride: [%d, %d]\n", mat_a.stride(0), mat_a.stride(1), mat_b.stride(0), mat_b.stride(1));
-  //std::cerr << "A type: " << mat_a.scalar_type() << ", B type:" <<  mat_b.scalar_type() << "\n";
   TORCH_CHECK(mat_a.is_cuda(), "mat_a must be a CUDA tensor");
   TORCH_CHECK(mat_b.is_cuda(), "mat_b must be a CUDA tensor");
   TORCH_CHECK(mat_a.dim() == 2, "mat_a must be a 2D tensor");
   TORCH_CHECK(mat_b.dim() == 2, "mat_b must be a 2D tensor");
   TORCH_CHECK(mat_a.size(1) == mat_b.size(0), "mat_a and mat_b shapes cannot be multiplied");
+  TORCH_CHECK(split_frac <= 1.0 && split_frac >= 0.0, "split_frac must be in [0.0, 1.0]");
 
   TORCH_CHECK(
       (mat_a.size(1) * mat_a.element_size()) % 16 == 0, "mat_a must be multiple of 16 bytes for memory alignment");
   TORCH_CHECK(
       (mat_b.size(0) * mat_b.element_size()) % 16 == 0, "mat_b must be multiple of 16 bytes for memory alignment");
-  //TORCH_CHECK(mat_a.scalar_type() == torch::kBFloat16, "mat_a must be BFloat16");
-  //TORCH_CHECK(mat_b.scalar_type() == torch::kBFloat16, "mat_b must be BFloat16");
   TORCH_CHECK(out_dtype == torch::kHalf || out_dtype == torch::kBFloat16, "out_dtype must be Half or BFloat16");
 
   if (bias) {
@@ -555,9 +546,9 @@ torch::Tensor bf16_batch_invariant_mm(
 #endif
   ) {
     if (out_dtype == torch::kBFloat16) {
-      sm100_bf16_batch_invariant_dispatch_shape<cutlass::bfloat16_t>(out, mat_a, mat_b, bias);
+      sm100_bf16_batch_invariant_fused_dispatch_shape<cutlass::bfloat16_t>(out, mat_a, mat_b, bias);
     } else {
-      sm100_bf16_batch_invariant_dispatch_shape<cutlass::half_t>(out, mat_a, mat_b, bias);
+      sm100_bf16_batch_invariant_fused_dispatch_shape<cutlass::half_t>(out, mat_a, mat_b, bias);
     }
     return out;
   }
@@ -576,7 +567,8 @@ torch::Tensor bf16_batch_invariant_mm(
     SWITCH_OUT_TYPE(out_dtype, outType, {
       SWITCH_MAJOR(mat_a.stride(1) == 1, LayoutA, {
         SWITCH_MAJOR(mat_b.stride(1) == 1, LayoutB, {
-          sm90_bf16_batch_invariant_dispatch_shape<outType, LayoutA, LayoutB>(out, mat_a, mat_b, bias);
+          sm90_bf16_batch_invariant_fused_dispatch_shape<outType, LayoutA, LayoutB>(
+            out, mat_a, mat_b, split_frac, bias);
         });
       });
       return out;
@@ -588,13 +580,13 @@ torch::Tensor bf16_batch_invariant_mm(
 #if defined CUDA_VERSION && CUDA_VERSION >= 12040
   if (sm_version == 89) {
     if (out_dtype == torch::kBFloat16) {
-      sm89_bf16_batch_invariant_dispatch_shape<cutlass::bfloat16_t>(out, mat_a, mat_b, bias);
+      sm89_bf16_batch_invariant_fused_dispatch_shape<cutlass::bfloat16_t>(out, mat_a, mat_b, bias);
     } else {
-      sm89_bf16_batch_invariant_dispatch_shape<cutlass::half_t>(out, mat_a, mat_b, bias);
+      sm89_bf16_batch_invariant_fused_dispatch_shape<cutlass::half_t>(out, mat_a, mat_b, bias);
     }
     return out;
   }
 #endif
 */
-  TORCH_CHECK_NOT_IMPLEMENTED(false, "No implemented bf16_batch_invariant_mm for current compute capability: ", sm_version);
+  TORCH_CHECK_NOT_IMPLEMENTED(false, "No implemented bf16_batch_invariant_fused_mm for current compute capability: ", sm_version);
 }

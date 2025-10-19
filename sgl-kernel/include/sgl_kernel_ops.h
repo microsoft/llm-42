@@ -186,7 +186,15 @@ torch::Tensor bf16_batch_invariant_mm(
     const torch::Tensor& mat_a,
     const torch::Tensor& mat_b,
     const torch::Dtype& out_dtype,
-    const c10::optional<torch::Tensor>& bias);
+    const c10::optional<torch::Tensor>& bias,
+    const c10::optional<torch::Tensor>& out);
+torch::Tensor bf16_batch_invariant_fused_mm(
+    const torch::Tensor& mat_a,
+    const torch::Tensor& mat_b,
+    const torch::Dtype& out_dtype,
+    const double split_frac,
+    const c10::optional<torch::Tensor>& bias,
+    const c10::optional<torch::Tensor>& out_tensor);
 void cutlass_scaled_fp4_mm(
     torch::Tensor& D,
     torch::Tensor const& A,

@@ -46,15 +46,20 @@ update: ## Update version numbers across project files. Usage: make update <new_
 %:
 	@:
 
+conda:
+	conda install -c nvidia cuda=12.8
+	export CUDA_HOME=/m-coriander/coriander/akkamath/miniconda3/envs/sglang2/targets/x86_64-linux/
+	export CMAKE_PREFIX_PATH=$CUDA_HOME:$CMAKE_PREFIX_PATH
+	export LD_LIBRARY_PATH=$CUDA_HOME/lib:$LD_LIBRARY_PATH
 
 
-MODEL = Qwen/Qwen3-32B
+MODEL = Qwen/Qwen3-4B
 BACKEND ?= flashinfer
-TOKENS = 8192
-BATCH ?= 16
+TOKENS = 1024
+BATCH ?= 256
 PROFILE = #--profile
 OVERRIDE = #--json-model-override-args '{"num_hidden_layers": 1}'
-OUTPUT ?= output/offline_q3-32b_
+OUTPUT ?= output/offline2_Q3-4B_
 TOKEN ?= 1024
 EXTRA ?= #--enable-deterministic-inference
 POST ?= 

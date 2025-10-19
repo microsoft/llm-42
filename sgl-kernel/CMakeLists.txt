@@ -272,6 +272,7 @@ set(SOURCES
 
     "csrc/gemm/awq_kernel.cu"
     "csrc/gemm/bf16_batch_invariant_gemm_kernel.cu"
+    "csrc/gemm/bf16_batch_invariant_fused_gemm_kernel.cu"
     "csrc/gemm/bmm_fp8.cu"
     "csrc/gemm/dsv3_fused_a_gemm.cu"
     "csrc/gemm/dsv3_router_gemm_bf16_out.cu"
