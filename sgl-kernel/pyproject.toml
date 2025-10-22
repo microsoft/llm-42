@@ -31,6 +31,7 @@ exclude = [
 ]
 
 [tool.scikit-build]
+cmake.version = ">=3.30"
 cmake.build-type = "Release"
 minimum-version = "build-system.requires"
 

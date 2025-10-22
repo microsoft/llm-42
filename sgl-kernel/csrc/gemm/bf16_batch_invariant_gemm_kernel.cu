@@ -47,16 +47,12 @@ using namespace cute;
   }
 
 #define SWITCH_MAJOR(row_condition, name, ...) \
-  if (row_condition) {         \
-    using name = cutlass::layout::RowMajor;   \
-    { __VA_ARGS__ }                           \
-  } else { \
-    TORCH_CHECK(false, "Unsupported major"); \
-  }
-
-//  else {                                    \
-    using name = cutlass::layout::ColumnMajor;\
-    { __VA_ARGS__ }                           \
+  if (row_condition) {                         \
+    using name = cutlass::layout::RowMajor;    \
+    { __VA_ARGS__ }                            \
+  } else {                                     \
+    using name = cutlass::layout::ColumnMajor; \
+    { __VA_ARGS__ }                            \
   }
 
 #define SWITCH_OUT_TYPE(type, name, ...) \
@@ -402,7 +398,9 @@ template <
     typename CTAShape,
     typename ClusterShape,
     typename MainloopScheduleType,
-    typename TileSchedulerType>
+    typename EpilogueScheduleType,
+    typename TileSchedulerType,
+    bool BIAS>
 void sm90_bf16_batch_invariant_dispatch_bias(
     torch::Tensor& out,
     const torch::Tensor& a,
@@ -414,38 +412,19 @@ void sm90_bf16_batch_invariant_dispatch_bias(
   using AccumElementType = float;
 
   SWITCH_TYPE(a.dtype(), ElementInput, {
-    if (bias) {
-      using EpilogueScheduleTypeBias = cutlass::epilogue::TmaWarpSpecialized;
-      using MainloopScheduleTypeBias = cutlass::gemm::KernelTmaWarpSpecializedPingpong;
-      using Gemm = typename DeviceGemmbf16RowwiseSm90<
-          ElementInput,
-          ElementOutput,
-          AccumElementType,
-          LayoutA,
-          LayoutB,
-          CTAShape,
-          ClusterShape,
-          MainloopScheduleTypeBias,
-          EpilogueScheduleTypeBias,
-          TileSchedulerType,
-          true>::Gemm;
-      return launch_sm90_bf16_batch_invariant_mm<Gemm, true>(out, a, b, bias);
-    } else {
-      using EpilogueScheduleType = cutlass::epilogue::TmaWarpSpecialized;
-      using Gemm = typename DeviceGemmbf16RowwiseSm90<
-          ElementInput,
-          ElementOutput,
-          AccumElementType,
-          LayoutA,
-          LayoutB,
-          CTAShape,
-          ClusterShape,
-          MainloopScheduleType,
-          EpilogueScheduleType,
-          TileSchedulerType,
-          false>::Gemm;
-      return launch_sm90_bf16_batch_invariant_mm<Gemm, false>(out, a, b, bias);
-    }
+    using Gemm = typename DeviceGemmbf16RowwiseSm90<
+        ElementInput,
+        ElementOutput,
+        AccumElementType,
+        LayoutA,
+        LayoutB,
+        CTAShape,
+        ClusterShape,
+        MainloopScheduleType,
+        EpilogueScheduleType,
+        TileSchedulerType,
+        BIAS>::Gemm;
+    return launch_sm90_bf16_batch_invariant_mm<Gemm, BIAS>(out, a, b, bias);
   });
 }
 
@@ -465,38 +444,87 @@ void sm90_bf16_batch_invariant_dispatch_shape(
   using StreamScheduler = cutlass::gemm::StreamKScheduler;
 
   using ChosenSmallScheduler = PingpongScheduler;
-  using ChosenBigScheduler = PingpongScheduler;
+  using ChosenBigScheduler = CooperativeScheduler;
   using ChosenTileScheduler = PersistentTileScheduler;
-  if (m <= 64) {
-    // m in [1, 64]
-    return sm90_bf16_batch_invariant_dispatch_bias<
-        OutType,
-        LayoutA,
-        LayoutB,
-        Shape<_64, _64, _128>,
-        Shape<_1, _1, _1>,
-        ChosenSmallScheduler,
-        BasicTileScheduler>(out, a, b, bias);
-  } else if (m < 256) {
-    // m in (64, 256]
-    return sm90_bf16_batch_invariant_dispatch_bias<
-        OutType,
-        LayoutA,
-        LayoutB,
-        Shape<_64, _64, _128>,
-        Shape<_1, _1, _1>,
-        ChosenSmallScheduler,
-        ChosenTileScheduler>(out, a, b, bias);
+
+  using ChosenSmallEpilogueScheduler = cutlass::epilogue::TmaWarpSpecialized;
+  using ChosenEpilogueScheduler = cutlass::epilogue::TmaWarpSpecializedCooperative;
+  if (bias) {
+    if (m <= 64) {
+      // m in [1, 64]
+      return sm90_bf16_batch_invariant_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_64, _64, _128>,
+          Shape<_1, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          BasicTileScheduler,
+          true>(out, a, b, bias);
+    } else if (m <= 1024) {
+      // m in (64, 256]
+      return sm90_bf16_batch_invariant_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_128, _128, _128>,
+          Shape<_1, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          ChosenTileScheduler,
+          true>(out, a, b, bias);
+    } else {
+      // m in (1024, inf)
+      return sm90_bf16_batch_invariant_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_128, _128, _64>,
+          Shape<_2, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          ChosenTileScheduler,
+          true>(out, a, b, bias);
+    }
   } else {
-    // m in (1024, inf)
-    return sm90_bf16_batch_invariant_dispatch_bias<
-        OutType,
-        LayoutA,
-        LayoutB,
-        Shape<_128, _128, _64>,
-        Shape<_2, _1, _1>,
-        ChosenBigScheduler,
-        ChosenTileScheduler>(out, a, b, bias);
+    if (m < 256) {
+      // m in [1, 64]
+      return sm90_bf16_batch_invariant_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_64, _64, _128>,
+          Shape<_1, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          BasicTileScheduler,
+          false>(out, a, b, bias);
+    } else if (m <= 1024) {
+      // m in (64, 1024]
+      return sm90_bf16_batch_invariant_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_128, _128, _64>,
+          Shape<_2, _1, _1>,
+          ChosenBigScheduler,
+          ChosenEpilogueScheduler,
+          BasicTileScheduler,
+          false>(out, a, b, bias);
+    } else {
+      // m in (1024, inf)
+      return sm90_bf16_batch_invariant_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_256, _128, _64>,
+          Shape<_2, _1, _1>,
+          ChosenBigScheduler,
+          ChosenEpilogueScheduler,
+          ChosenTileScheduler,
+          false>(out, a, b, bias);
+    }
   }
 }
 #endif

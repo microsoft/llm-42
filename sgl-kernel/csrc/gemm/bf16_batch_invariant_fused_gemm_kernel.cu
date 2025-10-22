@@ -48,16 +48,12 @@ using namespace cute;
   }
 
 #define SWITCH_MAJOR(row_condition, name, ...) \
-  if (row_condition) {         \
-    using name = cutlass::layout::RowMajor;   \
-    { __VA_ARGS__ }                           \
-  } else { \
-    TORCH_CHECK(false, "Unsupported major"); \
-  }
-
-//  else {                                    \
-    using name = cutlass::layout::ColumnMajor;\
-    { __VA_ARGS__ }                           \
+  if (row_condition) {                         \
+    using name = cutlass::layout::RowMajor;    \
+    { __VA_ARGS__ }                            \
+  } else {                                     \
+    using name = cutlass::layout::ColumnMajor; \
+    { __VA_ARGS__ }                            \
   }
 
 #define SWITCH_OUT_TYPE(type, name, ...) \
@@ -201,11 +197,11 @@ struct DeviceGemmbf16RowwiseSm90 {
 
 
 template <typename Gemm, bool WithBias>
-std::tuple<typename Gemm::Arguments, typename Gemm::Arguments> prepare_sm90_bf16_batch_invariant_fused_args(
+typename Gemm::Arguments prepare_sm90_bf16_batch_invariant_fused_args(
     torch::Tensor& out,
     const torch::Tensor& a,
     const torch::Tensor& b,
-    const double split_frac,
+    const int32_t m1,
     const c10::optional<torch::Tensor>& bias) {
   using ElementT = typename Gemm::ElementA;
   using ElementOutput = typename Gemm::ElementD;
@@ -215,25 +211,24 @@ std::tuple<typename Gemm::Arguments, typename Gemm::Arguments> prepare_sm90_bf16
   using StrideC = typename Gemm::GemmKernel::StrideC;
   using StrideD = typename Gemm::GemmKernel::StrideD;
 
-  int32_t m = a.size(0);
   int32_t n = b.size(1);
   int32_t k = a.size(1);
 
-  int32_t m1 = static_cast<int32_t>(m * split_frac);
-  int32_t m2 = m - m1;
+  //int32_t m1 = static_cast<int32_t>(m * split_frac);
+  //int32_t m2 = m - m1;
 
   ElementT const* ptr_a = reinterpret_cast<ElementT const*>(a.data_ptr());
   ElementT const* ptr_a1, *ptr_a2;
   if (a.stride(0) == 1) {
     // column major
-    TORCH_CHECK(a.stride(1) == m, "mat_a is not a column major or row major tensor");
+    //TORCH_CHECK(a.stride(1) == m, "mat_a is not a column major or row major tensor");
     ptr_a1 = ptr_a;
-    ptr_a2 = ptr_a + m1;
+    //ptr_a2 = ptr_a + m1;
   } else {
     // row major
     TORCH_CHECK(a.stride(1) == 1, "mat_a is not a column major or row major tensor");
     ptr_a1 = ptr_a;
-    ptr_a2 = ptr_a + m1 * k;
+    //ptr_a2 = ptr_a + m1 * k;
   }
 
   ElementT const* ptr_b = reinterpret_cast<ElementT const*>(b.data_ptr());
@@ -249,19 +244,19 @@ std::tuple<typename Gemm::Arguments, typename Gemm::Arguments> prepare_sm90_bf16
       // row major
       TORCH_CHECK(bias->stride(1) == 1, "bias is not a row major tensor");
       ptr_bias1 = ptr_bias;
-      ptr_bias2 = ptr_bias + m1 * n;
+      //ptr_bias2 = ptr_bias + m1 * n;
     }
   }
   ElementOutput* ptr_d = reinterpret_cast<ElementOutput*>(out.data_ptr());
   ElementOutput* ptr_d1 = ptr_d;
-  ElementOutput* ptr_d2 = ptr_d + m1 * n;
+  //ElementOutput* ptr_d2 = ptr_d + m1 * n;
 
   StrideA stride_a1 = cutlass::make_cute_packed_stride(StrideA{}, make_shape(m1, k, 1));
-  StrideA stride_a2 = cutlass::make_cute_packed_stride(StrideA{}, make_shape(m2, k, 1));
+  //StrideA stride_a2 = cutlass::make_cute_packed_stride(StrideA{}, make_shape(m2, k, 1));
   StrideB stride_b = cutlass::make_cute_packed_stride(StrideB{}, make_shape(n, k, 1));
   StrideC stride_c;
   StrideD stride_d1 = cutlass::make_cute_packed_stride(StrideD{}, make_shape(m1, n, 1));
-  StrideD stride_d2 = cutlass::make_cute_packed_stride(StrideD{}, make_shape(m2, n, 1));
+  //StrideD stride_d2 = cutlass::make_cute_packed_stride(StrideD{}, make_shape(m2, n, 1));
   typename Gemm::Arguments args1 = {
       cutlass::gemm::GemmUniversalMode::kGemm,
       {m1, n, k, 1},
@@ -271,7 +266,7 @@ std::tuple<typename Gemm::Arguments, typename Gemm::Arguments> prepare_sm90_bf16
        stride_c,
        ptr_d1,
        stride_d1}};
-  typename Gemm::Arguments args2 = {
+  /*typename Gemm::Arguments args2 = {
       cutlass::gemm::GemmUniversalMode::kGemm,
       {m2, n, k, 1},
       {ptr_a2, stride_a2, ptr_b, stride_b},
@@ -279,21 +274,21 @@ std::tuple<typename Gemm::Arguments, typename Gemm::Arguments> prepare_sm90_bf16
        nullptr,
        stride_c,
        ptr_d2,
-       stride_d2}};
+       stride_d2}};*/
   if constexpr (WithBias) {
     args1.epilogue.thread = {
         {}, // Accum
         {ptr_bias1},
         {}, // Add
     };
-    args2.epilogue.thread = {
+    /*args2.epilogue.thread = {
         {}, // Accum
         {ptr_bias2},
         {}, // Add
-    };
+    };*/
   }
 
-  return {args1, args2};
+  return args1;
 }
 
 template <typename Gemm, bool WithBias>
@@ -308,10 +303,9 @@ void launch_sm90_bf16_batch_invariant_fused_mm(
   int32_t m1 = static_cast<int32_t>(m * split_frac);
   int32_t m2 = m - m1;
 
-  auto mixed_args = prepare_sm90_bf16_batch_invariant_fused_args<Gemm, WithBias>(out, a, b, split_frac, bias);
+  fprintf(stderr, "Launching sm90 bf16 batch invariant fused mm with m1: %d, m2: %d\n", m1, m2);
 
-  auto args1 = std::get<0>(mixed_args);
-  auto args2 = std::get<1>(mixed_args);
+  auto args1 = prepare_sm90_bf16_batch_invariant_fused_args<Gemm, WithBias>(out, a, b, m1, bias);
 
   Gemm gemm_op;
   auto const workspace_options = torch::TensorOptions().dtype(torch::kUInt16).device(a.device());
@@ -319,15 +313,16 @@ void launch_sm90_bf16_batch_invariant_fused_mm(
   torch::Tensor workspace1, workspace2;
 
   if (m1 > 0) {
-    size_t workspace_size1 = gemm_op.get_workspace_size(args1);
-    workspace1 = torch::empty(workspace_size1, workspace_options);
+    //size_t workspace_size1 = gemm_op.get_workspace_size(args1);
+    //workspace1 = torch::empty(workspace_size1, workspace_options);
+    //fprintf(stderr, "workspace_size1: %zu\n", workspace_size1);
   }
   /*if (m2 > 0) {
     size_t workspace_size2 = gemm_op.get_workspace_size(args2);
     workspace2 = torch::empty(workspace_size2, workspace_options);
   }*/
 
-  auto stream = at::cuda::getCurrentCUDAStream(a.get_device());
+  auto stream = at::cuda::getCurrentCUDAStream(a.get_device()).stream();
 
   static cudaStream_t stream1 = nullptr;
   // stream2 = nullptr;
@@ -339,13 +334,17 @@ void launch_sm90_bf16_batch_invariant_fused_mm(
     cudaEventCreateWithFlags(&event2, cudaEventDisableTiming);
   }
 
+  if (m1 > 0) {
+    gemm_op.initialize(args1, nullptr/*workspace1.data_ptr()*/, stream1);
+  }
+
   // Wait for previous kernels to finish
   cudaEventRecord(event1, stream);
   cudaStreamWaitEvent(stream1, event1, 0);
   cudaStreamWaitEvent(stream2.stream(), event1, 0);
 
-  auto can_implement = gemm_op.can_implement(args1);
-  TORCH_CHECK(can_implement == cutlass::Status::kSuccess)
+  //auto can_implement = gemm_op.can_implement(args1);
+  //TORCH_CHECK(can_implement == cutlass::Status::kSuccess)
 
   if (m2 > 0) {
     {
@@ -372,7 +371,7 @@ void launch_sm90_bf16_batch_invariant_fused_mm(
   }
 
   if (m1 > 0) {
-    auto status = gemm_op.run(args1, workspace1.data_ptr(), stream1);
+    auto status = gemm_op.run(stream1);
     TORCH_CHECK(status == cutlass::Status::kSuccess)
   }
 
