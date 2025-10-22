@@ -56,7 +56,7 @@ conda:
 MODEL = Qwen/Qwen3-4B
 BACKEND ?= flashinfer
 TOKENS = 1024
-BATCH ?= 256
+BATCH ?= 1024
 PROFILE = #--profile
 OVERRIDE = #--json-model-override-args '{"num_hidden_layers": 1}'
 OUTPUT ?= output/offline2_Q3-4B_
@@ -69,15 +69,19 @@ run_offline:
 		--num-prompts ${BATCH} --attention-backend ${BACKEND} \
 		--dataset-name random --random-input ${TOKEN} --random-output ${TOKEN} ${EXTRA} > ${OUTPUT}${POST}${BACKEND}_b${BATCH}_${TOKEN}.txt;
 
+# Bitmask: 1=On defaults, 2=Use kernel matmul, 4=Use split-stream matmul, 32 = Use non-det matmul, 64 = Use non-det rmsnorm, 128 = Use non-det attention
+MODE ?= 1
 run_offline_det:
-	$(MAKE) run_offline EXTRA="--enable-deterministic-inference" POST="det_";
+	$(MAKE) run_offline EXTRA="--enable-deterministic-inference=${MODE}" POST="det${MODE}_";
 
 run_test_perf:
 	mkdir -p output
 	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
 	for token in ${TOKENS}; do \
 		$(MAKE) run_offline TOKEN=$${token}; \
-		$(MAKE) run_offline_det TOKEN=$${token}; \
+		$(MAKE) run_offline_det TOKEN=$${token} MODE=1; \
+		$(MAKE) run_offline_det TOKEN=$${token} MODE=2; \
+		$(MAKE) run_offline_det TOKEN=$${token} MODE=194; \
 	done
 
 extract_test_deterministic_perf:

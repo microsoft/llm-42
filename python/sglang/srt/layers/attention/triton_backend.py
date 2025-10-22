@@ -102,7 +102,8 @@ class TritonAttnBackend(AttentionBackend):
 
         # Decide whether enable deterministic inference with batch-invariant operations
         self.enable_deterministic = (
-            model_runner.server_args.enable_deterministic_inference
+            model_runner.server_args.enable_deterministic_inference and
+            not (model_runner.server_args.enable_deterministic_inference & 128)
         )
 
         # Configure deterministic inference settings

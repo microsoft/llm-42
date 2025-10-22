@@ -14,6 +14,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import torch
+from torch.profiler import record_function
 
 if os.environ["SGLANG_ENABLE_TORCH_COMPILE"] == "1":
     import logging
@@ -130,7 +131,8 @@ class FlashInferAttnBackend(AttentionBackend):
         # Also set split tile sizes for prefill and decode from environment variables, and disable kv split for cuda graph
         # More information can be found here: https://github.com/flashinfer-ai/flashinfer/pull/1675
         self.enable_deterministic = (
-            model_runner.server_args.enable_deterministic_inference
+            model_runner.server_args.enable_deterministic_inference and
+            not (model_runner.server_args.enable_deterministic_inference & 128)
         )
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
@@ -525,18 +527,18 @@ class FlashInferAttnBackend(AttentionBackend):
                     forward_batch.token_to_kv_pool.set_kv_buffer(
                         layer, cache_loc, k, v, layer.k_scale, layer.v_scale
                     )
-
-            o = prefill_wrapper_paged.forward(
-                q.view(-1, layer.tp_q_head_num, layer.head_dim),
-                forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
-                causal=not layer.is_cross_attention,
-                sm_scale=layer.scaling,
-                window_left=layer.sliding_window_size,
-                logits_soft_cap=logits_soft_cap,
-                # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
-                k_scale=layer.k_scale_float,
-                v_scale=layer.v_scale_float,
-            )
+            with record_function("attention"):
+                o = prefill_wrapper_paged.forward(
+                    q.view(-1, layer.tp_q_head_num, layer.head_dim),
+                    forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
+                    causal=not layer.is_cross_attention,
+                    sm_scale=layer.scaling,
+                    window_left=layer.sliding_window_size,
+                    logits_soft_cap=logits_soft_cap,
+                    # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
+                    k_scale=layer.k_scale_float,
+                    v_scale=layer.v_scale_float,
+                )
         else:
             causal = True
             if layer.attn_type == AttentionType.ENCODER_ONLY:
@@ -547,33 +549,35 @@ class FlashInferAttnBackend(AttentionBackend):
                 # NOTE: FlashInfer currently has limitations with head_dim = 32 or other dimensions
                 # The FlashInfer head_dim limitation itself is tracked here:
                 # https://github.com/flashinfer-ai/flashinfer/issues/1048
-                o = self.prefill_wrapper_ragged.forward(
-                    q.view(-1, layer.tp_q_head_num, layer.head_dim),
-                    k.view(-1, layer.tp_k_head_num, layer.head_dim),
-                    v.view(-1, layer.tp_v_head_num, layer.head_dim),
-                    causal=causal,
-                    sm_scale=layer.scaling,
-                    logits_soft_cap=logits_soft_cap,
-                )
+                with record_function("attention"):
+                    o = self.prefill_wrapper_ragged.forward(
+                        q.view(-1, layer.tp_q_head_num, layer.head_dim),
+                        k.view(-1, layer.tp_k_head_num, layer.head_dim),
+                        v.view(-1, layer.tp_v_head_num, layer.head_dim),
+                        causal=causal,
+                        sm_scale=layer.scaling,
+                        logits_soft_cap=logits_soft_cap,
+                    )
 
             else:
-                o1, s1 = self.prefill_wrapper_ragged.forward_return_lse(
-                    q.view(-1, layer.tp_q_head_num, layer.head_dim),
-                    k.view(-1, layer.tp_k_head_num, layer.head_dim),
-                    v.view(-1, layer.tp_v_head_num, layer.head_dim),
-                    causal=True,
-                    sm_scale=layer.scaling,
-                    logits_soft_cap=logits_soft_cap,
-                )
-                o2, s2 = prefill_wrapper_paged.forward_return_lse(
-                    q.view(-1, layer.tp_q_head_num, layer.head_dim),
-                    forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
-                    causal=False,
-                    sm_scale=layer.scaling,
-                    logits_soft_cap=logits_soft_cap,
-                )
+                with record_function("attention"):
+                    o1, s1 = self.prefill_wrapper_ragged.forward_return_lse(
+                        q.view(-1, layer.tp_q_head_num, layer.head_dim),
+                        k.view(-1, layer.tp_k_head_num, layer.head_dim),
+                        v.view(-1, layer.tp_v_head_num, layer.head_dim),
+                        causal=True,
+                        sm_scale=layer.scaling,
+                        logits_soft_cap=logits_soft_cap,
+                    )
+                    o2, s2 = prefill_wrapper_paged.forward_return_lse(
+                        q.view(-1, layer.tp_q_head_num, layer.head_dim),
+                        forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
+                        causal=False,
+                        sm_scale=layer.scaling,
+                        logits_soft_cap=logits_soft_cap,
+                    )
 
-                o, _ = merge_state(o1, s1, o2, s2)
+                    o, _ = merge_state(o1, s1, o2, s2)
 
             if save_kv_cache:
                 forward_batch.token_to_kv_pool.set_kv_buffer(
@@ -608,15 +612,16 @@ class FlashInferAttnBackend(AttentionBackend):
                 )
 
         # Call the wrapped function
-        o = decode_wrapper.forward(
-            q.contiguous().view(-1, layer.tp_q_head_num, layer.head_dim),
-            forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
-            sm_scale=layer.scaling,
-            logits_soft_cap=layer.logit_cap,
-            # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
-            k_scale=layer.k_scale_float,
-            v_scale=layer.v_scale_float,
-        )
+        with record_function("attention"):
+            o = decode_wrapper.forward(
+                q.contiguous().view(-1, layer.tp_q_head_num, layer.head_dim),
+                forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
+                sm_scale=layer.scaling,
+                logits_soft_cap=layer.logit_cap,
+                # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
+                k_scale=layer.k_scale_float,
+                v_scale=layer.v_scale_float,
+            )
 
         return o.view(-1, layer.tp_q_head_num * layer.head_dim)
 

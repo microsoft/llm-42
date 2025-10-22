@@ -18,12 +18,14 @@ from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from torch.profiler import record_function
 from packaging.version import Version
 
 from sglang.srt.custom_op import CustomOp
 from sglang.srt.utils import (
     cpu_has_amx_support,
     get_bool_env_var,
+    get_int_env_var,
     is_cpu,
     is_cuda,
     is_flashinfer_available,
@@ -80,7 +82,8 @@ class RMSNorm(CustomOp):
         )
         if _use_aiter:
             self._forward_method = self.forward_aiter
-        if get_bool_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE"):
+        deterministic = get_int_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE")
+        if deterministic and not (deterministic & 64):
             self._forward_method = self.forward_native
 
     def forward_cuda(
@@ -88,12 +91,13 @@ class RMSNorm(CustomOp):
         x: torch.Tensor,
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        if self.variance_size_override is not None:
-            return self.forward_native(x, residual)
-        if residual is not None:
-            fused_add_rmsnorm(x, residual, self.weight.data, self.variance_epsilon)
-            return x, residual
-        out = rmsnorm(x, self.weight.data, self.variance_epsilon)
+        with record_function("rmsnorm"):
+            if self.variance_size_override is not None:
+                return self.forward_native(x, residual)
+            if residual is not None:
+                fused_add_rmsnorm(x, residual, self.weight.data, self.variance_epsilon)
+                return x, residual
+            out = rmsnorm(x, self.weight.data, self.variance_epsilon)
         return out
 
     def forward_npu(
@@ -160,35 +164,36 @@ class RMSNorm(CustomOp):
         x: torch.Tensor,
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        if not x.is_contiguous():
-            x = x.contiguous()
-        orig_dtype = x.dtype
-        x = x.to(torch.float32)
-        if residual is not None:
-            x = x + residual.to(torch.float32)
-            residual = x.to(orig_dtype)
+        with record_function("rmsnorm"):
+            if not x.is_contiguous():
+                x = x.contiguous()
+            orig_dtype = x.dtype
+            x = x.to(torch.float32)
+            if residual is not None:
+                x = x + residual.to(torch.float32)
+                residual = x.to(orig_dtype)
 
-        hidden_size = x.shape[-1]
-        if hidden_size != self.hidden_size:
-            raise ValueError(
-                "Expected hidden_size to be "
-                f"{self.hidden_size}, but found: {hidden_size}"
-            )
-
-        if self.variance_size_override is None:
-            x_var = x
-        else:
-            if hidden_size < self.variance_size_override:
+            hidden_size = x.shape[-1]
+            if hidden_size != self.hidden_size:
                 raise ValueError(
-                    "Expected hidden_size to be at least "
-                    f"{self.variance_size_override}, but found: {hidden_size}"
+                    "Expected hidden_size to be "
+                    f"{self.hidden_size}, but found: {hidden_size}"
                 )
 
-            x_var = x[..., : self.variance_size_override]
+            if self.variance_size_override is None:
+                x_var = x
+            else:
+                if hidden_size < self.variance_size_override:
+                    raise ValueError(
+                        "Expected hidden_size to be at least "
+                        f"{self.variance_size_override}, but found: {hidden_size}"
+                    )
 
-        variance = x_var.pow(2).mean(dim=-1, keepdim=True)
-        x = x * torch.rsqrt(variance + self.variance_epsilon)
-        x = (x * self.weight).to(orig_dtype)
+                x_var = x[..., : self.variance_size_override]
+
+            variance = x_var.pow(2).mean(dim=-1, keepdim=True)
+            x = x * torch.rsqrt(variance + self.variance_epsilon)
+            x = (x * self.weight).to(orig_dtype)
         if residual is None:
             return x
         else:
@@ -199,17 +204,18 @@ class RMSNorm(CustomOp):
         x: torch.Tensor,
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        if _is_cpu_amx_available:
-            if residual is not None:
-                torch.ops.sgl_kernel.fused_add_rmsnorm_cpu(
-                    x, residual, self.weight.data, self.variance_epsilon
+        with record_function("rmsnorm"):
+            if _is_cpu_amx_available:
+                if residual is not None:
+                    torch.ops.sgl_kernel.fused_add_rmsnorm_cpu(
+                        x, residual, self.weight.data, self.variance_epsilon
+                    )
+                    return x, residual
+                return torch.ops.sgl_kernel.rmsnorm_cpu(
+                    x, self.weight.data, self.variance_epsilon
                 )
-                return x, residual
-            return torch.ops.sgl_kernel.rmsnorm_cpu(
-                x, self.weight.data, self.variance_epsilon
-            )
-        else:
-            return self.forward_native(x, residual)
+            else:
+                return self.forward_native(x, residual)
 
     def forward_with_allreduce_fusion(
         self,

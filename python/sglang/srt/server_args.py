@@ -411,7 +411,7 @@ class ServerArgs:
     enable_return_hidden_states: bool = False
     scheduler_recv_interval: int = 1
     numa_node: Optional[List[int]] = None
-    enable_deterministic_inference: bool = False
+    enable_deterministic_inference: int = 0
 
     # Dynamic batch tokenizer
     enable_dynamic_batch_tokenizer: bool = False
@@ -1174,7 +1174,7 @@ class ServerArgs:
             "1" if self.disable_outlines_disk_cache else "0"
         )
         os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = (
-            "1" if self.enable_deterministic_inference else "0"
+            str(self.enable_deterministic_inference)
         )
 
     def _handle_cache_compatibility(self):
@@ -2756,8 +2756,9 @@ class ServerArgs:
         # For deterministic inference
         parser.add_argument(
             "--enable-deterministic-inference",
-            action="store_true",
-            help="Enable deterministic inference mode with batch invariant ops.",
+            type=int,
+            default=ServerArgs.enable_deterministic_inference,
+            help="Enable deterministic inference mode with batch invariant ops (1=existing, 2=custom kernel, 3=25%% split, 4=50%% split).",
         )
 
         # Deprecated arguments

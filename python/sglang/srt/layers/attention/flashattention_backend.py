@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 import torch
+from torch.profiler import record_function
 import triton
 import triton.language as tl
 
@@ -358,7 +359,8 @@ class FlashAttentionBackend(AttentionBackend):
         # We set nums splits to 1 if deterministic inference is enabled.
         # See https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/ for more details.
         self.num_splits = (
-            1 if model_runner.server_args.enable_deterministic_inference else 0
+            1 if model_runner.server_args.enable_deterministic_inference and
+            not (model_runner.server_args.enable_deterministic_inference & 128) else 0
         )
 
     def init_forward_metadata(self, forward_batch: ForwardBatch):

@@ -9,6 +9,9 @@ import torch
 import triton
 import triton.language as tl
 
+from sgl_kernel import bf16_batch_invariant_mm, bf16_batch_invariant_fused_mm
+from torch.profiler import record_function
+
 __all__ = [
     "set_batch_invariant_mode",
     "is_batch_invariant_mode_enabled",
@@ -469,12 +472,29 @@ def mean_dim(
 
 
 def mm_batch_invariant(a, b):
-    return matmul_persistent(a, b)
+    with record_function("matmul"):
+        return matmul_persistent(a, b)
 
 
 def addmm_batch_invariant(bias, a, b):
-    return matmul_persistent(a, b, bias=bias)
+    with record_function("matmul"):
+        return matmul_persistent(a, b, bias=bias)
 
+def mm_bi_kernel(a, b):
+    with record_function("matmul"):
+        return bf16_batch_invariant_mm(a, b, out_dtype=a.dtype, bias=None)
+
+def addmm_bi_kernel(bias, a, b):
+    with record_function("matmul"):
+        return bf16_batch_invariant_mm(a, b, out_dtype=a.dtype, bias=bias)
+
+def mm_bi_fused_kernel(a, b, split_frac=0.25):
+    with record_function("matmul"):
+        return bf16_batch_invariant_fused_mm(a, b, a.dtype, split_frac=split_frac, bias=None)
+
+def addmm_bi_fused_kernel(bias, a, b, split_frac=0.25):
+    with record_function("matmul"):
+        return bf16_batch_invariant_fused_mm(a, b, a.dtype, split_frac=split_frac, bias=bias)
 
 def _log_softmax_batch_invariant(input, dim, _half_to_float):
     assert not _half_to_float, "not implemented"
@@ -505,15 +525,35 @@ def is_batch_invariant_mode_enabled():
     return _batch_invariant_MODE
 
 
-def enable_batch_invariant_mode():
+def enable_batch_invariant_mode(mode: int = 1):
     global _batch_invariant_MODE, _batch_invariant_LIB
     if _batch_invariant_MODE:
         return
 
     _batch_invariant_MODE = True
     _batch_invariant_LIB = torch.library.Library("aten", "IMPL")
-    _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
-    _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
+    if mode & 1:
+        print("Enabling batch invariant mode with existing kernels...", flush=True)
+        _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
+        _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
+    elif mode & 2:
+        print("Enabling batch invariant mode with CUDA kernels...", flush=True)
+        _batch_invariant_LIB.impl("aten::mm", mm_bi_kernel, "CUDA")
+        _batch_invariant_LIB.impl("aten::addmm", addmm_bi_kernel, "CUDA")
+    elif mode & 4:
+        print("Enabling batch invariant mode with 25% split CUDA kernels...", flush=True)
+        _batch_invariant_LIB.impl(
+            "aten::mm",
+            lambda a, b: mm_bi_fused_kernel(a, b, split_frac=0.25),
+            "CUDA",
+        )
+        _batch_invariant_LIB.impl(
+            "aten::addmm",
+            lambda bias, a, b: addmm_bi_fused_kernel(bias, a, b, split_frac=0.25),
+            "CUDA",
+        )
+    elif mode != 0:
+        raise ValueError(f"Unknown batch invariant mode for matmul: {mode}; Add 1 for ThinkingMachine kernel, 2 for CUTLASS kernel, 4 for 25% split CUTLASS kernel")
     _batch_invariant_LIB.impl(
         "aten::_log_softmax", _log_softmax_batch_invariant, "CUDA"
     )
