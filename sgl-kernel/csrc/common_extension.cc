@@ -73,6 +73,18 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
   m.def("fused_add_rmsnorm(Tensor! input, Tensor! residual, Tensor weight, float eps, bool enable_pdl) -> ()");
   m.impl("fused_add_rmsnorm", torch::kCUDA, &sgl_fused_add_rmsnorm);
 
+  m.def("vllm_rmsnorm(Tensor! output, Tensor input, Tensor weight, float eps) -> ()");
+  m.impl("vllm_rmsnorm", torch::kCUDA, &vllm_rmsnorm);
+
+  m.def("vllm_fused_add_rmsnorm_dynamic(Tensor! input, Tensor! residual, Tensor weight, float eps) -> ()");
+  m.impl("vllm_fused_add_rmsnorm_dynamic", torch::kCUDA, &vllm_fused_add_rmsnorm_dynamic);
+
+  m.def("vllm_fused_add_rmsnorm_256(Tensor! input, Tensor! residual, Tensor weight, float eps) -> ()");
+  m.impl("vllm_fused_add_rmsnorm_256", torch::kCUDA, &vllm_fused_add_rmsnorm_256);
+
+  m.def("vllm_fused_add_rmsnorm_1024(Tensor! input, Tensor! residual, Tensor weight, float eps) -> ()");
+  m.impl("vllm_fused_add_rmsnorm_1024", torch::kCUDA, &vllm_fused_add_rmsnorm_1024);
+
   m.def("gemma_rmsnorm(Tensor! output, Tensor input, Tensor weight, float eps, bool enable_pdl) -> ()");
   m.impl("gemma_rmsnorm", torch::kCUDA, &gemma_rmsnorm);
 

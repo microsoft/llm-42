@@ -45,6 +45,17 @@ def rmsnorm(
     torch.ops.sgl_kernel.rmsnorm.default(out, input, weight, eps, enable_pdl)
     return out
 
+def vllm_rmsnorm(
+    input: torch.Tensor,
+    weight: torch.Tensor,
+    eps: float = 1e-6,
+    out: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    if out is None:
+        out = torch.empty_like(input)
+    torch.ops.sgl_kernel.vllm_rmsnorm.default(out, input, weight, eps)
+    return out
+
 
 def fused_add_rmsnorm(
     input: torch.Tensor,
@@ -80,6 +91,38 @@ def fused_add_rmsnorm(
         enable_pdl = is_arch_support_pdl()
     torch.ops.sgl_kernel.fused_add_rmsnorm.default(
         input, residual, weight, eps, enable_pdl
+    )
+
+def vllm_fused_add_rmsnorm_dynamic(
+    input: torch.Tensor,
+    residual: torch.Tensor,
+    weight: torch.Tensor,
+    eps: float = 1e-6,
+) -> None:
+    torch.ops.sgl_kernel.vllm_fused_add_rmsnorm_dynamic.default(
+        input, residual, weight, eps
+    )
+
+
+def vllm_fused_add_rmsnorm_256(
+    input: torch.Tensor,
+    residual: torch.Tensor,
+    weight: torch.Tensor,
+    eps: float = 1e-6,
+) -> None:
+    torch.ops.sgl_kernel.vllm_fused_add_rmsnorm_256.default(
+        input, residual, weight, eps
+    )
+
+
+def vllm_fused_add_rmsnorm_1024(
+    input: torch.Tensor,
+    residual: torch.Tensor,
+    weight: torch.Tensor,
+    eps: float = 1e-6,
+) -> None:
+    torch.ops.sgl_kernel.vllm_fused_add_rmsnorm_1024.default(
+        input, residual, weight, eps
     )
 
 
