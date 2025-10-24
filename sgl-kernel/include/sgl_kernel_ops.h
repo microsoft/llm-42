@@ -139,11 +139,11 @@ void sgl_fused_add_rmsnorm(
     torch::Tensor input, torch::Tensor residual, torch::Tensor weight, double eps, bool enable_pdl);
 void vllm_rmsnorm(at::Tensor& output, at::Tensor& input, at::Tensor& weight, double eps);
 void vllm_fused_add_rmsnorm_dynamic(
-    torch::Tensor input, torch::Tensor residual, torch::Tensor weight, double eps);
+    torch::Tensor& input, torch::Tensor& residual, torch::Tensor& weight, double eps);
 void vllm_fused_add_rmsnorm_256(
-    torch::Tensor input, torch::Tensor residual, torch::Tensor weight, double eps);
+    torch::Tensor& input, torch::Tensor& residual, torch::Tensor& weight, double eps);
 void vllm_fused_add_rmsnorm_1024(
-    torch::Tensor input, torch::Tensor residual, torch::Tensor weight, double eps);
+    torch::Tensor& input, torch::Tensor& residual, torch::Tensor& weight, double eps);
 void gemma_rmsnorm(at::Tensor& output, at::Tensor& input, at::Tensor& weight, double eps, bool enable_pdl);
 void gemma_fused_add_rmsnorm(at::Tensor& input, at::Tensor& residual, at::Tensor& weight, double eps, bool enable_pdl);
 void silu_and_mul(at::Tensor& out, at::Tensor& input);

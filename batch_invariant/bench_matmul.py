@@ -105,14 +105,14 @@ print("\nBatch-Invariant-Fused-kernel 50% Mode:")
 run_iters(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.5))
 print()
 
-BATCHES = [256, 8192]
+BATCHES = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
 CONFIGS = [
     "torch",
     "bi",
     "bi_fused",
-    "split_12.5",
-    "split_25",
-    "split_50",
+    # "split_12.5",
+    # "split_25",
+    # "split_50",
     #"split_75",
     #"split_87.5"
 ]
@@ -124,11 +124,11 @@ for config in CONFIGS:
 # Benchmark performance
 for batch_size in BATCHES:
     tflops_results["torch"][batch_size] = bench_perf(torch.mm, B=batch_size)
-    #tflops_results["bi"][batch_size] = bench_perf(matmul_persistent, B=batch_size)
+    tflops_results["bi"][batch_size] = bench_perf(matmul_persistent, B=batch_size)
     tflops_results["bi_fused"][batch_size] = bench_perf(bi_kernel_wrapper, B=batch_size)
-    tflops_results["split_12.5"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.125), B=batch_size)
-    tflops_results["split_25"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.25), B=batch_size)
-    tflops_results["split_50"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.5), B=batch_size)
+    # tflops_results["split_12.5"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.125), B=batch_size)
+    # tflops_results["split_25"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.25), B=batch_size)
+    # tflops_results["split_50"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.5), B=batch_size)
     #tflops_results["split_75"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.75), B=batch_size)
     #tflops_results["split_87.5"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.875), B=batch_size)
 
@@ -146,12 +146,12 @@ import matplotlib.pyplot as plt
 # Prepare data (preserve the BATCHES order)
 x = BATCHES
 torch_vals = [tflops_results['torch'].get(b, 0.0) for b in x]
-#bi_vals = [tflops_results['bi'].get(b, 0.0) for b in x]
+bi_vals = [tflops_results['bi'].get(b, 0.0) for b in x]
 bi_fused_vals = [tflops_results['bi_fused'].get(b, 0.0) for b in x]
 
 plt.figure(figsize=(10, 6))
 plt.plot(x, torch_vals, marker='o', label='PyTorch (torch.mm)')
-#plt.plot(x, bi_vals, marker='s', label='Batch-Invariant (matmul_persistent)')
+plt.plot(x, bi_vals, marker='s', label='Batch-Invariant (matmul_persistent)')
 plt.plot(x, bi_fused_vals, marker='^', label='BI-Fused (bi_kernel_wrapper)')
 for config in CONFIGS:
     if config.startswith('split_'):
@@ -163,7 +163,7 @@ plt.xticks(x, x, rotation=45)
 plt.yscale('log', base=10)
 plt.xlabel('Batch size')
 plt.ylabel('TFLOPS')
-plt.title('TFLOPS vs Batch size')
+plt.title('TFLOPS vs Batch size, H100, bf16')
 plt.grid(True, which='both', linestyle='--', linewidth=0.5)
 plt.legend()
 plt.tight_layout()
