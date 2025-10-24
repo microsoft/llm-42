@@ -50,7 +50,7 @@ FetchContent_Declare(
     GIT_SHALLOW    OFF
 )
 FetchContent_Populate(repo-cutlass)
-
+#[[
 # DeepGEMM
 FetchContent_Declare(
     repo-deepgemm
@@ -59,7 +59,7 @@ FetchContent_Declare(
     GIT_SHALLOW    OFF
 )
 FetchContent_Populate(repo-deepgemm)
-
+]]
 FetchContent_Declare(
     repo-fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt
@@ -481,9 +481,12 @@ if (SGL_KERNEL_ENABLE_FA3)
 
     set(FLASH_SOURCES
         "csrc/flash_extension.cc"
-        "${repo-flash-attention_SOURCE_DIR}/hopper/flash_prepare_scheduler.cu"
-        "${repo-flash-attention_SOURCE_DIR}/hopper/flash_api.cpp"
-        "${repo-flash-attention_SOURCE_DIR}/hopper/flash_fwd_combine.cu"
+        "csrc/flashattention/flash_api.cpp"
+        "csrc/flashattention/flash_fwd_combine.cu"
+        "csrc/flashattention/flash_prepare_scheduler.cu"
+        #"${repo-flash-attention_SOURCE_DIR}/hopper/flash_prepare_scheduler.cu"
+        #"${repo-flash-attention_SOURCE_DIR}/hopper/flash_api.cpp"
+        #"${repo-flash-attention_SOURCE_DIR}/hopper/flash_fwd_combine.cu"
         "${FA3_GEN_SRCS}"
     )
 

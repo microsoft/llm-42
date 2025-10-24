@@ -246,13 +246,13 @@ def flash_attn_with_kvcache(
         causal,
         window_size[0],
         window_size[1],
+        0, # attention_chunk
         softcap,
         rotary_interleaved,
         scheduler_metadata,
         num_splits,
         pack_gqa,
         sm_margin,
-        sinks,
     )
     # return (out, softmax_lse) if return_softmax_lse else out
     return (out, softmax_lse, *rest) if return_softmax_lse else out
@@ -353,13 +353,13 @@ def flash_attn_varlen_func(
         causal,
         window_size[0],
         window_size[1],
+        0, # attention_chunk
         softcap,
         is_rotary_interleaved=False,
         scheduler_metadata=None,
         num_splits=num_splits,
         pack_gqa=pack_gqa,
         sm_margin=sm_margin,
-        sinks=sinks,
     )
 
     return (out, softmax_lse, *rest) if return_softmax_lse else out
