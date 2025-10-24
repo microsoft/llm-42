@@ -14,6 +14,7 @@
 """Fused operators for normalization layers."""
 
 import logging
+import os
 from typing import Optional, Tuple, Union
 
 import torch
@@ -49,7 +50,15 @@ if _is_cuda:
         from flashinfer.norm import fused_add_rmsnorm
     else:
         from sgl_kernel import fused_add_rmsnorm
-    from sgl_kernel import gemma_fused_add_rmsnorm, gemma_rmsnorm, rmsnorm
+    from sgl_kernel import (
+        gemma_fused_add_rmsnorm,
+        gemma_rmsnorm,
+        rmsnorm,
+        vllm_fused_add_rmsnorm_256,
+        vllm_fused_add_rmsnorm_1024,
+        vllm_fused_add_rmsnorm_dynamic,
+        vllm_rmsnorm,
+    )
 
 if _use_aiter:
     from aiter import rmsnorm2d_fwd as rms_norm
@@ -85,6 +94,12 @@ class RMSNorm(CustomOp):
         deterministic = get_int_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE")
         if deterministic and not (deterministic & 64):
             self._forward_method = self.forward_native
+        
+        # Check for vLLM fused RMSNorm configuration
+        # SGLANG_USE_VLLM_RMSNORM can be: "256", "1024", "dynamic", or empty/unset
+        self.vllm_rmsnorm_mode = os.getenv("SGLANG_USE_VLLM_RMSNORM", "").lower()
+        if self.vllm_rmsnorm_mode and _is_cuda:
+            logger.info(f"Using vLLM fused RMSNorm with mode: {self.vllm_rmsnorm_mode}")
 
     def forward_cuda(
         self,
@@ -94,11 +109,36 @@ class RMSNorm(CustomOp):
         with record_function("rmsnorm"):
             if self.variance_size_override is not None:
                 return self.forward_native(x, residual)
+            
+            # Use vLLM fused RMSNorm if configured
+            if self.vllm_rmsnorm_mode:
+                return self.forward_vllm(x, residual)
+            
             if residual is not None:
                 fused_add_rmsnorm(x, residual, self.weight.data, self.variance_epsilon)
                 return x, residual
             out = rmsnorm(x, self.weight.data, self.variance_epsilon)
         return out
+
+    def forward_vllm(
+        self,
+        x: torch.Tensor,
+        residual: Optional[torch.Tensor] = None,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        """Forward using vLLM fused RMSNorm implementations"""
+        if residual is not None:
+            if self.vllm_rmsnorm_mode == "256":
+                vllm_fused_add_rmsnorm_256(x, residual, self.weight.data, self.variance_epsilon)
+            elif self.vllm_rmsnorm_mode == "1024":
+                vllm_fused_add_rmsnorm_1024(x, residual, self.weight.data, self.variance_epsilon)
+            elif self.vllm_rmsnorm_mode == "dynamic":
+                vllm_fused_add_rmsnorm_dynamic(x, residual, self.weight.data, self.variance_epsilon)
+            else:
+                raise ValueError(f"Invalid vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}. Valid options: '256', '1024', 'dynamic'")
+            return x, residual
+        else:
+            out = vllm_rmsnorm(x, self.weight.data, self.variance_epsilon)
+            return out
 
     def forward_npu(
         self,
