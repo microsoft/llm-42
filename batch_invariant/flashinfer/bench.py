@@ -87,7 +87,7 @@ for model in utils.attn_configs:
         ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(f'{model}_latency_comparison.pdf', dpi=1200, bbox_inches='tight')
+    plt.savefig(f'fi_041_{model}_latency_comparison.pdf', dpi=1200, bbox_inches='tight')
     print(f"Saved plot: {model}_latency_comparison.pdf")
     plt.close()
     
@@ -114,8 +114,8 @@ for model in utils.attn_configs:
     ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(f'{model}_overhead.pdf', dpi=1200, bbox_inches='tight')
-    print(f"Saved plot: {model}_overhead.pdf")
+    plt.savefig(f'fi_041_{model}_overhead.pdf', dpi=1200, bbox_inches='tight')
+    print(f"Saved plot: fi_041_{model}_overhead.pdf")
     plt.close()
 
 print("\nAll plots generated successfully!")
