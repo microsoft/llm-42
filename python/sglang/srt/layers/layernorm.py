@@ -100,6 +100,10 @@ class RMSNorm(CustomOp):
         self.vllm_rmsnorm_mode = os.getenv("SGLANG_USE_VLLM_RMSNORM", "").lower()
         if self.vllm_rmsnorm_mode and _is_cuda:
             logger.info(f"Using vLLM fused RMSNorm with mode: {self.vllm_rmsnorm_mode}")
+        
+        if deterministic and not (deterministic & 256):
+            self._forward_method = self.forward_vllm
+            self.vllm_rmsnorm_mode = "256"
 
     def forward_cuda(
         self,

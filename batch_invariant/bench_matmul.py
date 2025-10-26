@@ -60,10 +60,10 @@ def run_iters(func, iters=10):
         difflist.append(df)
     print( f"Batch Deterministic: {is_deterministic} run-to-run max/min/diff {max(difflist)}/{min(difflist)}/{max(difflist)-min(difflist)} for {iters} iterations")
 
-def bench_perf(matmul_func, B, D=4096, iterations=10):
+def bench_perf(matmul_func, B, K=16384, D=4096, iterations=10):
     M = B
     N = D
-    K = D * 4
+    # K = D * 4
 
     a = torch.randn(M, K, device='cuda', dtype=torch.float16)
     b = torch.randn(K, N, device='cuda', dtype=torch.float16)

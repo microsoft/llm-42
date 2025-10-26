@@ -123,7 +123,7 @@ def load_raw_data(result_dir: Path) -> Optional[Dict]:
                 if tbot_values:
                     data['tbot'] = tbot_values
         
-        # Load E2E latency data from CSV (column: "End to End Latency")
+        # Load E2E latency data from CSV (column: "End-to-End Latency")
         e2e_file = result_dir / 'end_to_end_latency.csv'
         if e2e_file.exists():
             with open(e2e_file, 'r') as f:
@@ -304,11 +304,6 @@ def plot_comparison(results: Dict[str, Dict], raw_data: Dict[str, Dict], output_
                  'Cutlass-Based', xlabel, cutlass_modes)
         
         plt.tight_layout()
-        
-        # Save plot as PNG
-        output_file = output_dir / f'{metric_key}_cdf_comparison.png'
-        plt.savefig(output_file, dpi=1200, bbox_inches='tight')
-        print(f"✓ {metric_name} CDF plot saved to: {output_file}")
         
         # Save plot as PDF
         output_file_pdf = output_dir / f'{metric_key}_cdf_comparison.pdf'
