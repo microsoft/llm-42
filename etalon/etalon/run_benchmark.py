@@ -33,6 +33,7 @@ from etalon.request_generator.utils import generate_random_prompt
 
 logger = init_logger(__name__)
 
+<<<<<<< HEAD
 # Global variable for temperature assignment (set via environment)
 _TEMPERATURE_ASSIGNMENTS = None
 
@@ -56,6 +57,8 @@ def _get_temperature_for_request(request_id: int, default_temp: Optional[float] 
     
     return default_temp
 
+=======
+>>>>>>> 10db0ebd0 (e2e benchmark working -- flashinfer)
 
 def get_request_params(
     client_config: ClientConfig,
@@ -82,6 +85,7 @@ def get_request_params(
     )
     default_sampling_params = {"max_tokens": num_output_tokens}
     default_sampling_params.update(client_config.additional_sampling_params_dict)
+<<<<<<< HEAD
     
     # Override temperature if per-request assignment is available
     if request_id is not None:
@@ -90,6 +94,8 @@ def get_request_params(
         if assigned_temp is not None:
             default_sampling_params["temperature"] = assigned_temp
     
+=======
+>>>>>>> 10db0ebd0 (e2e benchmark working -- flashinfer)
     request_config = RequestConfig(
         model=client_config.model,
         prompt=prompt,
@@ -134,15 +140,22 @@ def dispatch_requests(
                 num_errored_requests_handled += 1
 
             # Create and dispatch request
+<<<<<<< HEAD
             # Use current num_requests as request_id (0-indexed) before incrementing
             current_request_id = service_metrics.num_requests
+=======
+>>>>>>> 10db0ebd0 (e2e benchmark working -- flashinfer)
             service_metrics.register_launched_request()
             request_config = get_request_params(
                 client_config=client_config,
                 tokenizer=tokenizer,
                 request_length_generator=requests_length_generator,
                 corpus_lines=corpus_lines.copy(),
+<<<<<<< HEAD
                 request_id=current_request_id,
+=======
+                request_id=service_metrics.num_requests,
+>>>>>>> 10db0ebd0 (e2e benchmark working -- flashinfer)
             )
             input_queue.put(request_config)
 
