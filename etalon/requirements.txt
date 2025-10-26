@@ -1,0 +1,17 @@
+pydantic
+pytest
+seaborn
+awscli
+typer
+num2words
+transformers
+tqdm
+boto3
+ddsketch
+google-cloud-aiplatform
+wandb
+kaleido
+plotly-express
+scikit-learn
+pandas
+jinja2

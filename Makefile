@@ -69,10 +69,42 @@ run_offline:
 		--num-prompts ${BATCH} --attention-backend ${BACKEND} \
 		--dataset-name random --random-input ${TOKEN} --random-output ${TOKEN} ${EXTRA} > ${OUTPUT}${POST}${BACKEND}_b${BATCH}_${TOKEN}.txt;
 
-# Bitmask: 1=On defaults, 2=Use kernel matmul, 4=Use split-stream matmul, 32 = Use non-det matmul, 64 = Use non-det rmsnorm, 128 = Use non-det attention
+# Bitmask values for deterministic inference modes:
+# 1   = On with defaults (det matmul, det rmsnorm, det attention)
+# 2   = Use kernel matmul
+# 4   = Use split-stream matmul
+# 32  = Use non-det matmul
+# 64  = Use non-det rmsnorm
+# 128 = Use non-det attention
+#
+# Common combinations:
+# 1   = Full deterministic (default)
+# 2   = Deterministic with kernel matmul
+# 3   = Deterministic with kernel matmul (1+2)
+# 4   = Deterministic with split-stream matmul
+# 5   = Deterministic with split-stream matmul (1+4)
+# 6   = Kernel + split-stream matmul (2+4)
+# 32  = Non-deterministic matmul only
+# 64  = Non-deterministic rmsnorm only
+# 96  = Non-deterministic matmul + rmsnorm (32+64)
+# 128 = Non-deterministic attention only
+# 160 = Non-deterministic matmul + attention (32+128)
+# 192 = Non-deterministic rmsnorm + attention (64+128)
+# 194 = Non-deterministic matmul + rmsnorm + attention, kernel matmul (2+32+64+128)
+# 224 = All non-deterministic (32+64+128)
+
 MODE ?= 1
 run_offline_det:
 	$(MAKE) run_offline EXTRA="--enable-deterministic-inference=${MODE}" POST="det${MODE}_";
+
+# All deterministic modes for comprehensive testing
+MODES_DET = 1 2 3 4 5 6
+# All non-deterministic component modes
+MODES_NONDET = 32 64 96 128 160 192 224
+# Hybrid modes (some components deterministic, some not)
+MODES_HYBRID = 194
+# All modes combined
+MODES_ALL = $(MODES_DET) $(MODES_NONDET) $(MODES_HYBRID)
 
 run_test_perf:
 	mkdir -p output
@@ -82,6 +114,42 @@ run_test_perf:
 		$(MAKE) run_offline_det TOKEN=$${token} MODE=1; \
 		$(MAKE) run_offline_det TOKEN=$${token} MODE=2; \
 		$(MAKE) run_offline_det TOKEN=$${token} MODE=194; \
+	done
+
+run_test_all_modes: ## Run benchmarks with all deterministic mode combinations
+	mkdir -p output
+	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
+	for token in ${TOKENS}; do \
+		echo "Running baseline (non-deterministic) with token=$${token}"; \
+		$(MAKE) run_offline TOKEN=$${token}; \
+		for mode in $(MODES_ALL); do \
+			echo "Running deterministic mode=$${mode} with token=$${token}"; \
+			$(MAKE) run_offline_det TOKEN=$${token} MODE=$${mode}; \
+		done \
+	done
+
+run_test_det_modes: ## Run benchmarks with fully deterministic modes only
+	mkdir -p output
+	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
+	for token in ${TOKENS}; do \
+		echo "Running baseline (non-deterministic) with token=$${token}"; \
+		$(MAKE) run_offline TOKEN=$${token}; \
+		for mode in $(MODES_DET); do \
+			echo "Running deterministic mode=$${mode} with token=$${token}"; \
+			$(MAKE) run_offline_det TOKEN=$${token} MODE=$${mode}; \
+		done \
+	done
+
+run_test_nondet_modes: ## Run benchmarks with non-deterministic component modes
+	mkdir -p output
+	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
+	for token in ${TOKENS}; do \
+		echo "Running baseline (non-deterministic) with token=$${token}"; \
+		$(MAKE) run_offline TOKEN=$${token}; \
+		for mode in $(MODES_NONDET); do \
+			echo "Running mode=$${mode} (non-det components) with token=$${token}"; \
+			$(MAKE) run_offline_det TOKEN=$${token} MODE=$${mode}; \
+		done \
 	done
 
 extract_test_deterministic_perf:

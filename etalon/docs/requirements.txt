@@ -1,0 +1,4 @@
+sphinx
+docutils
+furo
+sphinx-copybutton
