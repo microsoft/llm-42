@@ -133,7 +133,9 @@ def do_flashinfer_decode(bs, cl, num_heads, num_kv_heads, head_dim):
 def do_flashinfer_decode_paged(bs, cl, num_heads, num_kv_heads, head_dim, block_size, use_fixed_split, disable_split):
     try:
         q = torch.randn(bs, num_heads, head_dim, dtype=utils.dtype, device=utils.device)
-        workspace_buffer = torch.empty(64 * 1024 * 1024, dtype=torch.int8, device=utils.device)
+        # Increase workspace buffer size to handle larger batch sizes and split sizes
+        workspace_size = max(256 * 1024 * 1024, bs * 2048 * num_heads * 1024)
+        workspace_buffer = torch.empty(workspace_size, dtype=torch.int8, device=utils.device)
         #decode_wrapper = fi.decode.BatchDecodeWithPagedKVCacheWrapper(workspace_buffer, "NHD")
         decode_wrapper = fi.decode.BatchDecodeWithPagedKVCacheWrapper(workspace_buffer, "NHD", use_tensor_cores=True)
         num_pages_per_req = math.ceil(cl / block_size)
@@ -164,7 +166,47 @@ def do_flashinfer_decode_paged(bs, cl, num_heads, num_kv_heads, head_dim, block_
         torch.cuda.synchronize()
         return utils.calc_latency(utils.start, utils.end, utils.active_steps)
     except Exception as e:
-        print(e)
-        exit(1)
+        print(f"# Error in do_flashinfer_decode_paged: {e}")
         return -1
+
+@torch.inference_mode
+def do_flashinfer_decode_paged_with_split(bs, cl, num_heads, num_kv_heads, head_dim, block_size, split_size):
+    try:
+        q = torch.randn(bs, num_heads, head_dim, dtype=utils.dtype, device=utils.device)
+        # Increase workspace buffer size to handle larger batch sizes and split sizes
+        # The workspace needs to be large enough for the planning phase with small split sizes
+        workspace_size = max(256 * 1024 * 1024, bs * split_size * num_heads * 1024)
+        workspace_buffer = torch.empty(workspace_size, dtype=torch.int8, device=utils.device)
+        decode_wrapper = fi.decode.BatchDecodeWithPagedKVCacheWrapper(workspace_buffer, "NHD", use_tensor_cores=True)
+        num_pages_per_req = math.ceil(cl / block_size)
+        max_num_pages = num_pages_per_req * bs
+        kv_page_indices = torch.arange(max_num_pages).int().to(utils.device)
+        kv_page_indptr = torch.arange(0, bs + 1).int().to(utils.device) * num_pages_per_req
+        kv_last_page_len = torch.full((bs,), (cl  - 1) % block_size + 1, dtype=torch.int32).to(utils.device)
+        kv_data = torch.randn(max_num_pages, 2, block_size, num_kv_heads, head_dim, dtype=utils.dtype, device=utils.device)
+        decode_wrapper.begin_forward(
+            kv_page_indptr,
+            kv_page_indices,
+            kv_last_page_len,
+            num_heads,
+            num_kv_heads,
+            head_dim,
+            block_size,
+            fixed_split_size=split_size,
+            disable_split_kv=False
+        )
+        for _ in range(utils.warmup_steps):
+            decode_wrapper.forward(q, kv_data)
+        utils.launch_big_kernel()
+        utils.start.record()
+        for _ in range(utils.active_steps):
+            decode_wrapper.forward(q, kv_data)
+        utils.end.record()
+        torch.cuda.synchronize()
+        return utils.calc_latency(utils.start, utils.end, utils.active_steps)
+    except Exception as e:
+        print(f"# Error in do_flashinfer_decode_paged_with_split: {e}")
+        return -1
+ 
+ 
  

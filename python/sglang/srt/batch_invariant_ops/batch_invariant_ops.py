@@ -558,7 +558,7 @@ def enable_batch_invariant_mode(mode: int = 1):
         "aten::_log_softmax", _log_softmax_batch_invariant, "CUDA"
     )
     _batch_invariant_LIB.impl("aten::mean.dim", mean_batch_invariant, "CUDA")
-
+    # print(f"DEBUG:: Batch invariant mode enabled (mode={mode})", flush=True)
 
 def disable_batch_invariant_mode():
     global _batch_invariant_MODE, _batch_invariant_LIB
@@ -566,17 +566,20 @@ def disable_batch_invariant_mode():
         _batch_invariant_LIB._destroy()
     _batch_invariant_MODE = False
     _batch_invariant_LIB = None
+    # print(f"DEBUG:: Batch invariant mode disabled", flush=True)
 
 
 @contextlib.contextmanager
 def set_batch_invariant_mode(enabled: bool = True):
     global _batch_invariant_MODE, _batch_invariant_LIB
     old_data = (_batch_invariant_MODE, _batch_invariant_LIB)
+    # print(f"DEBUG:: [Context Manager] Setting batch_invariant mode: enabled={enabled}, was_enabled={_batch_invariant_MODE}", flush=True)
     if enabled:
         enable_batch_invariant_mode()
     else:
         disable_batch_invariant_mode()
     yield
+    # print(f"DEBUG:: [Context Manager] Restoring batch_invariant mode: restoring_to={old_data[0]}", flush=True)
     if _batch_invariant_LIB is not None:
         _batch_invariant_LIB._destroy()
     _batch_invariant_MODE, _batch_invariant_LIB = old_data

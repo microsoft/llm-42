@@ -450,7 +450,7 @@ void sm90_bf16_batch_invariant_dispatch_shape(
   using ChosenSmallEpilogueScheduler = cutlass::epilogue::TmaWarpSpecialized;
   using ChosenEpilogueScheduler = cutlass::epilogue::TmaWarpSpecializedCooperative;
   if (bias) {
-    if (m <= 64) {
+    if (m <= 128) {
       // m in [1, 64]
       return sm90_bf16_batch_invariant_dispatch_bias<
           OutType,
@@ -462,20 +462,20 @@ void sm90_bf16_batch_invariant_dispatch_shape(
           ChosenSmallEpilogueScheduler,
           BasicTileScheduler,
           true>(out, a, b, bias);
-    } else if (m <= 1024) {
-      // m in (64, 256]
+    } else if (m < 512) {
+      // m in (64, 512)
       return sm90_bf16_batch_invariant_dispatch_bias<
           OutType,
           LayoutA,
           LayoutB,
-          Shape<_128, _128, _128>,
-          Shape<_1, _1, _1>,
+          Shape<_128, _64, _64>,
+          Shape<_2, _1, _1>,
           ChosenSmallScheduler,
           ChosenSmallEpilogueScheduler,
           ChosenTileScheduler,
           true>(out, a, b, bias);
     } else {
-      // m in (1024, inf)
+      // m in [512, inf)
       return sm90_bf16_batch_invariant_dispatch_bias<
           OutType,
           LayoutA,
@@ -488,8 +488,8 @@ void sm90_bf16_batch_invariant_dispatch_shape(
           true>(out, a, b, bias);
     }
   } else {
-    if (m < 256) {
-      // m in [1, 64]
+    if (m <= 128) {
+      // m in [1, 128]
       return sm90_bf16_batch_invariant_dispatch_bias<
           OutType,
           LayoutA,
@@ -500,20 +500,44 @@ void sm90_bf16_batch_invariant_dispatch_shape(
           ChosenSmallEpilogueScheduler,
           BasicTileScheduler,
           false>(out, a, b, bias);
-    } else if (m <= 1024) {
-      // m in (64, 1024]
+    } else if (m < 256) {
+      // m in (128, 256)
+      return sm90_bf16_batch_invariant_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_256, _128, _64>,
+          Shape<_2, _1, _1>,
+          ChosenBigScheduler,
+          ChosenEpilogueScheduler,
+          ChosenTileScheduler,
+          false>(out, a, b, bias);
+    } else if (m < 512) {
+      // m in [256, 512)
+      return sm90_bf16_batch_invariant_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_128, _64, _64>,
+          Shape<_2, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          BasicTileScheduler,
+          false>(out, a, b, bias);
+    } else if (m < 1024) {
+      // m in [512, 1024)
       return sm90_bf16_batch_invariant_dispatch_bias<
           OutType,
           LayoutA,
           LayoutB,
           Shape<_128, _128, _64>,
           Shape<_2, _1, _1>,
-          ChosenBigScheduler,
-          ChosenEpilogueScheduler,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
           BasicTileScheduler,
           false>(out, a, b, bias);
     } else {
-      // m in (1024, inf)
+      // m in [1024, inf)
       return sm90_bf16_batch_invariant_dispatch_bias<
           OutType,
           LayoutA,

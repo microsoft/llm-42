@@ -12,9 +12,12 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from functools import partial
 from typing import TYPE_CHECKING, Callable, List, Optional, Union
+import logging
 
 import torch
 from torch.profiler import record_function
+
+logger = logging.getLogger(__name__)
 
 if os.environ["SGLANG_ENABLE_TORCH_COMPILE"] == "1":
     import logging
@@ -130,14 +133,25 @@ class FlashInferAttnBackend(AttentionBackend):
         # When deterministic inference is enabled, tensor cores should be used for decode
         # Also set split tile sizes for prefill and decode from environment variables, and disable kv split for cuda graph
         # More information can be found here: https://github.com/flashinfer-ai/flashinfer/pull/1675
+        
+        # Store deterministic inference configuration
+        self.deterministic_inference_flag = model_runner.server_args.enable_deterministic_inference
+        self.enable_temperature_based_switching = bool(self.deterministic_inference_flag & 512)
+        
+        # Static deterministic mode (bit 128 controls flashinfer determinism)
+        # When bit 128 is NOT set AND bit 512 is NOT set (not using temperature-based switching),
+        # always use deterministic configuration
         self.enable_deterministic = (
-            model_runner.server_args.enable_deterministic_inference and
-            not (model_runner.server_args.enable_deterministic_inference & 128)
+            self.deterministic_inference_flag and
+            not (self.deterministic_inference_flag & 128) and
+            not (self.deterministic_inference_flag & 512)
         )
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
-        if self.enable_deterministic:
+        
+        # Apply deterministic settings for both static mode AND temperature-based switching
+        if self.enable_deterministic or self.enable_temperature_based_switching:
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -286,7 +300,15 @@ class FlashInferAttnBackend(AttentionBackend):
                 use_ragged = False
                 extend_no_prefix = False
             else:
-                use_ragged = not self.enable_deterministic
+                # Dynamic temperature-based switching (bit 512)
+                # Check if batch-invariant mode is currently enabled
+                enable_deterministic_current = self.enable_deterministic
+                if self.enable_temperature_based_switching:
+                    from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                    enable_deterministic_current = is_batch_invariant_mode_enabled()
+                    # logger.info(f"[FlashInfer Temperature-based] batch_invariant_enabled={enable_deterministic_current}, use_ragged={not enable_deterministic_current}")
+                
+                use_ragged = not enable_deterministic_current
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
 
             self.indices_updater_prefill.update(
