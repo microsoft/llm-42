@@ -146,12 +146,19 @@ class FlashInferAttnBackend(AttentionBackend):
             not (self.deterministic_inference_flag & 128) and
             not (self.deterministic_inference_flag & 512)
         )
+        # Store original (non-deterministic) settings
+        self.original_decode_use_tensor_cores = self.decode_use_tensor_cores
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
         
-        # Apply deterministic settings for both static mode AND temperature-based switching
-        if self.enable_deterministic or self.enable_temperature_based_switching:
+        # For temperature-based switching, we DON'T override settings here.
+        # Instead, we apply different settings during CUDA graph capture based on
+        # is_batch_invariant_mode_enabled() in init_forward_metadata_capture_cuda_graph.
+        # This allows the deterministic graph to use deterministic settings and the
+        # non-deterministic graph to use non-deterministic settings.
+        if self.enable_deterministic:
+            # Static deterministic mode: always use deterministic settings
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -160,6 +167,16 @@ class FlashInferAttnBackend(AttentionBackend):
                 "SGLANG_FLASHINFER_DECODE_SPLIT_TILE_SIZE", 2048
             )
             self.disable_cuda_graph_kv_split = True
+            global_config.flashinfer_workspace_size = 2048 * 1024 * 1024
+        elif self.enable_temperature_based_switching:
+            # Temperature-based switching: settings will be applied during graph capture
+            # Set default deterministic values that will be used when batch_invariant is enabled
+            self.prefill_split_tile_size = get_int_env_var(
+                "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
+            )
+            self.decode_split_tile_size = get_int_env_var(
+                "SGLANG_FLASHINFER_DECODE_SPLIT_TILE_SIZE", 2048
+            )
             global_config.flashinfer_workspace_size = 2048 * 1024 * 1024
 
         # Allocate buffers
@@ -372,6 +389,29 @@ class FlashInferAttnBackend(AttentionBackend):
         spec_info: Optional[SpecInput],
     ):
         if forward_mode.is_decode_or_idle():
+            # For temperature-based switching, apply different settings for each graph
+            # based on is_batch_invariant_mode_enabled() during capture
+            if self.enable_temperature_based_switching:
+                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                is_deterministic_graph = is_batch_invariant_mode_enabled()
+                
+                # Choose settings based on which graph we're capturing
+                if is_deterministic_graph:
+                    # Deterministic graph: use tensor cores and disable kv split
+                    use_tensor_cores = True
+                    fixed_split_size = self.decode_split_tile_size
+                    disable_split_kv = True
+                else:
+                    # Non-deterministic graph: use original settings
+                    use_tensor_cores = self.original_decode_use_tensor_cores
+                    fixed_split_size = None
+                    disable_split_kv = False
+            else:
+                # Static mode or no temperature switching: use configured settings
+                use_tensor_cores = self.decode_use_tensor_cores
+                fixed_split_size = None
+                disable_split_kv = self.disable_cuda_graph_kv_split
+            
             decode_wrappers = []
             for i in range(self.num_wrappers):
                 decode_wrappers.append(
@@ -379,7 +419,7 @@ class FlashInferAttnBackend(AttentionBackend):
                         self.workspace_buffer,
                         "NHD",
                         use_cuda_graph=True,
-                        use_tensor_cores=self.decode_use_tensor_cores,
+                        use_tensor_cores=use_tensor_cores,
                         paged_kv_indptr_buffer=self.kv_indptr[i][: num_tokens + 1],
                         paged_kv_indices_buffer=self.cuda_graph_kv_indices[i],
                         paged_kv_last_page_len_buffer=self.kv_last_page_len[
@@ -396,16 +436,37 @@ class FlashInferAttnBackend(AttentionBackend):
                 decode_wrappers=decode_wrappers,
                 encoder_lens=encoder_lens,
                 spec_info=spec_info,
-                fixed_split_size=None,
-                disable_split_kv=self.disable_cuda_graph_kv_split,
+                fixed_split_size=fixed_split_size,
+                disable_split_kv=disable_split_kv,
             )
-            self.decode_cuda_graph_metadata[bs] = decode_wrappers
+            # Store with tuple key (bs, is_deterministic) for dual graphs
+            if self.enable_temperature_based_switching:
+                storage_key = (bs, is_deterministic_graph)
+            else:
+                storage_key = bs
+            self.decode_cuda_graph_metadata[storage_key] = decode_wrappers
             self.forward_metadata = DecodeMetadata(decode_wrappers)
             for i in range(self.num_wrappers):
                 decode_wrappers[i].begin_forward = partial(
                     fast_decode_plan, decode_wrappers[i]
                 )
         elif forward_mode.is_target_verify():
+            # For temperature-based switching, apply different settings for each graph
+            if self.enable_temperature_based_switching:
+                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                is_deterministic_graph = is_batch_invariant_mode_enabled()
+                
+                # Choose settings based on which graph we're capturing
+                if is_deterministic_graph:
+                    # Deterministic graph: use fixed split size
+                    fixed_split_size = self.prefill_split_tile_size
+                else:
+                    # Non-deterministic graph: no fixed split size
+                    fixed_split_size = None
+            else:
+                # Static mode or no temperature switching: no fixed split size
+                fixed_split_size = None
+            
             prefill_wrappers = []
             for i in range(self.num_wrappers):
                 prefill_wrappers.append(
@@ -432,10 +493,27 @@ class FlashInferAttnBackend(AttentionBackend):
                 use_ragged=False,
                 encoder_lens=encoder_lens,
                 spec_info=spec_info,
+                fixed_split_size=fixed_split_size,
             )
             self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
             self.forward_metadata = PrefillMetadata(prefill_wrappers, False, False)
         elif forward_mode.is_draft_extend():
+            # For temperature-based switching, apply different settings for each graph
+            if self.enable_temperature_based_switching:
+                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                is_deterministic_graph = is_batch_invariant_mode_enabled()
+                
+                # Choose settings based on which graph we're capturing
+                if is_deterministic_graph:
+                    # Deterministic graph: use fixed split size
+                    fixed_split_size = self.prefill_split_tile_size
+                else:
+                    # Non-deterministic graph: no fixed split size
+                    fixed_split_size = None
+            else:
+                # Static mode or no temperature switching: no fixed split size
+                fixed_split_size = None
+            
             prefill_wrappers = []
             for i in range(self.num_wrappers):
                 prefill_wrappers.append(
@@ -462,6 +540,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 use_ragged=False,
                 encoder_lens=encoder_lens,
                 spec_info=spec_info,
+                fixed_split_size=fixed_split_size,
             )
             self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
             self.forward_metadata = PrefillMetadata(prefill_wrappers, False, False)
@@ -478,14 +557,21 @@ class FlashInferAttnBackend(AttentionBackend):
         forward_mode: ForwardMode,
         spec_info: Optional[SpecInput],
         seq_lens_cpu: Optional[torch.Tensor],
+        use_deterministic: Optional[bool] = None,
     ):
         if forward_mode.is_decode_or_idle():
+            # Determine which wrappers to use based on deterministic mode
+            if self.enable_temperature_based_switching and use_deterministic is not None:
+                storage_key = (bs, use_deterministic)
+            else:
+                storage_key = bs
+            
             self.indices_updater_decode.update(
                 req_pool_indices[:bs],
                 seq_lens[:bs],
                 seq_lens_cpu[:bs] if seq_lens_cpu is not None else None,
                 seq_lens_sum,
-                decode_wrappers=self.decode_cuda_graph_metadata[bs],
+                decode_wrappers=self.decode_cuda_graph_metadata[storage_key],
                 encoder_lens=encoder_lens[:bs] if encoder_lens is not None else None,
                 spec_info=spec_info,
                 fixed_split_size=None,

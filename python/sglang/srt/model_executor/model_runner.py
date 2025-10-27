@@ -433,15 +433,16 @@ class ModelRunner:
         # Store configuration for temperature-based dynamic switching (new feature)
         # Bit 512 enables dynamic temperature-based control
         # When enabled: ALL temps > 0 → disable batch_invariant, ANY temp == 0 → keep batch_invariant
-        # NOTE: Temperature-based switching only affects non-CUDA-graph passes (prefill/extend).
-        # Decode passes use CUDA graphs which have batch_invariant baked in at capture time.
+        # With dual CUDA graphs: Two sets of graphs are captured (one deterministic, one not)
+        # to allow dynamic switching even during decode passes.
         self.enable_temperature_based_switching = bool(server_args.enable_deterministic_inference & 512)
         
         if self.enable_temperature_based_switching:
-            logger.warning(
+            logger.info(
                 "Temperature-based batch-invariant switching enabled (bit 512). "
-                "Note: This only affects prefill/extend passes. "
-                "Decode passes use CUDA graphs with batch-invariant always enabled."
+                "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
+                "one without (non-deterministic). This will double CUDA graph memory usage "
+                "and capture time, but enables full temperature-based switching for all passes."
             )
         
         # Counters for tracking batch-invariant vs non-deterministic forward passes
@@ -2015,15 +2016,23 @@ class ModelRunner:
         )
 
         if can_run_graph:
-            # NOTE: CUDA graphs are captured with batch_invariant mode baked in at initialization.
-            # Temperature-based switching CANNOT dynamically change the kernels during graph replay.
-            # For decode passes (which use CUDA graphs), batch_invariant is ALWAYS used if enabled at startup.
-            # Temperature-based switching only affects non-CUDA-graph passes (prefill/extend).
+            # With dual CUDA graphs enabled, we can now dynamically select between
+            # deterministic and non-deterministic graphs based on temperature.
+            # The graph_runner.replay() will automatically select the right graph.
             
-            # Increment counters for CUDA graph path - always count as batch_invariant since
-            # graphs were captured with batch_invariant enabled
+            # Increment counters for CUDA graph path
             if self.enable_temperature_based_switching:
-                self.num_batch_invariant += 1
+                # Check if ALL requests are non-greedy to determine which graph is used
+                should_disable_batch_invariant = False
+                if forward_batch.sampling_info is not None:
+                    is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
+                                   torch.any(forward_batch.sampling_info.top_ks <= 1).item()
+                    should_disable_batch_invariant = not is_any_greedy
+                
+                if should_disable_batch_invariant:
+                    self.num_non_deterministic += 1
+                else:
+                    self.num_batch_invariant += 1
                 
                 # Periodic logging of stats
                 total = self.num_batch_invariant + self.num_non_deterministic

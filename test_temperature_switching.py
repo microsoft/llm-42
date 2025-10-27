@@ -43,24 +43,24 @@ def test_temperature_switching(base_url="http://localhost:30000"):
             "prompt": "Tell me a creative story.",
             "expected": "non-deterministic"
         },
-        # {
-        #     "name": "Test 3: Temperature = 0 again (should use batch-invariant)",
-        #     "temperature": 0.0,
-        #     "prompt": "Calculate 10 + 15.",
-        #     "expected": "batch-invariant"
-        # },
+        {
+            "name": "Test 3: Temperature = 0 again (should use batch-invariant)",
+            "temperature": 0.0,
+            "prompt": "Calculate 10 + 15.",
+            "expected": "batch-invariant"
+        },
         {
             "name": "Test 4: Temperature = 1.0 (should use non-deterministic)",
             "temperature": 1.0,
             "prompt": "Write a poem.",
             "expected": "non-deterministic"
         },
-        {
-            "name": "Test 5: Temperature = 0 (should use batch-invariant)",
-            "temperature": 0.0,
-            "prompt": "What is the capital of France?",
-            "expected": "batch-invariant"
-        },
+        # {
+        #     "name": "Test 5: Temperature = 0 (should use batch-invariant)",
+        #     "temperature": 0.0,
+        #     "prompt": "What is the capital of France?",
+        #     "expected": "batch-invariant"
+        # },
     ]
     
     print("Running test cases...")

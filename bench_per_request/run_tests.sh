@@ -22,7 +22,7 @@ HOST="0.0.0.0"
 PORT=30000
 TP_SIZE=1
 ATTENTION_BACKEND="flashinfer"
-OUTPUT_DIR="etalon_results"
+OUTPUT_DIR="updated_etalon_results"
 QPS=1.0
 MAX_REQUESTS=256
 TIMEOUT=600
@@ -192,6 +192,8 @@ launch_server() {
             --tp-size $TP_SIZE \
             --attention-backend $ATTENTION_BACKEND \
             --disable-radix-cache \
+            --cuda-graph-max-bs 32 \
+            --mem-fraction-static 0.7 \
             > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
     else
         echo "Starting server with deterministic mode $mode..."
@@ -202,6 +204,8 @@ launch_server() {
             --tp-size $TP_SIZE \
             --attention-backend $ATTENTION_BACKEND \
             --disable-radix-cache \
+            --cuda-graph-max-bs 32 \
+            --mem-fraction-static 0.7 \
             --enable-deterministic-inference $mode \
             > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
     fi
