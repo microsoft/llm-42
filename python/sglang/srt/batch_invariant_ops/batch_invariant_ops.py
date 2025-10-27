@@ -561,6 +561,7 @@ def enable_batch_invariant_mode(mode: int = 1):
     )
     _batch_invariant_LIB.impl("aten::mean.dim", mean_batch_invariant, "CUDA")
     # print(f"DEBUG:: Batch invariant mode enabled (mode={mode})", flush=True)
+    # print(f"DEBUG:: Batch invariant mode enabled (mode={mode})", flush=True)
 
 def disable_batch_invariant_mode():
     global _batch_invariant_MODE, _batch_invariant_LIB
@@ -574,19 +575,17 @@ def disable_batch_invariant_mode():
 @contextlib.contextmanager
 def set_batch_invariant_mode(enabled: bool = True):
     global _batch_invariant_MODE, _batch_invariant_LIB
-    old_mode = _batch_invariant_MODE
+    old_data = (_batch_invariant_MODE, _batch_invariant_LIB)
     # print(f"DEBUG:: [Context Manager] Setting batch_invariant mode: enabled={enabled}, was_enabled={_batch_invariant_MODE}", flush=True)
     if enabled:
         enable_batch_invariant_mode(2)
     else:
         disable_batch_invariant_mode()
     yield
-    # print(f"DEBUG:: [Context Manager] Restoring batch_invariant mode: restoring_to={old_mode}", flush=True)
-    # Disable current mode first
-    disable_batch_invariant_mode()
-    # Re-enable if it was previously enabled
-    if old_mode:
-        enable_batch_invariant_mode(2)
+    # print(f"DEBUG:: [Context Manager] Restoring batch_invariant mode: restoring_to={old_data[0]}", flush=True)
+    if _batch_invariant_LIB is not None:
+        _batch_invariant_LIB._destroy()
+    _batch_invariant_MODE, _batch_invariant_LIB = old_data
 
 
 AttentionBlockSize = namedtuple("AttentionBlockSize", ["block_m", "block_n"])

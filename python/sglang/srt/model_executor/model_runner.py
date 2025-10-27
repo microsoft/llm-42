@@ -429,26 +429,25 @@ class ModelRunner:
             matmul_mode = server_args.enable_deterministic_inference & 0x7  # 0x7 = bits 1, 2, 4
             if matmul_mode:
                 enable_batch_invariant_mode(matmul_mode)
-        
+
         # Store configuration for temperature-based dynamic switching (new feature)
         # Bit 512 enables dynamic temperature-based control
         # When enabled: ALL temps > 0 → disable batch_invariant, ANY temp == 0 → keep batch_invariant
-        # With dual CUDA graphs: Two sets of graphs are captured (one deterministic, one not)
-        # to allow dynamic switching even during decode passes.
+        # NOTE: Temperature-based switching only affects non-CUDA-graph passes (prefill/extend).
+        # Decode passes use CUDA graphs which have batch_invariant baked in at capture time.
         self.enable_temperature_based_switching = bool(server_args.enable_deterministic_inference & 512)
-        
+
         if self.enable_temperature_based_switching:
-            logger.info(
+            logger.warning(
                 "Temperature-based batch-invariant switching enabled (bit 512). "
-                "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
-                "one without (non-deterministic). This will double CUDA graph memory usage "
-                "and capture time, but enables full temperature-based switching for all passes."
+                "Note: This only affects prefill/extend passes. "
+                "Decode passes use CUDA graphs with batch-invariant always enabled."
             )
-        
+
         # Counters for tracking batch-invariant vs non-deterministic forward passes
         self.num_batch_invariant = 0
         self.num_non_deterministic = 0
-        self._stats_log_interval = 100  # Log stats every 100 forward passes
+        self._stats_log_interval = 5  # Log stats every 5 forward passes
 
         # Init memory pool and attention backends
         self.init_memory_pool(
@@ -2015,6 +2014,29 @@ class ModelRunner:
             and self.graph_runner.can_run(forward_batch)
         )
 
+        if can_run_graph:
+            # NOTE: CUDA graphs are captured with batch_invariant mode baked in at initialization.
+            # Temperature-based switching CANNOT dynamically change the kernels during graph replay.
+            # For decode passes (which use CUDA graphs), batch_invariant is ALWAYS used if enabled at startup.
+            # Temperature-based switching only affects non-CUDA-graph passes (prefill/extend).
+
+            # Increment counters for CUDA graph path - always count as batch_invariant since
+            # graphs were captured with batch_invariant enabled
+            if self.enable_temperature_based_switching:
+                self.num_batch_invariant += 1
+
+                # Periodic logging of stats
+                total = self.num_batch_invariant + self.num_non_deterministic
+                if total > 0 and total % self._stats_log_interval == 0:
+                    self.log_deterministic_stats()
+
+            ret = self.graph_runner.replay(
+                forward_batch,
+                skip_attn_backend_init=skip_attn_backend_init,
+                pp_proxy_tensors=pp_proxy_tensors,
+            )
+            return ret, can_run_graph
+
         # Temperature-based dynamic batch-invariant switching (new feature)
         # When bit 512 is set:
         #   - Batch-invariant is enabled by default (at initialization)
@@ -2022,21 +2044,24 @@ class ModelRunner:
         #   - If ANY request is greedy (temperature=0), keep batch-invariant enabled
         # Note: SGLang converts temperature=0 to temperature=1.0 and top_k=1 (greedy sampling)
         should_disable_batch_invariant = False
-        
+
         if self.enable_temperature_based_switching:
             # Check if ALL requests are non-greedy (all want non-deterministic)
             if forward_batch.sampling_info is not None:
-                # is_any_deterministic checks for greedy sampling (top_k==1, which is what temp=0 converts to)
-                # We want to disable batch_invariant when is_any_deterministic is False (all are non-greedy)
-                is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
-                should_disable_batch_invariant = not is_any_deterministic
-                # print(f"Forward pass {self.forward_pass_id}: is_any_deterministic={is_any_deterministic}, "
-                #       f"should_disable_batch_invariant={should_disable_batch_invariant}", flush=True)
-            
-        
+                # is_all_greedy is True when all top_k <= 1 (which means greedy/deterministic)
+                # We want to disable batch_invariant when is_all_greedy is False (all are non-greedy)
+                is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
+                               torch.any(forward_batch.sampling_info.top_ks <= 1).item()
+                should_disable_batch_invariant = not is_any_greedy
+
+                # Debug logging
+                # logger.info(f"[Temperature-based] top_ks: {forward_batch.sampling_info.top_ks.tolist()}, "
+                #            f"is_all_greedy: {forward_batch.sampling_info.is_all_greedy}, "
+                #            f"is_any_greedy: {is_any_greedy}, should_disable: {should_disable_batch_invariant}")
+
         # Use context manager to temporarily disable batch_invariant when needed
         from sglang.srt.batch_invariant_ops import set_batch_invariant_mode
-        
+
         batch_invariant_context = None
         if should_disable_batch_invariant:
             # Temporarily disable batch_invariant for this forward pass
@@ -2050,49 +2075,39 @@ class ModelRunner:
             if self.enable_temperature_based_switching:
                 self.num_batch_invariant += 1
 
-        # print(f"Forward pass {self.forward_pass_id}: "
-        #       f"{'Disabling' if should_disable_batch_invariant else 'Enabling'} batch-invariant mode.")
-        
         # Periodic logging of stats
         if self.enable_temperature_based_switching:
             total = self.num_batch_invariant + self.num_non_deterministic
             if total > 0 and total % self._stats_log_interval == 0:
                 self.log_deterministic_stats()
-        
+
         try:
-            if can_run_graph:
-                ret = self.graph_runner.replay(
-                    forward_batch,
-                    skip_attn_backend_init=skip_attn_backend_init,
-                    pp_proxy_tensors=pp_proxy_tensors,
-                )
-                return ret, can_run_graph
             # For MLP sync
             if forward_batch.global_num_tokens_cpu is not None:
                 forward_batch.prepare_mlp_sync_batch(self)
 
-            if forward_batch.forward_mode.is_decode():
-                ret = self.forward_decode(
-                    forward_batch,
-                    skip_attn_backend_init=skip_attn_backend_init,
-                    pp_proxy_tensors=pp_proxy_tensors,
-                )
-            elif forward_batch.forward_mode.is_extend():
-                ret = self.forward_extend(
-                    forward_batch,
-                    skip_attn_backend_init=skip_attn_backend_init,
-                    pp_proxy_tensors=pp_proxy_tensors,
-                )
-            elif forward_batch.forward_mode.is_split_prefill():
-                ret = self.forward_split_prefill(
-                    forward_batch,
-                    reinit_attn_backend=reinit_attn_backend,
-                    forward_count=split_forward_count,
-                )
-            elif forward_batch.forward_mode.is_idle():
-                ret = self.forward_idle(forward_batch, pp_proxy_tensors=pp_proxy_tensors)
-            else:
-                raise ValueError(f"Invalid forward mode: {forward_batch.forward_mode}")
+        if forward_batch.forward_mode.is_decode():
+            ret = self.forward_decode(
+                forward_batch,
+                skip_attn_backend_init=skip_attn_backend_init,
+                pp_proxy_tensors=pp_proxy_tensors,
+            )
+        elif forward_batch.forward_mode.is_extend():
+            ret = self.forward_extend(
+                forward_batch,
+                skip_attn_backend_init=skip_attn_backend_init,
+                pp_proxy_tensors=pp_proxy_tensors,
+            )
+        elif forward_batch.forward_mode.is_split_prefill():
+            ret = self.forward_split_prefill(
+                forward_batch,
+                reinit_attn_backend=reinit_attn_backend,
+                forward_count=split_forward_count,
+            )
+        elif forward_batch.forward_mode.is_idle():
+            ret = self.forward_idle(forward_batch, pp_proxy_tensors=pp_proxy_tensors)
+        else:
+            raise ValueError(f"Invalid forward mode: {forward_batch.forward_mode}")
 
             if (
                 forward_batch.global_num_tokens_cpu is not None
@@ -2223,7 +2238,7 @@ class ModelRunner:
             "num_non_deterministic": self.num_non_deterministic,
             "total": self.num_batch_invariant + self.num_non_deterministic,
         }
-    
+
     def log_deterministic_stats(self):
         """Log statistics for batch-invariant vs non-deterministic forward passes."""
         if self.enable_temperature_based_switching:

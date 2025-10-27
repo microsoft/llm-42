@@ -4,7 +4,11 @@
 # Makes it easier to run the plotting script
 
 # Default configuration
+<<<<<<< HEAD
 INPUT_DIR="with_cudagraph_etalon_results"
+=======
+INPUT_DIR="etalon_results"
+>>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
 OUTPUT_DIR=""
 
 # Parse command line arguments

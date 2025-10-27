@@ -208,8 +208,12 @@ def plot_cdf_comparison(raw_data: Dict[str, Dict], output_dir: Path):
     
     mode_order = ['baseline_nondet', 'det_mode_66', 'det_mode_257',
                   'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+<<<<<<< HEAD
                   'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
                   ]
+=======
+                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+>>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
     
     # Create one plot per metric
     for metric_key, metric_name, xlabel in metrics:
@@ -276,8 +280,12 @@ def plot_bar_comparison(results: Dict[str, Dict], output_dir: Path):
     
     mode_order = ['baseline_nondet', 'det_mode_66', 'det_mode_257',
                   'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+<<<<<<< HEAD
                   'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
                   ]
+=======
+                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+>>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
     
     # Filter to available modes and prepare data
     available_modes = [m for m in mode_order if m in results]
@@ -388,8 +396,12 @@ def plot_overhead_comparison(results: Dict[str, Dict], output_dir: Path):
     
     mode_order = ['det_mode_66', 'det_mode_257',
                   'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+<<<<<<< HEAD
                   'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
                   ]
+=======
+                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+>>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
     available_modes = [m for m in mode_order if m in results]
     
     # Calculate overhead percentages
@@ -462,8 +474,12 @@ def print_summary_table(results: Dict[str, Dict]):
     
     mode_order = ['baseline_nondet', 'det_mode_66', 'det_mode_257',
                   'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+<<<<<<< HEAD
                   'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
                   ]
+=======
+                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+>>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
     
     for mode in mode_order:
         if mode not in results:
@@ -493,8 +509,12 @@ def print_summary_table(results: Dict[str, Dict]):
         
         for mode in ['det_mode_66', 'det_mode_257',
                      'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+<<<<<<< HEAD
                      'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
                     ]:
+=======
+                     'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']:
+>>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
             if mode not in results:
                 continue
             
@@ -535,8 +555,12 @@ def main():
     raw_data = {}
     mode_dirs = ['baseline_nondet', 'det_mode_66', 'det_mode_257',
                  'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+<<<<<<< HEAD
                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
                  ]
+=======
+                 'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+>>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
     
     for mode_dir in mode_dirs:
         mode_path = input_dir / mode_dir

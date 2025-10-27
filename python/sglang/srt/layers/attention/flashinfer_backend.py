@@ -133,31 +133,27 @@ class FlashInferAttnBackend(AttentionBackend):
         # When deterministic inference is enabled, tensor cores should be used for decode
         # Also set split tile sizes for prefill and decode from environment variables, and disable kv split for cuda graph
         # More information can be found here: https://github.com/flashinfer-ai/flashinfer/pull/1675
-        
+
         # Store deterministic inference configuration
         self.deterministic_inference_flag = model_runner.server_args.enable_deterministic_inference
         self.enable_temperature_based_switching = bool(self.deterministic_inference_flag & 512)
-        
+
         # Static deterministic mode (bit 128 controls flashinfer determinism)
         # When bit 128 is NOT set AND bit 512 is NOT set (not using temperature-based switching),
         # always use deterministic configuration
         self.enable_deterministic = (
             self.deterministic_inference_flag and
-            not (self.deterministic_inference_flag & 128)
+            not (self.deterministic_inference_flag & 128) and
+            not (self.deterministic_inference_flag & 512)
         )
         # Store original (non-deterministic) settings
         self.original_decode_use_tensor_cores = self.decode_use_tensor_cores
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
-        
-        # For temperature-based switching, we DON'T override settings here.
-        # Instead, we apply different settings during CUDA graph capture based on
-        # is_batch_invariant_mode_enabled() in init_forward_metadata_capture_cuda_graph.
-        # This allows the deterministic graph to use deterministic settings and the
-        # non-deterministic graph to use non-deterministic settings.
-        if self.enable_deterministic:
-            # Static deterministic mode: always use deterministic settings
+
+        # Apply deterministic settings for both static mode AND temperature-based switching
+        if self.enable_deterministic or self.enable_temperature_based_switching:
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -275,10 +271,10 @@ class FlashInferAttnBackend(AttentionBackend):
             if self.enable_temperature_based_switching:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 enable_deterministic_current = is_batch_invariant_mode_enabled()
-            
+
             current_decode_split_tile_size = (self.decode_split_tile_size if enable_deterministic_current else None)
-                
-            
+
+
             self.indices_updater_decode.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
@@ -334,7 +330,8 @@ class FlashInferAttnBackend(AttentionBackend):
                 if self.enable_temperature_based_switching:
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
-                current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
+                    # logger.info(f"[FlashInfer Temperature-based] batch_invariant_enabled={enable_deterministic_current}, use_ragged={not enable_deterministic_current}")
+
                 use_ragged = not enable_deterministic_current
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
 
@@ -404,7 +401,7 @@ class FlashInferAttnBackend(AttentionBackend):
             if self.enable_temperature_based_switching:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_deterministic_graph = is_batch_invariant_mode_enabled()
-                
+
                 # Choose settings based on which graph we're capturing
                 if is_deterministic_graph:
                     # Deterministic graph: use tensor cores and disable kv split
@@ -418,7 +415,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 # Static mode or no temperature switching: use configured settings
                 use_tensor_cores = self.decode_use_tensor_cores
                 disable_split_kv = self.disable_cuda_graph_kv_split
-            
+
             decode_wrappers = []
             for i in range(self.num_wrappers):
                 decode_wrappers.append(
@@ -545,7 +542,7 @@ class FlashInferAttnBackend(AttentionBackend):
                     disable_split_kv = self.disable_cuda_graph_kv_split
                 else:
                     disable_split_kv = False
-            
+
             self.indices_updater_decode.update(
                 req_pool_indices[:bs],
                 seq_lens[:bs],

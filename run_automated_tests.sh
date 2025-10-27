@@ -273,12 +273,3 @@ echo ""
 echo "To plot results, run:"
 echo "  ./plot_etalon_results.sh --input-dir $OUTPUT_DIR"
 echo ""
-echo "Summary of results:"
-for mode_name in "${MODE_NAMES[@]}"; do
-    summary_file="${OUTPUT_DIR}/${mode_name}/summary.json"
-    if [ -f "$summary_file" ]; then
-        echo "  ✓ ${mode_name}: $summary_file"
-    else
-        echo "  ✗ ${mode_name}: No results found"
-    fi
-done
