@@ -22,11 +22,7 @@ HOST="0.0.0.0"
 PORT=30000
 TP_SIZE=1
 ATTENTION_BACKEND="flashinfer"
-<<<<<<< HEAD
 OUTPUT_DIR="with_cudagraph_etalon_results"
-=======
-OUTPUT_DIR="etalon_results"
->>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
 QPS=1.0
 MAX_REQUESTS=256
 TIMEOUT=600
@@ -43,12 +39,9 @@ WARMUP_TIME=30  # Time to wait for server to warmup
 MODES=("baseline" "66" "257" "578" "578" "578" "578" "578" "578")
 MODE_NAMES=("baseline_nondet" "det_mode_66" "det_mode_257" "det_mode_578_temp0_1pct" "det_mode_578_temp0_2pct" "det_mode_578_temp0_5pct" "det_mode_578_temp0_10pct" "det_mode_578_temp0_50pct" "det_mode_578_temp0_100pct")
 TEMP0_PERCENTAGES=("0" "0" "0" "1" "2" "5" "10" "50" "100")
-<<<<<<< HEAD
 # MODES=("baseline" "66" "257")
 # MODE_NAMES=("baseline_nondet" "det_mode_66" "det_mode_257")
 # TEMP0_PERCENTAGES=("0" "0" "0")
-=======
->>>>>>> 4f54bab06 (per request -- cuda graphs is pending, so decode is not working correctly)
 MODE_DESCRIPTIONS=(
     "Baseline (Non-deterministic)"
     "Mode 66 (batch-invariant: vllm-rmsnorm + cutlass)"
