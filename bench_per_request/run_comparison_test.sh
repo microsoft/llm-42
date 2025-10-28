@@ -169,7 +169,6 @@ launch_server() {
         --tp-size $TP_SIZE \
         --attention-backend $ATTENTION_BACKEND \
         --disable-radix-cache \
-        --disable-cuda-graph \
         --enable-deterministic-inference $mode \
         > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
     

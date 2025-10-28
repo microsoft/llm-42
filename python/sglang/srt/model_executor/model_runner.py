@@ -2050,8 +2050,8 @@ class ModelRunner:
             if self.enable_temperature_based_switching:
                 self.num_batch_invariant += 1
 
-        print(f"Forward pass {self.forward_pass_id}: "
-              f"{'Disabling' if should_disable_batch_invariant else 'Enabling'} batch-invariant mode.")
+        # print(f"Forward pass {self.forward_pass_id}: "
+        #       f"{'Disabling' if should_disable_batch_invariant else 'Enabling'} batch-invariant mode.")
         
         # Periodic logging of stats
         if self.enable_temperature_based_switching:

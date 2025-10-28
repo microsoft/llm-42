@@ -121,7 +121,7 @@ def test_deterministic_consistency(base_url="http://localhost:30000"):
     print()
     
     prompt = "What is 5 + 3?"
-    num_requests = 1
+    num_requests = 2
     
     print(f"Sending {num_requests} identical requests with temperature=0...")
     print(f"Prompt: {prompt}")

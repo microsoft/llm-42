@@ -22,7 +22,7 @@ HOST="0.0.0.0"
 PORT=30000
 TP_SIZE=1
 ATTENTION_BACKEND="flashinfer"
-OUTPUT_DIR="without_cudagraph_etalon_results"
+OUTPUT_DIR="with_cudagraph_etalon_results"
 QPS=1.0
 MAX_REQUESTS=256
 TIMEOUT=600
@@ -195,7 +195,6 @@ launch_server() {
             --tp-size $TP_SIZE \
             --attention-backend $ATTENTION_BACKEND \
             --disable-radix-cache \
-            --disable-cuda-graph \
             > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
     else
         echo "Starting server with deterministic mode $mode..."
@@ -206,7 +205,6 @@ launch_server() {
             --tp-size $TP_SIZE \
             --attention-backend $ATTENTION_BACKEND \
             --disable-radix-cache \
-            --disable-cuda-graph \
             --enable-deterministic-inference $mode \
             > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
     fi

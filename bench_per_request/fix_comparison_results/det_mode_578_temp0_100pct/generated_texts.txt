@@ -116,6 +116,18 @@ but I point out it 's escher-esque because it 's the House of Usher
 Somebody must have heard .
 Canada
 ------------------------------
+Here is a long text of at least 101 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
+
+"""A man, he's after a fortune.
+Computational phylogenetics:
+Maybe not.
+Shut up and let him tell it.
+Since, seldom coming, in the long year set,
+For all that beauty that doth cover thee
+When asked, "What is the behavior of a Vaisnava?"
+it totally was.
+Oh, well, I've
+------------------------------
 """Australia (2 Feb 2020): " reconsider your need to travel " to China overall and " do not travel " to Hubei Province due to the outbreak of coronavirus . 
 TV/MOVIES: Cyclops , you and Storm ready the jet . 
 People have given up , Jim .
@@ -132,18 +144,6 @@ Maybe .
 @Emily: You 've already laid out my future .
 2012 USA Batman: The Dark Knight Returns, Pt 1 Action, Adventure, Crime, Sci-Fi
 In
-------------------------------
-Here is a long text of at least 101 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
-
-"""A man, he's after a fortune.
-Computational phylogenetics:
-Maybe not.
-Shut up and let him tell it.
-Since, seldom coming, in the long year set,
-For all that beauty that doth cover thee
-When asked, "What is the behavior of a Vaisnava?"
-it totally was.
-Oh, well, I've
 ------------------------------
 """Wow .
 Make sweet some vial; treasure thou some place
@@ -405,6 +405,16 @@ I remember you . Get the lady here a drink .
 I 'm talking about our lives .
 b
 ------------------------------
+"""That use is not forbidden usury,
+<p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring the NHS isn't overwhelmed at any one point
+I don't think so.
+David?
+Sorry, but he'll endanger the mission and ... 
+Em, I want you to have a chance at a better future.
+@BLOGS: So, my last blog post was about going out with a guy who really "got" me.
+Like stones of worth they thinly placed are,
+<p> High Contrast himself describes The Agony &
+------------------------------
 """When in eternal lines to time thou growest:
 Nor shall Death brag thou wander'st in his shade,
 Cyclops , you and Storm ready the jet .
@@ -423,16 +433,6 @@ I remember you . Get the lady here a drink .
 Which one did you want killed , Kyle , the man or the woman ?
 I was n't the one who gave the station a new sunroof , pal . 
 and ,
-------------------------------
-"""That use is not forbidden usury,
-<p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring the NHS isn't overwhelmed at any one point
-I don't think so.
-David?
-Sorry, but he'll endanger the mission and ... 
-Em, I want you to have a chance at a better future.
-@BLOGS: So, my last blog post was about going out with a guy who really "got" me.
-Like stones of worth they thinly placed are,
-<p> High Contrast himself describes The Agony &
 ------------------------------
 """Basilisk: The basilisk appears in Harry Potter and the Chamber of Secrets as the monster inside the Chamber of Secrets.
 It makes sense .
@@ -465,9 +465,9 @@ You do n't get it , do you ?
 Which one did you want killed , Kyle , the man or the woman ?
 In eight NBA seasons , Yao made eight
 ------------------------------
-Here is a long text of at least 199 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
+Here is a long text of at least 199 tokens, mimicking the style and structure of the provided text:
 
-"""While certainly dramatic, 
+While certainly dramatic, 
 Shut up and let him tell it .
 Do n't forget again , baby , Universal Disco sweepstakes , just a week away .
 My dad does n't have any of those .
@@ -478,7 +478,7 @@ COCA: 950 million words |
 Well , I did see him again later that week and let 's just say :
 Therefore are feasts so solemn and so rare,
 Be not self-will'd, for thou art much too fair
-<p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring
+<p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring the NHS is n't
 ------------------------------
 """ 25 , 
 To this composed wonder of your frame;
@@ -490,6 +490,25 @@ In thee thy summer, ere thou be distill'd:
 but I point out it 's escher-esque because it 's the House of Usher
 capitalism , 
 Pres
+------------------------------
+"""And every fair from fair sometime declines,
+the basilisk is considered king of serpents, and its gaze kills.
+Shall I compare thee to a summer's day?
+Plus , 
+1910s (newspaper): The Greenwich Equal Franchise League , 
+some abstract , 
+All right .
+Vidya Balan added, ”And then, much later, 
+The sooner we solve this , the sooner we get back to making our quota .
+GloWbE: 1.8 billion words | 1,800,000 texts | web pages | ~ 60% blogs | United States, Great Britain, Australia, India, and 16 other countries
+it 's a lot of fun to pull off-the-wall stunts that actually work in special situations .
+1990 UK Truly Madly Deeply Comedy Drama, Fantasy
+<p> High Contrast himself describes The Agony & The Ecstasy as more personal than any other album he 's made 
+1936 US Gold Diggers of 1937 Comedy, Musical, Romance
+But where do you go ?
+@Sharon: Um , well , I do n't know .
+When in eternal lines to time thou growest:
+Traditional phylogen
 ------------------------------
 """Show me your image in some antique book,
 In gentle numbers time so idly spent;
@@ -513,25 +532,6 @@ You hear that ? Five months .
 I could sleep. 
 They cut me off .
 
-------------------------------
-"""And every fair from fair sometime declines,
-the basilisk is considered king of serpents, and its gaze kills.
-Shall I compare thee to a summer's day?
-Plus , 
-1910s (newspaper): The Greenwich Equal Franchise League , 
-some abstract , 
-All right .
-Vidya Balan added, ”And then, much later, 
-The sooner we solve this , the sooner we get back to making our quota .
-GloWbE: 1.8 billion words | 1,800,000 texts | web pages | ~ 60% blogs | United States, Great Britain, Australia, India, and 16 other countries
-it 's a lot of fun to pull off-the-wall stunts that actually work in special situations .
-1990 UK Truly Madly Deeply Comedy Drama, Fantasy
-<p> High Contrast himself describes The Agony & The Ecstasy as more personal than any other album he 's made 
-1936 US Gold Diggers of 1937 Comedy, Musical, Romance
-But where do you go ?
-@Sharon: Um , well , I do n't know .
-When in eternal lines to time thou growest:
-Traditional phylogen
 ------------------------------
 """My glass shall not persuade me I am old,
 Guthrie said , a moment later . 
@@ -780,6 +780,17 @@ Anyone ever tell you that you 're excellent at gluing ?
 It 's complicated .
 Oh , I 'm afraid it would n't work
 ------------------------------
+"""It was great. 
+And gives thy pen both skill and argument.
+What were those men guilty of , murder or just acting on your instructions ? Oh , that 's ridiculous .
+immigrant detention centers , 
+Basilisk: The basilisk appears in Harry Potter and the Chamber of Secrets as the monster inside the Chamber of Secrets.
+NEWSPAPER: The protesters here certainly know what they do n't like : war , 
+To this composed wonder of your frame;
+kick ass .
+Give my love fame faster than Time wastes life;
+Be not self-will'd, for thou art much too fair
+------------------------------
 """a high-speed train line and , 
 composed entirely of New York society women , 
 It 's complicated .
@@ -801,17 +812,6 @@ It 's prison .
 And every fair from fair sometime declines,
 breadexperience.com: Cover the dough with a towel and set it aside to rest in a warm place ( 80 degrees F. ) for about 30 minutes .
 inexplicably ,
-------------------------------
-"""It was great. 
-And gives thy pen both skill and argument.
-What were those men guilty of , murder or just acting on your instructions ? Oh , that 's ridiculous .
-immigrant detention centers , 
-Basilisk: The basilisk appears in Harry Potter and the Chamber of Secrets as the monster inside the Chamber of Secrets.
-NEWSPAPER: The protesters here certainly know what they do n't like : war , 
-To this composed wonder of your frame;
-kick ass .
-Give my love fame faster than Time wastes life;
-Be not self-will'd, for thou art much too fair
 ------------------------------
 """@Emily: Paul , if people waited for the right time , nobody would have kids .
 His one and only virtue is honesty .
@@ -1018,6 +1018,19 @@ an image of a breaching great white shark currently making the rounds on Twitter
 WEB PAGES: Reviewer: Fireball.
 If there be nothing new,
 ------------------------------
+"""- Oh , you liked it ?
+A mugger , he 's after a wallet .
+As the World Turns
+1991 USA Twin Peaks Crime, Drama, Mystery
+Which happies those that pay the willing loan;
+but I point out it 's escher-esque because it 's the House of Usher
+O, sure I am, the wits of former days
+I could sleep. 
+Which one did you want killed , Kyle , the man or the woman ?
+Sing to the ear that doth thy lays esteem
+Can bring him to his sweet up-locked treasure,
+NOW: (Currently) 19.0  billion words | 32,416,229 texts / web pages | 20 different countries | 2010 - last month (April 2024) | Growing
+------------------------------
 """I was n't the one who gave the station a new sunroof , pal . 
 1936 US Gold Diggers of 1937 Comedy, Musical, Romance
 NEWSPAPER: The protesters here certainly know what they do n't like : war , 
@@ -1042,19 +1055,6 @@ Canada (13 March 2020): The spread of the novel coronavirus that causes COVID-19
 He 's not coming with us , is he ?
 Toyota Camry: Coil
 ------------------------------
-"""- Oh , you liked it ?
-A mugger , he 's after a wallet .
-As the World Turns
-1991 USA Twin Peaks Crime, Drama, Mystery
-Which happies those that pay the willing loan;
-but I point out it 's escher-esque because it 's the House of Usher
-O, sure I am, the wits of former days
-I could sleep. 
-Which one did you want killed , Kyle , the man or the woman ?
-Sing to the ear that doth thy lays esteem
-Can bring him to his sweet up-locked treasure,
-NOW: (Currently) 19.0  billion words | 32,416,229 texts / web pages | 20 different countries | 2010 - last month (April 2024) | Growing
-------------------------------
 """Guthrie said, a moment later.
 So long lives this and this gives life to thee.
 kick ass.
@@ -1078,21 +1078,28 @@ for periods varying from one day to eleven
 Akhtar says she is “sick of being told I’m not getting on with people who are not like me” and admits to deliberately going out of her way to change that perception.
 H
 ------------------------------
-"""The Globe offers the dos and don'ts to help slow or stop the spread of the virus in your community.
+"""The Globe offers the dos and don'ts to help slow or stop the spread of the virus in your community .
 Return, forgetful Muse, and straight redeem
 evenly divided (~120-130 million words each) into spoken, 
-I have an old shirt you could wear.
-some conventional, 
-@Emily: Nightmare. Is that how you see it?
-@Jake: I'm just tired, Tad.
-sometimes the other, 
+I have an old shirt you could wear .
+some conventional , 
+@Emily: Nightmare . Is that how you see it ?
+@Jake: I 'm just tired , Tad .
+sometimes the other , 
 ACADEMIC: Synthesizing knowledge of the connections between above-surface and below-surface biodiversity was considered a priority to be addressed at a second workshop
 US (31 May 2020):
-- Yes.
-I wasn't the one who gave the station a new sunroof, pal. 
-I never dreamed when I gave 'em my credit card number that they would charge me.
-Come on.
-To speak of that which gives thee all thy
+- Yes .
+I was n't the one who gave the station a new sunroof , pal . 
+I never dreamed when I gave ' em my credit card number that they would charge me .
+Come on .
+To speak of that which gives thee
+------------------------------
+"""Um , I 'm gon na let David go in my place .
+<p> " We 've taken a whole lot of steps already , but we 're going to announce a whole lot more tomorrow , which will be effective sometime over the next couple of weeks
+Then what could death do, if thou shouldst depart,
+@Nick: Are you sure you wo n't reconsider ?
+What were those men guilty of , murder or just acting on your instructions ? Oh , that 's ridiculous .
+As I have said , hysterical women certainly do exhibit a marked ability to go without both food
 ------------------------------
 """But where do you go ?
 MAGAZINE: The ability to approach every hunting situation with the same kind of open mind and without pre-conceived notions about " how it 's supposed to be done " is a trait all of the best deer hunters share .
@@ -1105,13 +1112,6 @@ In gentle numbers time so idly spent;
 UK (23 Apr 2020): Social distancing does not directly tackle the coronavirus but it keeps it away from the public and buys time to develop other methods of tackling the virus .
 for periods varying from one day to eleven
 It '
-------------------------------
-"""Um , I 'm gon na let David go in my place .
-<p> " We 've taken a whole lot of steps already , but we 're going to announce a whole lot more tomorrow , which will be effective sometime over the next couple of weeks
-Then what could death do, if thou shouldst depart,
-@Nick: Are you sure you wo n't reconsider ?
-What were those men guilty of , murder or just acting on your instructions ? Oh , that 's ridiculous .
-As I have said , hysterical women certainly do exhibit a marked ability to go without both food
 ------------------------------
 """<p> Sprinkle the salt over the dough and grab the dough between your fingers and pull it up and stretch it.
 GloWbE: 1.8 billion words | 1,800,000 texts | web pages | ~ 60% blogs | United States, Great Britain, Australia, India, and 16 other countries
@@ -1172,6 +1172,12 @@ And you know I 'm
 ------------------------------
 """Plus, and the engagement finally began on December 4. It did n't hurt. How can I then be elder than thou art? Or ten times happier, be it ten for one; Oh, well, I 've been working here five months. As tender nurse her babe from faring ill. No, no, stay a little longer, Frank. At the Cotton Club, That 's perseverance, five months on one case. Steering uses a rack and pinion design; Now, what difference does it make, as long as they 're the men that did it? But it does make a difference, does n't it, Mr. Kyle? O, that record could with a backward look, ACADEMIC: Synthesizing knowledge of the connections between above-surface and below-surface biodiversity was considered a priority to be addressed at a second workshop NEWSPAPER: The protesters here certainly know what they do n't like: war, To this composed wonder of your frame; Ok, so, what? it totally was. Or whether revolution be the same. I could sleep. All My Children I have an old shirt you could wear. breadexperience.com: Cover the dough with a towel and set it aside to rest in a warm place (80 degrees F.) for about 30 minutes. Computational phylogenetics: The influence of his virtues and affection might, perhaps, after several films, @
 ------------------------------
+"""Then look I death my days should expiate.
+The bad news is Neil will be taking over both branches and some of you will lose your jobs .
+I du n no , maybe I did n't die properly .
+The sooner we solve this , the sooner we get back to making our quota .
+You 're not worried about me
+------------------------------
 """You and -- you just want to break up something good that my brother has in his life .
 But when in thee time's furrows I behold,
 While certainly dramatic, 
@@ -1198,12 +1204,6 @@ Hath been before, how are our brains beguiled,
 - What 's this ?
 braking hardware is made up of front ventilated discs and rear drums with a double proportioning valve to suppress lock-up.
 But the basilisk in JK Rowling
-------------------------------
-"""Then look I death my days should expiate.
-The bad news is Neil will be taking over both branches and some of you will lose your jobs .
-I du n no , maybe I did n't die properly .
-The sooner we solve this , the sooner we get back to making our quota .
-You 're not worried about me
 ------------------------------
 """Said to be made of bark and twigs with two brown eyes , very hard to spot and grows up to eight inches in height .
 “You know what I’ve been doing recently?” she asks. 
@@ -1258,11 +1258,9 @@ The sooner we solve this, the sooner we get back
 ------------------------------
 The word apavitra anna refers to food that is unacceptable for a Vaisnava. This concept is deeply rooted in the Vaisnava tradition, which emphasizes the importance of purity and cleanliness in all aspects of life, including diet.
 
-All My Children, a popular soap opera, was a staple of many people's daily routines in the 1980s and 1990s. The show's over-the-top storylines and characters were a guilty pleasure for many viewers.
+In the Bhagavatam, it is stated that a Vaisnava should not eat food that is offered to demons or that is prepared in a place where demons are present. This is because demons are considered to be inimical to the Vaisnava way of life and their presence can pollute the food.
 
-Braking hardware is a critical component of any vehicle, and its design and functionality can have a significant impact on safety. The use of front ventilated discs and rear drums with a double proportioning valve is a common configuration in many modern vehicles.
-
-Harry Potter fan
+Similarly, a Vaisnava should not eat food that is prepared in a place where there is a mixture of good and bad qualities, such as a place where
 ------------------------------
 """They both laughed . 
 have preserved Henry from the errors of his after life , 
@@ -1322,6 +1320,17 @@ You hear that ? Five months .
 Get Logan a uniform . 
 @Tad:
 ------------------------------
+"""But when in thee time's furrows I behold,
+and sometimes both , 
+@Lulu: Okay , well , the name is a mouthful , but think of all the people you 'd be helping ?
+@Jake: I do n't want to talk about that .
+“When I’m in a shopping centre, if a see a white person sat on a bench
+But where do you go ?
+I do n't think so .
+but their opportunities of intercourse were rare and brief
+He also loves horror movies and
+
+------------------------------
 """That I might see what the old world could say
 No more than I am the rest of the city .
 Plus , 
@@ -1348,17 +1357,6 @@ It really did n't hurt .
 You said you heard screams .
 And you know I 'm very sensitive to pain .
 Cor
-------------------------------
-"""But when in thee time's furrows I behold,
-and sometimes both , 
-@Lulu: Okay , well , the name is a mouthful , but think of all the people you 'd be helping ?
-@Jake: I do n't want to talk about that .
-“When I’m in a shopping centre, if a see a white person sat on a bench
-But where do you go ?
-I do n't think so .
-but their opportunities of intercourse were rare and brief
-He also loves horror movies and
-
 ------------------------------
 """Are you going to tell us ?
 - You 're gon na go home ?
@@ -1401,7 +1399,7 @@ Tony !
 US (31 May 2020):
 - What did she say
 ------------------------------
-Here is a long text of at least 244 tokens, mimicking the style and structure of the given text:
+Here is a long text of at least 244 tokens, mimicking the style and structure of the provided text:
 
 """" The Art of War " ,
 Sorry, but he'll endanger the mission and ... 
@@ -1681,10 +1679,6 @@ Yet I had to be satisfied with eight pounds , fifteen shillings , less deduction
 As I, not for myself, but for thee will;
 
 ------------------------------
-Here's a long text of at least 408 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
-
-"""- That's right, but I kept going. Do not forget again, baby, Universal Disco sweepstakes, just a week away. 1960 USA Bonanza Western. As I, not for myself, but for thee will; he could soon loosen restrictions on restaurants and nonessential retail that have been long been limited to curbside pickup and delivery to slow the outbreak. Return, forgetful Muse, and straight redeem When in eternal lines to time thou growest: Some characteristics of the beast are similar to the rest of the mythos: No more than I am the rest of the city. We were in love, we were together. Be not self-willed, for thou art much too fair I was not the one who gave the station a new sunroof, pal. People have given up, Jim. He was cool with all the projects I do. Some abstract, Just when you thought it was safe to go back in the water... Great Britain (general): Returning in 2012 with his fourth artist album, You were really very good at it. @SUMMIT All right. Shall I compare thee to a summer's day? Are you going to tell us? @Paul: The way I see it, you should get a fresh start. I'm serious. One Life To Live 1977 USA Saturday Night Fever Drama, Music 1991 USA Twin Peaks Crime, Drama, Mystery Spend'st thou thy fury on some worthless song, US (31 May 2020): staircases to staircases, And summer's lease hath all too short a date: capitalism, All My Children Is but the seemly raiment of my heart, - Why not? So is the time that keeps you as my chest, @Sharon: Um, well, I do not know. What were those men guilty of, murder or just acting on your instructions?
-------------------------------
 """Movies Corpus: 200 million words | 25,000 movies | 1930-2018 | US, CA, UK, IE, AU, NZ. More than 70% (140 million words) from 1990-2018.
 - Crew all assembled ?
 What about Carolyn ?
@@ -1712,6 +1706,10 @@ Oh , well , I 've been working here five months .
 - Yeah .
 @Paul: Emily , this pregnancy is n't some fabulous new beginning .
 Wait
+------------------------------
+Here's a long text of at least 408 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
+
+"""- That's right, but I kept going. Do not forget again, baby, Universal Disco sweepstakes, just a week away. 1960 USA Bonanza Western. As I, not for myself, but for thee will; he could soon loosen restrictions on restaurants and nonessential retail that have been long been limited to curbside pickup and delivery to slow the outbreak. Return, forgetful Muse, and straight redeem When in eternal lines to time thou growest: Some characteristics of the beast are similar to the rest of the mythos: No more than I am the rest of the city. We were in love, we were together. Be not self-willed, for thou art much too fair I was not the one who gave the station a new sunroof, pal. People have given up, Jim. He was cool with all the projects I do. Some abstract, Just when you thought it was safe to go back in the water... Great Britain (general): Returning in 2012 with his fourth artist album, You were really very good at it. @SUMMIT All right. Shall I compare thee to a summer's day? Are you going to tell us? @Paul: The way I see it, you should get a fresh start. I'm serious. One Life To Live 1977 USA Saturday Night Fever Drama, Music 1991 USA Twin Peaks Crime, Drama, Mystery Spend'st thou thy fury on some worthless song, US (31 May 2020): staircases to staircases, And summer's lease hath all too short a date: capitalism, All My Children Is but the seemly raiment of my heart, - Why not? So is the time that keeps you as my chest, @Sharon: Um, well, I do not know. What were those men guilty of, murder or just acting on your instructions?
 ------------------------------
 """and the engagement finally began on December 4.
 No , you were the one who stabbed Rogue in the chest .
@@ -1935,6 +1933,19 @@ COHA: 385 million words | 115,000 texts | 1810-2009 | each decade has roughly th
 braking hardware is made up of front ventilated discs and rear drums with a double proportioning valve to suppress lock-up.
 breadexperience.com: Cover the dough with a
 ------------------------------
+"""I have an old shirt you could wear .
+No , you were the one who stabbed Rogue in the chest .
+do what you love .
+MAGAZINE: The ability to approach every hunting situation with the same kind of open mind and without pre-conceived notions about " how it 's supposed to be done " is a trait all of the best deer hunters share .
+This should be a principle for all Vaisnavas .
+Gather .
+- That 's right , but I kept going .
+Vidya Balan added, ”And then, much later, 
+Great Britain (Dec 2016, Guardian)
+No , no , stay a little longer , Frank .
+@Emily: Paul , if people waited for the right time , nobody would have kids .
+I
+------------------------------
 Here is a long text of at least 168 tokens, mimicking the style and structure of the provided text:
 
 """- They should be .
@@ -1949,19 +1960,6 @@ This should be a principle for all Vaisnavas .
 But when in thee time's furrows I behold,
 Wait a minute . 
 United States (
-------------------------------
-"""I have an old shirt you could wear .
-No , you were the one who stabbed Rogue in the chest .
-do what you love .
-MAGAZINE: The ability to approach every hunting situation with the same kind of open mind and without pre-conceived notions about " how it 's supposed to be done " is a trait all of the best deer hunters share .
-This should be a principle for all Vaisnavas .
-Gather .
-- That 's right , but I kept going .
-Vidya Balan added, ”And then, much later, 
-Great Britain (Dec 2016, Guardian)
-No , no , stay a little longer , Frank .
-@Emily: Paul , if people waited for the right time , nobody would have kids .
-I
 ------------------------------
 """He has no imagination, no initiative, sir.
 All My Children
@@ -2254,29 +2252,29 @@ I was n't the one who gave the station a new sunroof , pal .
 So long as men can breathe or eyes can see,
 Sure
 ------------------------------
-Here's a long text of at least 230 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
+Here is a long text of at least 230 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
 
 """It was a beautiful day, 
 The sun was shining brightly in the clear blue sky, 
-A gentle breeze was blowing, 
-And the trees were swaying gently in the wind.
-The sound of birds chirping filled the air, 
-As they sang their sweet melodies, 
-Their trills and chirps a symphony of joy and happiness.
-The world was full of life and color, 
-A vibrant tapestry of beauty and wonder.
-But amidst all this beauty, 
-There was a sense of unease, 
-A feeling of uncertainty and doubt.
-For in the midst of this peaceful scene, 
-There was a sense of danger lurking, 
-A threat to the very fabric of our existence.
-The basilisk, a creature of legend and myth, 
-Was said to be able to kill with a single glance, 
-Its gaze a deadly poison that could destroy all in its path.
-And yet, despite this danger, 
-We were drawn to it, 
-Fascinated by its power and its
+A gentle breeze rustled the leaves of the trees, 
+As the sound of birds chirping filled the air, 
+A group of friends were gathered in a park, 
+Laughing and chatting, enjoying each other's company, 
+Their joy and happiness were palpable, 
+As they played games and had a picnic, 
+Their smiles and laughter echoed through the park, 
+A sense of camaraderie and friendship filled the air, 
+Their bond was strong, and their love for each other was evident, 
+As they shared stories and memories, 
+Their eyes sparkled with delight, 
+Their hearts were full of joy, 
+Their spirits were high, 
+Their friendship was a treasure, 
+A precious gift that they cherished, 
+A bond that would last a lifetime, 
+A memory that would be etched in their minds forever, 
+A moment of pure happiness, 
+A feeling that they would
 ------------------------------
 """That 's -- that 's it ?
 Let 's get this thing settled , then .
@@ -2310,6 +2308,15 @@ staircases to staircases ,
 485,000 texts | 
 As I, not for
 ------------------------------
+"""Things got a little creepy .
+Surely , after all this time , he deserves a leg up .
+@Paul: The way I see it , you should get a fresh start .
+composed entirely of New York society women , 
+<p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring the NHS is n't overwhelmed at any one point
+With a little umbrella in it .
+Within 24 hours the photo has clocked up 10,000 likes and almost 300 comments, with many slamming the “tree” as an “epic fail”.
+a high
+------------------------------
 """Ok , so , what ?
 An old shirt !
 His one and only virtue is honesty .
@@ -2336,15 +2343,6 @@ As I, not for myself, but for thee will;
 These kids , it 's just random violence .
 @Jake: I do n't want to talk about that .
 Um ,
-------------------------------
-"""Things got a little creepy .
-Surely , after all this time , he deserves a leg up .
-@Paul: The way I see it , you should get a fresh start .
-composed entirely of New York society women , 
-<p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring the NHS is n't overwhelmed at any one point
-With a little umbrella in it .
-Within 24 hours the photo has clocked up 10,000 likes and almost 300 comments, with many slamming the “tree” as an “epic fail”.
-a high
 ------------------------------
 Here is a long text of at least 192 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
 
@@ -2553,6 +2551,13 @@ it totally was.
 Thank God he 's keeping quiet .
 " The hippies were saying , '
 ------------------------------
+"""and , deciding that one of their own sex could not be elected , 
+They both laughed . 
+Tree-guardian creature found mainly on the west of England , southern Germany and certain Scandinavian forests .
+My glass shall not persuade me I am old,
+And gives thy pen both skill and argument.
+hoophall.com: Already a legend in his native China , the big center was poised to test his mettle against
+------------------------------
 """<p> High Contrast himself describes The Agony & The Ecstasy as more personal than any other album he 's made 
 I was n't the one who gave the station a new sunroof , pal .
 @Natalie: Ok , all right , I get it .
@@ -2568,13 +2573,6 @@ O, therefore, love, be of thyself so wary
 SPOKEN: @SUMMIT It should be a C-note.
 At the Cotton Club, 
 As I, not for
-------------------------------
-"""and , deciding that one of their own sex could not be elected , 
-They both laughed . 
-Tree-guardian creature found mainly on the west of England , southern Germany and certain Scandinavian forests .
-My glass shall not persuade me I am old,
-And gives thy pen both skill and argument.
-hoophall.com: Already a legend in his native China , the big center was poised to test his mettle against
 ------------------------------
 """1977 UK Doctor Who Adventure, Drama
 High Contrast is set to reinstate his reputation at the top table with this superb twelve-track long player .
@@ -2653,7 +2651,7 @@ Coronavirus: 1.5 billion words
 ------------------------------
 Here is a long text of at least 247 tokens, mimicking the style and structure of the provided text:
 
-"Here, have another drink. 25, Maybe not. Are you going to tell us? an image of a breaching great white shark currently making the rounds on Twitter as National Geographic's 'Photo of the Year' has nothing to do with the magazine. He's not coming with us, is he? At the Cotton Club, Make sweet some vial; treasure thou some place whom he called his good genius, It was like standing behind a glass wall while everybody else got on with missing me. after several films, Gather. With a little umbrella in it. The sets are very M.C. Escher-esque, He was good at two things: The car and me. It's complicated. He wants to meet me now at the Athletic Club. Great Britain (general): Returning in 2012 with his fourth artist album, @Paul: Emily, this pregnancy isn't some fabulous new beginning. Said to be made of bark and twigs with two brown eyes, very hard to spot and grows up to eight inches in height. Things got a little creepy. SOAP corpus: 100 million words |
+"Here, have another drink. 25, Maybe not. Are you going to tell us? an image of a breaching great white shark currently making the rounds on Twitter as National Geographic's "Photo of the Year" has nothing to do with the magazine. He's not coming with us, is he? At the Cotton Club, Make sweet some vial; treasure thou some place whom he called his good genius, It was like standing behind a glass wall while everybody else got on with missing me. after several films, Gather. With a little umbrella in it. The sets are very M.C. Escher-esque, He was good at two things: The car and me. It's complicated. He wants to meet me now at the Athletic Club. Great Britain (general): Returning in 2012 with his fourth artist album, @Paul: Emily, this pregnancy isn't some fabulous new beginning. Said to be made of bark and twigs with two brown eyes, very hard to spot and grows up to eight inches in height. Things got a little creepy. SOAP corpus: 100 million words |
 ------------------------------
 """No , you were the one who stabbed Rogue in the chest .
 Can bring him to his sweet up-locked treasure,
@@ -2676,6 +2674,13 @@ globalization ,
 You could help me out if you want .
 High
 ------------------------------
+"""People have given up , Jim .
+inexplicably , 
+@Natalie: You know , it 's not like he 's in love with Evangeline .
+An old shirt !
+Ok , so , what ?
+No
+------------------------------
 """Because he 's a good person .
  one of maybe 150 protesters at a piazza , 
 1820s (fiction):
@@ -2691,12 +2696,14 @@ Do n't forget again , baby , Universal Disco sweepstakes , just a week away .
 That I might see what the old world could say
 2000 USA X-Men Action, Adventure,
 ------------------------------
-"""People have given up , Jim .
-inexplicably , 
-@Natalie: You know , it 's not like he 's in love with Evangeline .
-An old shirt !
-Ok , so , what ?
-No
+"""Said to be made of bark and twigs with two brown eyes , very hard to spot and grows up to eight inches in height .
+buddhistdoor.net: Because they have not cleared the twofold obstruction of views and afflictions , ordinary beings can only guess at the deepest meanings of the Dharma .
+No , no , stay a little longer , Frank .
+Since mind at first in character was done!
+" The hippies were saying , ' Love everybody , ' but
+They 're hiding , turning a blind eye .
+Tony !
+The Globe offers the dos
 ------------------------------
 """“When I’m in a shopping centre, if a see a white person sat on a bench
 Nor shall Death brag thou wander'st in his shade,
@@ -2770,15 +2777,6 @@ Go on , dear , sit down , it 's all right .
 for periods varying from one day to eleven
 
 ------------------------------
-"""Said to be made of bark and twigs with two brown eyes , very hard to spot and grows up to eight inches in height .
-buddhistdoor.net: Because they have not cleared the twofold obstruction of views and afflictions , ordinary beings can only guess at the deepest meanings of the Dharma .
-No , no , stay a little longer , Frank .
-Since mind at first in character was done!
-" The hippies were saying , ' Love everybody , ' but
-They 're hiding , turning a blind eye .
-Tony !
-The Globe offers the dos
-------------------------------
 Here's a long text of at least 126 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
 
 """<p> " We 've taken a whole lot of steps already , but we 're going to announce a whole lot more tomorrow , which will be effective sometime over the next couple of weeks
@@ -2789,9 +2787,9 @@ You have n
 ------------------------------
 Here's a long text of at least 143 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
 
-"""Get Logan a uniform, and make sure it's the best one we can find. Em, I want you to have a chance at a better future, one where you can wear a uniform with pride. Sometime too hot the eye of heaven shines, and we need to make sure you're prepared for the challenges that come with it.
+"""Get Logan a uniform, and make sure it's the best one you can find. I want you to have a chance at a better future, one that's filled with opportunities and success. Sometime too hot the eye of heaven shines, and we must be prepared to face the challenges that come our way.
 
-Because they have not cleared the twofold obstruction of views and afflictions, ordinary beings can only guess at the deepest meanings of the Dharma. But we're not ordinary beings, are we? We're the ones who are going
+Because they have not cleared the twofold obstruction of views and afflictions, ordinary beings can only guess at the deepest meanings of the Dharma. It's like trying to grasp a handful of sand - the more you try to hold on, the more it slips
 ------------------------------
 """harrypotterfanzone.com BOWTRUCKLE <p> Description : 
 but I point out it 's escher-esque because it 's the House of Usher
@@ -2801,6 +2799,12 @@ Get Logan a uniform .
 staircases to staircases , 
 Well , I did see him again later that week and let 's just say :
 So thou prevent'st his sc
+------------------------------
+"""Well, I did see him again later that week and let's just say: Things got a little creepy. He plays softball, and was going to come over after a game. I was a little nervous, but I tried to play it cool. I mean, I've been in tougher spots before, right? But this was different. This was personal.
+
+I remember the first time we met, it was at a party. He was charming, charismatic, and had this aura about him that was hard to ignore. We talked for hours, and I was drawn to him like a magnet. I didn't know much about him, but I knew I wanted to get to know him better.
+
+As the days went by, we started to hang out more and more. We'd go on walks, have coffee, and just talk about life
 ------------------------------
 """- What did she say ?
 I could sleep. 
@@ -2825,12 +2829,6 @@ Make sweet some vial; treasure thou some place
 In gentle numbers time so idly spent;
 Traditional phylogenetics relies on morphological data obtained by measuring and quantifying the phenotypic properties of representative organisms,
 
-------------------------------
-"""Well, I did see him again later that week and let's just say: Things got a little creepy. He plays softball, and was going to come over after a game. I was a little nervous, but I tried to play it cool. I mean, I've been in tougher spots before, right? But this was different. This was personal.
-
-I remember the first time we met, it was at a party. He was charming, charismatic, and had this aura about him that was hard to ignore. We talked for hours, and I was drawn to him like a magnet. I didn't know what it was about him, but I knew I wanted to spend more time with him.
-
-As the days went by, we started to hang out more and more. We'd go on walks, have coffee, and just talk
 ------------------------------
 """David ?
 Or as the wardrobe which the robe doth hide,
@@ -2859,25 +2857,28 @@ Movies Corpus: 200 million words | 25,000 movies | 1930-2018 | US, CA, UK, IE, A
 ------------------------------
 Here's a long text of at least 187 tokens, mimicking the style and structure of the given text:
 
-"""- That's right, but I kept going.
-Come on, come on, give us the lowdown.
-NEWSPAPER: The protesters here certainly know what they don't like: war, 
-1977 UK Doctor Who Adventure, Drama
-My glass shall not persuade me I am old,
-That's for thyself to breed another thee,
-The bad news is Neil will be taking over both branches and some of you will lose your jobs.
-- You're gon na go home?
-Why don't you give that poor old devil a chance?
-1910s (newspaper): The Greenwich Equal Franchise League, 
-We were in love, we were together.
-Which, labouring for invention, bear amiss
-he could soon loosen restrictions on restaurants and nonessential retail that have been long been limited to
+"""- That's right, but I kept going. Come on, come on, give us the lowdown. NEWSPAPER: The protesters here certainly know what they don't like: war, 1977 UK Doctor Who Adventure, Drama. My glass shall not persuade me I am old, That's for thyself to breed another thee, The bad news is Neil will be taking over both branches and some of you will lose your jobs. - You're gonna go home? Why don't you give that poor old devil a chance? 1910s (newspaper): The Greenwich Equal Franchise League, We were in love, we were together. Which, labouring for invention, bear amiss he could soon loosen restrictions on restaurants and nonessential retail that have been long been limited to curbs
 ------------------------------
 """Hath been before, how are our brains beguiled,
 High Contrast is set to reinstate his reputation at the top table with this superb twelve-track long player.
 And the Mutants, they're not like the usual street crooks.
 Well, I did see him again later that week and let's just say: Things got a little creepy.
 <p> He
+------------------------------
+Here's a long text of at least 203 tokens, mimicking the style and structure of the given text:
+
+"""and , deciding that one of their own sex could not be elected , 
+Whether we are mended, or whether better they,
+High Contrast is set to reinstate his reputation at the top table with this superb twelve-track long player .
+Australia (blog): i want build a little biz to be the place to ' get a little help as you build your little biz . '
+Canada (13 March 2020): The spread of the novel coronavirus that causes COVID-19 continues , with more cases diagnosed in Canada .
+No more than I am the rest of the city .
+In fact, it isn’t even a photo.
+What about Carolyn ?
+With a little umbrella in it .
+You 're just going to shut down on me again ?
+<p> He plays softball , and was going to come over after a game .
+“It is soooooo heavy (this is just the top section) and made
 ------------------------------
 """His one and only virtue is honesty .
 1991 USA Twin Peaks Crime, Drama, Mystery
@@ -2897,21 +2898,6 @@ braking hardware is made up of front ventilated discs and rear drums with a doub
 Steering uses a rack and pinion design;
 I was n't the one who gave the station a new sunroof , pal . 
 GloWbE: 1.8 billion words
-------------------------------
-Here's a long text of at least 203 tokens, mimicking the style and structure of the given text:
-
-"""and , deciding that one of their own sex could not be elected , 
-Whether we are mended, or whether better they,
-High Contrast is set to reinstate his reputation at the top table with this superb twelve-track long player .
-Australia (blog): i want build a little biz to be the place to ' get a little help as you build your little biz . '
-Canada (13 March 2020): The spread of the novel coronavirus that causes COVID-19 continues , with more cases diagnosed in Canada .
-No more than I am the rest of the city .
-In fact, it isn’t even a photo.
-What about Carolyn ?
-With a little umbrella in it .
-You 're just going to shut down on me again ?
-<p> He plays softball , and was going to come over after a game .
-“It is soooooo heavy (this is just the top section) and made
 ------------------------------
 """Being had, to triumph, being lack'd, to hope.
 2012 USA Batman: The Dark Knight Returns, Pt 1 Action, Adventure, Crime, Sci-Fi
@@ -3028,11 +3014,11 @@ Whether we are mended, or whether better they,
 - That 's right , but I kept going .
 he could soon loosen restrictions on restaurants and nonessential retail that have been long been limited to curbside pickup and delivery
 ------------------------------
-Here's a long text of at least 111 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
+Here is a long text of at least 111 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
 
-"""The sun was setting over the vast expanse of the ocean, casting a warm orange glow over the waves. It was a sight that never failed to mesmerize, and yet, it was a sight that I had grown accustomed to. As a sailor, I had spent countless days at sea, watching the sun rise and set, and yet, it still held a certain magic for me.
+"""The sun was shining brightly in the clear blue sky, casting a warm glow over the bustling city streets. People of all ages and backgrounds hurried to and fro, each with their own unique story to tell. Amidst the chaos, a young artist stood out, her vibrant paintings a testament to her creativity and passion. She had always been fascinated by the world around her, and her art reflected that.
 
-But today was different.
+As she worked
 ------------------------------
 """You do n't get it , do you ?
 Get Logan a uniform . 
@@ -3137,9 +3123,41 @@ It was like standing behind a glass wall while everybody else got on with missin
 Shall I compare thee to a summer's day?
 In eight NBA seasons , Yao made eight All-Star rosters , averaged 19 points
 ------------------------------
-Here's a long text of at least 407 tokens, mimicking the style and structure of the given text:
+Here's a long text of at least 407 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
 
-25, the Cotton Club's exclusively white and wealthy clientele poured in nightly to see them. Wow! Go on. When in eternal lines to time thou growest: In other words, a Vaisnava can not accept any food offered by an avaisnava in the name of maha-prasada. Shall I compare thee to a summer's day? <p> Sprinkle the salt over the dough and grab the dough between your fingers and pull it up and stretch it. Wow. for periods varying from one day to eleven Plus, - Yes. I'm gon na find Rogue. By new unfolding his imprison'd pride. - Why are you doing this to James? He's not coming with us, is he? - Sorry, but he'll endanger the mission and ... My glass shall not persuade me I am old, Basilisk: The basilisk appears in Harry Potter and the Chamber of Secrets as the monster inside the Chamber of Secrets. I'm gon na find Rogue. I ca n't take all this in. To speak of that which gives thee all thy might? Come on. As the World Turns Or as the wardrobe which the robe doth hide, <p> "This is a discussion of war," said Claudio Robba, - Was he like this when you found him? - Just a little fresher. "The hippies were saying, 'Love everybody,' but Guthrie said, a moment later. What reason would he have to do a thing like this? Well, maybe I can give you a clue. <p> "This makes it really hard to estimate the possibility of coming into contact with someone Toyota Camry: Coil spring independent suspension features by way of a MacPherson strut type with stabilizer and strut bar up front, and a MacPherson rear setup with parallel lower arms. he could soon loosen restrictions on restaurants and nonessential retail that
+""" 25 , 
+the Cotton Club's exclusively white and wealthy clientele poured in nightly to see them.
+Wow !
+Go on .
+When in eternal lines to time thou growest:
+In other words , a Vaisnava can not accept any food offered by an avaisnava in the name of maha-prasada .
+Shall I compare thee to a summer's day?
+<p> Sprinkle the salt over the dough and grab the dough between your fingers and pull it up and stretch it.
+Wow .
+for periods varying from one day to eleven
+Plus , 
+- Yes .
+I 'm gon na find Rogue .
+By new unfolding his imprison'd pride.
+- Why are you doing this to James ?
+He 's not coming with us , is he ?
+- Sorry , but he 'll endanger the mission and ...
+My glass shall not persuade me I am old,
+Basilisk: The basilisk appears in Harry Potter and the Chamber of Secrets as the monster inside the Chamber of Secrets.
+I 'm gon na find Rogue . 
+I ca n't take all this in .
+To speak of that which gives thee all thy might?
+Come on .
+As the World Turns
+Or as the wardrobe which the robe doth hide,
+<p> " This is a discussion of war , " said Claudio Robba ,
+- Was he like this when you found him ? - Just a little fresher .
+" The hippies were saying , ' Love everybody , ' but
+That's for thyself to breed another thee,
+Guthrie said , a moment later . 
+What reason would he have to do a thing like this ? Well , maybe I can give you a clue .
+<p> " This makes it really hard to estimate the possibility of coming into contact with someone
+Toyota Camry: Coil spring independent suspension features by way of a MacPherson strut type with stabilizer
 ------------------------------
 """Just when you thought it was safe to go back in the water ... 
 fiction, magazine, newspaper, academic, blogs, other web pages, 
@@ -3415,7 +3433,7 @@ Like stones of worth they thinly placed are,
 I was n't the one who gave the station a new sunroof , pal . 
 Go on , dear , sit down , it 's all right.
 I was n't the one who gave the station a new sunroof , pal.
-Look , I know you 're doing this because you have to.
+Look , I know you 're doing this because you have to .
 @Jake: I do n't want to talk about that .
 <p> " This makes it really hard to estimate the possibility of coming into contact
 ------------------------------
@@ -3431,6 +3449,19 @@ Wow !
 <p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring the NHS is n't overwhelmed at any one point
 O, therefore, love, be of thyself so wary
 2000 USA X-Men Action
+------------------------------
+"""I remember you . Get the lady here a drink .
+- Why are you doing this to James ?
+Whether we are mended, or whether better they,
+- Yes .
+As the World Turns
+He was also a three-time gold medalist 
+But where do you go ?
+do what you love .
+The Globe offers the dos and don'ts to help slow or stop the spread of the virus in your community .
+United States (blog): So , my last blog post was about going out with a guy who really " got " me .
+India (general):
+He also loves horror
 ------------------------------
 """1960s (magazine): " And when you have fifty bucks ' worth of candles , you have to light ' em , because they look so beautiful . "
 But thy eternal summer shall not fade
@@ -3464,19 +3495,6 @@ Which in thy breast doth live, as thine in me:
 <p> " This is a discussion of war , " said Claudio Robba ,
 He wants to meet me now at the Athletic Club .
 - Sounds
-------------------------------
-"""I remember you . Get the lady here a drink .
-- Why are you doing this to James ?
-Whether we are mended, or whether better they,
-- Yes .
-As the World Turns
-He was also a three-time gold medalist 
-But where do you go ?
-do what you love .
-The Globe offers the dos and don'ts to help slow or stop the spread of the virus in your community .
-United States (blog): So , my last blog post was about going out with a guy who really " got " me .
-India (general):
-He also loves horror
 ------------------------------
 """2001 UK The Office Comedy, Drama
 OK .
@@ -3591,6 +3609,19 @@ With a weekly radio broadcast,
 @Jake: I 'm just tired , Tad .
 No , you were the one who stabbed Rogue in
 ------------------------------
+Here's a long text of at least 250 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
+
+"""By new unfolding his imprison'd pride.
+@Paul: Emily, this new policy isn't some fabulous new beginning. Then look I death my days should expiate. He also loves horror movies and
+With a little umbrella in it.
+<p> Sprinkle the salt over the dough and grab the dough between your fingers and pull it up and stretch it. Go on.
+The word apavitra anna refers to food that is unacceptable for a Vaisnava. Return, forgetful Muse, and straight redeem
+2012 USA Batman: The Dark Knight Returns, Pt 1 Action, Adventure, Crime, Sci-Fi
+TV Corpus: 325 million words | 75,000 episodes | 1950-2018 | US, CA, UK, IE, AU, NZ. More than 90% (295 million words) from 1990-2018.
+Hath been before, how are our brains beguiled,
+<p> but I also want to send a strong message about the people I want to help. People who want to... <p> be awesome.
+With beauty
+------------------------------
 """No more than I am the rest of the city .
 the Cotton Club's exclusively white and wealthy clientele poured in nightly to see them.
 “It is soooooo heavy (this is just the top section) and made of recycled branches [and] our decorations are from @countryroad,” she wrote.
@@ -3618,19 +3649,6 @@ It really did n't hurt .
 But thy eternal summer shall not fade
 His one and only virtue is honesty .
 <p> but i also want to send a strong message about the people i want to help . people who want to ... <p>
-------------------------------
-Here's a long text of at least 250 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
-
-"""By new unfolding his imprison'd pride.
-@Paul: Emily, this new policy isn't some fabulous new beginning. Then look I death my days should expiate. He also loves horror movies and
-With a little umbrella in it.
-<p> Sprinkle the salt over the dough and grab the dough between your fingers and pull it up and stretch it. Go on.
-The word apavitra anna refers to food that is unacceptable for a Vaisnava. Return, forgetful Muse, and straight redeem
-2012 USA Batman: The Dark Knight Returns, Pt 1 Action, Adventure, Crime, Sci-Fi
-TV Corpus: 325 million words | 75,000 episodes | 1950-2018 | US, CA, UK, IE, AU, NZ. More than 90% (295 million words) from 1990-2018.
-Hath been before, how are our brains beguiled,
-<p> but I also want to send a strong message about the people I want to help. People who want to... <p> be awesome.
-With beauty
 ------------------------------
 """You said you heard screams .
 The Globe offers the dos and don'ts to help slow or stop the spread of the virus in your community .
@@ -3734,6 +3752,13 @@ Well , I did see him again later that week and let 's just say : Things got a li
 Nor lose possession of that fair thou owest;
 And gives thy pen both skill and
 ------------------------------
+"""485,000 texts | 
+In gentle numbers time so idly spent;
+For all that beauty that doth cover thee
+Go on .
+The sooner we solve this , the sooner we get back to making our quota .
+1936 US Gold D
+------------------------------
 """Oh, well, I've been working here five months. 
 had taken part in the selection of candidates, 
 He's not coming with us, is he? 
@@ -3754,13 +3779,6 @@ I'm serious.
 Wikipedia: 1.8 billion words | 4.4 million texts  More info
 One Life To Live
 @Paul: The way I see it,
-------------------------------
-"""485,000 texts | 
-In gentle numbers time so idly spent;
-For all that beauty that doth cover thee
-Go on .
-The sooner we solve this , the sooner we get back to making our quota .
-1936 US Gold D
 ------------------------------
 """O, that record could with a backward look,
 To be death's conquest and make worms thine heir.
