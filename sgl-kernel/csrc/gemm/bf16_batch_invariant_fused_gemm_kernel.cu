@@ -303,8 +303,6 @@ void launch_sm90_bf16_batch_invariant_fused_mm(
   int32_t m1 = static_cast<int32_t>(m * split_frac);
   int32_t m2 = m - m1;
 
-  fprintf(stderr, "Launching sm90 bf16 batch invariant fused mm with m1: %d, m2: %d\n", m1, m2);
-
   auto args1 = prepare_sm90_bf16_batch_invariant_fused_args<Gemm, WithBias>(out, a, b, m1, bias);
 
   Gemm gemm_op;
@@ -389,7 +387,9 @@ template <
     typename CTAShape,
     typename ClusterShape,
     typename MainloopScheduleType,
-    typename TileSchedulerType>
+    typename EpilogueScheduleType,
+    typename TileSchedulerType,
+    bool BIAS>
 void sm90_bf16_batch_invariant_fused_dispatch_bias(
     torch::Tensor& out,
     const torch::Tensor& a,
@@ -402,38 +402,19 @@ void sm90_bf16_batch_invariant_fused_dispatch_bias(
   using AccumElementType = float;
 
   SWITCH_TYPE(a.dtype(), ElementInput, {
-    if (bias) {
-      using EpilogueScheduleTypeBias = cutlass::epilogue::TmaWarpSpecialized;
-      using MainloopScheduleTypeBias = cutlass::gemm::KernelTmaWarpSpecializedPingpong;
-      using Gemm = typename DeviceGemmbf16RowwiseSm90<
-          ElementInput,
-          ElementOutput,
-          AccumElementType,
-          LayoutA,
-          LayoutB,
-          CTAShape,
-          ClusterShape,
-          MainloopScheduleTypeBias,
-          EpilogueScheduleTypeBias,
-          TileSchedulerType,
-          true>::Gemm;
-      return launch_sm90_bf16_batch_invariant_fused_mm<Gemm, true>(out, a, b, split_frac, bias);
-    } else {
-      using EpilogueScheduleType = cutlass::epilogue::TmaWarpSpecialized;
-      using Gemm = typename DeviceGemmbf16RowwiseSm90<
-          ElementInput,
-          ElementOutput,
-          AccumElementType,
-          LayoutA,
-          LayoutB,
-          CTAShape,
-          ClusterShape,
-          MainloopScheduleType,
-          EpilogueScheduleType,
-          TileSchedulerType,
-          false>::Gemm;
-      return launch_sm90_bf16_batch_invariant_fused_mm<Gemm, false>(out, a, b, split_frac, bias);
-    }
+    using Gemm = typename DeviceGemmbf16RowwiseSm90<
+        ElementInput,
+        ElementOutput,
+        AccumElementType,
+        LayoutA,
+        LayoutB,
+        CTAShape,
+        ClusterShape,
+        MainloopScheduleType,
+        EpilogueScheduleType,
+        TileSchedulerType,
+        BIAS>::Gemm;
+    return launch_sm90_bf16_batch_invariant_fused_mm<Gemm, BIAS>(out, a, b, split_frac, bias);
   });
 }
 
@@ -460,36 +441,109 @@ void sm90_bf16_batch_invariant_fused_dispatch_shape(
   using ChosenSmallScheduler = PingpongScheduler;
   using ChosenBigScheduler = PingpongScheduler;
   using ChosenTileScheduler = PersistentTileScheduler;
-  if (m <= 64) {
-    // m in [1, 64]
-    return sm90_bf16_batch_invariant_fused_dispatch_bias<
-        OutType,
-        LayoutA,
-        LayoutB,
-        Shape<_64, _64, _128>,
-        Shape<_1, _1, _1>,
-        ChosenSmallScheduler,
-        BasicTileScheduler>(out, a, b, split_frac, bias);
-  } else if (m < 256) {
-    // m in (64, 256]
-    return sm90_bf16_batch_invariant_fused_dispatch_bias<
-        OutType,
-        LayoutA,
-        LayoutB,
-        Shape<_64, _64, _128>,
-        Shape<_1, _1, _1>,
-        ChosenSmallScheduler,
-        ChosenTileScheduler>(out, a, b, split_frac, bias);
+
+  using ChosenSmallEpilogueScheduler = cutlass::epilogue::TmaWarpSpecialized;
+  using ChosenEpilogueScheduler = cutlass::epilogue::TmaWarpSpecializedCooperative;
+  if (bias) {
+    if (m <= 128) {
+      // m in [1, 64]
+      return sm90_bf16_batch_invariant_fused_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_64, _64, _128>,
+          Shape<_1, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          BasicTileScheduler,
+          true>(out, a, b, split_frac, bias);
+    } else if (m <= 512) {
+      // m in (64, 256]
+      return sm90_bf16_batch_invariant_fused_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_128, _64, _64>,
+          Shape<_2, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          ChosenTileScheduler,
+          true>(out, a, b, split_frac, bias);
+    } else {
+      // m in (512, inf)
+      return sm90_bf16_batch_invariant_fused_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_128, _128, _64>,
+          Shape<_2, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          ChosenTileScheduler,
+          true>(out, a, b, split_frac, bias);
+    }
   } else {
-    // m in (1024, inf)
-    return sm90_bf16_batch_invariant_fused_dispatch_bias<
-        OutType,
-        LayoutA,
-        LayoutB,
-        Shape<_128, _128, _64>,
-        Shape<_2, _1, _1>,
-        ChosenBigScheduler,
-        ChosenTileScheduler>(out, a, b, split_frac, bias);
+    if (m <= 128) {
+      // m in [1, 128]
+      return sm90_bf16_batch_invariant_fused_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_64, _64, _128>,
+          Shape<_1, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          BasicTileScheduler,
+          false>(out, a, b, split_frac, bias);
+    } else if (m < 256) {
+      // m in (128, 256)
+      return sm90_bf16_batch_invariant_fused_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_256, _128, _64>,
+          Shape<_2, _1, _1>,
+          ChosenBigScheduler,
+          ChosenEpilogueScheduler,
+          ChosenTileScheduler,
+          false>(out, a, b, split_frac, bias);
+    } else if (m < 512) {
+      // m in [256, 512)
+      return sm90_bf16_batch_invariant_fused_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_128, _64, _64>,
+          Shape<_2, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          BasicTileScheduler,
+          false>(out, a, b, split_frac, bias);
+    } else if (m < 1024) {
+      // m in [512, 1024)
+      return sm90_bf16_batch_invariant_fused_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_128, _128, _64>,
+          Shape<_2, _1, _1>,
+          ChosenSmallScheduler,
+          ChosenSmallEpilogueScheduler,
+          BasicTileScheduler,
+          false>(out, a, b, split_frac, bias);
+    } else {
+      // m in [1024, inf)
+      return sm90_bf16_batch_invariant_fused_dispatch_bias<
+          OutType,
+          LayoutA,
+          LayoutB,
+          Shape<_256, _128, _64>,
+          Shape<_2, _1, _1>,
+          ChosenBigScheduler,
+          ChosenEpilogueScheduler,
+          ChosenTileScheduler,
+          false>(out, a, b, split_frac, bias);
+    }
   }
 }
 #endif
