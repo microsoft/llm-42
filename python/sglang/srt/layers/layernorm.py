@@ -110,7 +110,7 @@ class RMSNorm(CustomOp):
         if self.deterministic and not (self.deterministic & 256) and not (self.deterministic & 512):
             self._forward_method = self.forward_vllm
 
-                # Static deterministic mode (bit 64 controls layernorm determinism)
+        # Static deterministic mode (bit 64 controls layernorm determinism)
         # When bit 64 is NOT set AND bit 512 is NOT set (not using temperature-based switching),
         # always use native deterministic implementation
         if self.deterministic and not (self.deterministic & 64) and not (self.deterministic & 512):

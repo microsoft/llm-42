@@ -165,12 +165,12 @@ def plot_cdf_comparison(raw_data: Dict[str, Dict], output_dir: Path):
         'baseline_nondet': 'Baseline (Non-Det)',
         'det_mode_66': 'Mode 66 (BI: vllm-rms + cutlass)',
         'det_mode_257': 'Mode 257 (BI: native-rms + TM)',
-        'det_mode_578_temp0_1pct': 'Mode 578 (1% temp=0)',
-        'det_mode_578_temp0_2pct': 'Mode 578 (2% temp=0)',
-        'det_mode_578_temp0_5pct': 'Mode 578 (5% temp=0)',
-        'det_mode_578_temp0_10pct': 'Mode 578 (10% temp=0)',
-        'det_mode_578_temp0_50pct': 'Mode 578 (50% temp=0)',
-        'det_mode_578_temp0_100pct': 'Mode 578 (100% temp=0)',
+        # 'det_mode_578_temp0_1pct': 'Mode 578 (1% temp=0)',
+        # 'det_mode_578_temp0_2pct': 'Mode 578 (2% temp=0)',
+        # 'det_mode_578_temp0_5pct': 'Mode 578 (5% temp=0)',
+        # 'det_mode_578_temp0_10pct': 'Mode 578 (10% temp=0)',
+        # 'det_mode_578_temp0_50pct': 'Mode 578 (50% temp=0)',
+        # 'det_mode_578_temp0_100pct': 'Mode 578 (100% temp=0)',
     }
     
     # Colors for different component tests
@@ -178,24 +178,24 @@ def plot_cdf_comparison(raw_data: Dict[str, Dict], output_dir: Path):
         'baseline_nondet': '#e74c3c',      # Red - baseline
         'det_mode_66': '#3498db',          # Blue - mode 66
         'det_mode_257': '#9b59b6',         # Purple - mode 257
-        'det_mode_578_temp0_1pct': '#95a5a6',    # Light gray
-        'det_mode_578_temp0_2pct': '#7f8c8d',    # Gray
-        'det_mode_578_temp0_5pct': '#2ecc71',    # Green
-        'det_mode_578_temp0_10pct': '#27ae60',   # Dark green
-        'det_mode_578_temp0_50pct': '#f39c12',   # Orange
-        'det_mode_578_temp0_100pct': '#e67e22',  # Dark orange
+        # 'det_mode_578_temp0_1pct': '#95a5a6',    # Light gray
+        # 'det_mode_578_temp0_2pct': '#7f8c8d',    # Gray
+        # 'det_mode_578_temp0_5pct': '#2ecc71',    # Green
+        # 'det_mode_578_temp0_10pct': '#27ae60',   # Dark green
+        # 'det_mode_578_temp0_50pct': '#f39c12',   # Orange
+        # 'det_mode_578_temp0_100pct': '#e67e22',  # Dark orange
     }
     
     line_styles = {
         'baseline_nondet': '-',
         'det_mode_66': '--',
         'det_mode_257': '-.',
-        'det_mode_578_temp0_1pct': ':',
-        'det_mode_578_temp0_2pct': (0, (3, 1, 1, 1)),
-        'det_mode_578_temp0_5pct': (0, (5, 2, 1, 2)),
-        'det_mode_578_temp0_10pct': '--',
-        'det_mode_578_temp0_50pct': '-.',
-        'det_mode_578_temp0_100pct': '-',
+        # 'det_mode_578_temp0_1pct': ':',
+        # 'det_mode_578_temp0_2pct': (0, (3, 1, 1, 1)),
+        # 'det_mode_578_temp0_5pct': (0, (5, 2, 1, 2)),
+        # 'det_mode_578_temp0_10pct': '--',
+        # 'det_mode_578_temp0_50pct': '-.',
+        # 'det_mode_578_temp0_100pct': '-',
     }
     
     # Define metrics to plot
@@ -207,8 +207,9 @@ def plot_cdf_comparison(raw_data: Dict[str, Dict], output_dir: Path):
     ]
     
     mode_order = ['baseline_nondet', 'det_mode_66', 'det_mode_257',
-                  'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
-                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+                #   'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+                #   'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
+                  ]
     
     # Create one plot per metric
     for metric_key, metric_name, xlabel in metrics:
@@ -253,29 +254,30 @@ def plot_bar_comparison(results: Dict[str, Dict], output_dir: Path):
         'baseline_nondet': 'Baseline\n(Non-Det)',
         'det_mode_66': 'Mode 66\n(BI: vllm+cutlass)',
         'det_mode_257': 'Mode 257\n(BI: native+TM)',
-        'det_mode_578_temp0_1pct': 'Mode 578\n(1% temp=0)',
-        'det_mode_578_temp0_2pct': 'Mode 578\n(2% temp=0)',
-        'det_mode_578_temp0_5pct': 'Mode 578\n(5% temp=0)',
-        'det_mode_578_temp0_10pct': 'Mode 578\n(10% temp=0)',
-        'det_mode_578_temp0_50pct': 'Mode 578\n(50% temp=0)',
-        'det_mode_578_temp0_100pct': 'Mode 578\n(100% temp=0)',
+        # 'det_mode_578_temp0_1pct': 'Mode 578\n(1% temp=0)',
+        # 'det_mode_578_temp0_2pct': 'Mode 578\n(2% temp=0)',
+        # 'det_mode_578_temp0_5pct': 'Mode 578\n(5% temp=0)',
+        # 'det_mode_578_temp0_10pct': 'Mode 578\n(10% temp=0)',
+        # 'det_mode_578_temp0_50pct': 'Mode 578\n(50% temp=0)',
+        # 'det_mode_578_temp0_100pct': 'Mode 578\n(100% temp=0)',
     }
     
     colors = {
         'baseline_nondet': '#e74c3c',
         'det_mode_66': '#3498db',
         'det_mode_257': '#9b59b6',
-        'det_mode_578_temp0_1pct': '#95a5a6',
-        'det_mode_578_temp0_2pct': '#7f8c8d',
-        'det_mode_578_temp0_5pct': '#2ecc71',
-        'det_mode_578_temp0_10pct': '#27ae60',
-        'det_mode_578_temp0_50pct': '#f39c12',
-        'det_mode_578_temp0_100pct': '#e67e22',
+        # 'det_mode_578_temp0_1pct': '#95a5a6',
+        # 'det_mode_578_temp0_2pct': '#7f8c8d',
+        # 'det_mode_578_temp0_5pct': '#2ecc71',
+        # 'det_mode_578_temp0_10pct': '#27ae60',
+        # 'det_mode_578_temp0_50pct': '#f39c12',
+        # 'det_mode_578_temp0_100pct': '#e67e22',
     }
     
     mode_order = ['baseline_nondet', 'det_mode_66', 'det_mode_257',
-                  'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
-                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+                #   'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+                #   'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
+                  ]
     
     # Filter to available modes and prepare data
     available_modes = [m for m in mode_order if m in results]
@@ -365,28 +367,29 @@ def plot_overhead_comparison(results: Dict[str, Dict], output_dir: Path):
     mode_labels = {
         'det_mode_66': 'Mode 66\n(BI: vllm+cutlass)',
         'det_mode_257': 'Mode 257\n(BI: native+TM)',
-        'det_mode_578_temp0_1pct': 'Mode 578\n(1% temp=0)',
-        'det_mode_578_temp0_2pct': 'Mode 578\n(2% temp=0)',
-        'det_mode_578_temp0_5pct': 'Mode 578\n(5% temp=0)',
-        'det_mode_578_temp0_10pct': 'Mode 578\n(10% temp=0)',
-        'det_mode_578_temp0_50pct': 'Mode 578\n(50% temp=0)',
-        'det_mode_578_temp0_100pct': 'Mode 578\n(100% temp=0)',
+        # 'det_mode_578_temp0_1pct': 'Mode 578\n(1% temp=0)',
+        # 'det_mode_578_temp0_2pct': 'Mode 578\n(2% temp=0)',
+        # 'det_mode_578_temp0_5pct': 'Mode 578\n(5% temp=0)',
+        # 'det_mode_578_temp0_10pct': 'Mode 578\n(10% temp=0)',
+        # 'det_mode_578_temp0_50pct': 'Mode 578\n(50% temp=0)',
+        # 'det_mode_578_temp0_100pct': 'Mode 578\n(100% temp=0)',
     }
     
     colors = {
         'det_mode_66': '#3498db',
         'det_mode_257': '#9b59b6',
-        'det_mode_578_temp0_1pct': '#95a5a6',
-        'det_mode_578_temp0_2pct': '#7f8c8d',
-        'det_mode_578_temp0_5pct': '#2ecc71',
-        'det_mode_578_temp0_10pct': '#27ae60',
-        'det_mode_578_temp0_50pct': '#f39c12',
-        'det_mode_578_temp0_100pct': '#e67e22',
+        # 'det_mode_578_temp0_1pct': '#95a5a6',
+        # 'det_mode_578_temp0_2pct': '#7f8c8d',
+        # 'det_mode_578_temp0_5pct': '#2ecc71',
+        # 'det_mode_578_temp0_10pct': '#27ae60',
+        # 'det_mode_578_temp0_50pct': '#f39c12',
+        # 'det_mode_578_temp0_100pct': '#e67e22',
     }
     
     mode_order = ['det_mode_66', 'det_mode_257',
-                  'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
-                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+                #   'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+                #   'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
+                  ]
     available_modes = [m for m in mode_order if m in results]
     
     # Calculate overhead percentages
@@ -449,17 +452,18 @@ def print_summary_table(results: Dict[str, Dict]):
         'baseline_nondet': 'Baseline (Non-Det)',
         'det_mode_66': 'Mode 66 (BI: vllm-rms + cutlass)',
         'det_mode_257': 'Mode 257 (BI: native-rms + TM)',
-        'det_mode_578_temp0_1pct': 'Mode 578 (1% temp=0)',
-        'det_mode_578_temp0_2pct': 'Mode 578 (2% temp=0)',
-        'det_mode_578_temp0_5pct': 'Mode 578 (5% temp=0)',
-        'det_mode_578_temp0_10pct': 'Mode 578 (10% temp=0)',
-        'det_mode_578_temp0_50pct': 'Mode 578 (50% temp=0)',
-        'det_mode_578_temp0_100pct': 'Mode 578 (100% temp=0)',
+        # 'det_mode_578_temp0_1pct': 'Mode 578 (1% temp=0)',
+        # 'det_mode_578_temp0_2pct': 'Mode 578 (2% temp=0)',
+        # 'det_mode_578_temp0_5pct': 'Mode 578 (5% temp=0)',
+        # 'det_mode_578_temp0_10pct': 'Mode 578 (10% temp=0)',
+        # 'det_mode_578_temp0_50pct': 'Mode 578 (50% temp=0)',
+        # 'det_mode_578_temp0_100pct': 'Mode 578 (100% temp=0)',
     }
     
     mode_order = ['baseline_nondet', 'det_mode_66', 'det_mode_257',
-                  'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
-                  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+                #   'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+                #   'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct'
+                  ]
     
     for mode in mode_order:
         if mode not in results:
@@ -487,9 +491,9 @@ def print_summary_table(results: Dict[str, Dict]):
         print("-"*100)
         baseline_throughput = results['baseline_nondet'].get('throughput', 0)
         
-        for mode in ['det_mode_66', 'det_mode_257',
-                     'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
-                     'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']:
+        for mode in ['det_mode_66', 'det_mode_257']:
+                    #  'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+                    #  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']:
             if mode not in results:
                 continue
             
@@ -528,9 +532,9 @@ def main():
     # Load both summary and raw data
     results = {}
     raw_data = {}
-    mode_dirs = ['baseline_nondet', 'det_mode_66', 'det_mode_257',
-                 'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
-                 'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
+    mode_dirs = ['baseline_nondet', 'det_mode_66', 'det_mode_257'] 
+                #  'det_mode_578_temp0_1pct', 'det_mode_578_temp0_2pct', 'det_mode_578_temp0_5pct',
+                #  'det_mode_578_temp0_10pct', 'det_mode_578_temp0_50pct', 'det_mode_578_temp0_100pct']
     
     for mode_dir in mode_dirs:
         mode_path = input_dir / mode_dir

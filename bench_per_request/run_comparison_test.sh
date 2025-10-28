@@ -1,18 +1,9 @@
 #!/bin/bash
 
-# Component-based SGLang Deterministic Mode Testing with Etalon
-# This script tests individual deterministic components with both TM and Cutlass implementations
-#
-# Test Matrix:
-# 1. Baseline (Non-deterministic) - all components non-deterministic
-# 2. Mode 66 - batch-invariant with vllm-rmsnorm + cutlass matmul
-# 3. Mode 257 - batch-invariant with native-rmsnorm + thinking-machine matmul
-# 4. Mode 578 - temperature-based switching (1% temp=0, 99% temp=1)
-# 5. Mode 578 - temperature-based switching (2% temp=0, 98% temp=1)
-# 6. Mode 578 - temperature-based switching (5% temp=0, 95% temp=1)
-# 7. Mode 578 - temperature-based switching (10% temp=0, 90% temp=1)
-# 8. Mode 578 - temperature-based switching (50% temp=0, 50% temp=1)
-# 9. Mode 578 - temperature-based switching (100% temp=0, 0% temp=1)
+# Quick comparison test between static deterministic and temperature-based all-deterministic
+# This script compares:
+# 1. Mode 66 - Static deterministic (batch-invariant with vllm-rmsnorm + cutlass matmul)
+# 2. Mode 578 - Temperature-based with 100% temp=0 (should perform the same as mode 66)
 
 set -e
 
@@ -22,7 +13,7 @@ HOST="0.0.0.0"
 PORT=30000
 TP_SIZE=1
 ATTENTION_BACKEND="flashinfer"
-OUTPUT_DIR="partial_etalon_results"
+OUTPUT_DIR="comparison_results"
 QPS=1.0
 MAX_REQUESTS=256
 TIMEOUT=600
@@ -32,26 +23,13 @@ TRACE_FILE="../etalon/data/processed_traces/arxiv_summarization_filtered_stats_l
 MAX_TOKENS=8192
 WARMUP_TIME=30  # Time to wait for server to warmup
 
-# Modes to test: non-deterministic, then deterministic modes 1, 129 (1+128), 65 (1+64)
-# Mode 66 = batch-invariant:: vllm-rmsnorm + cutlass matmul
-# Mode 257 = batch-invariant:: native-rmsnorm + thinking-machine mat
-# Mode 578 = temperature-based switching + cutlass matmul + vllm-rmsnorm
-# MODES=("baseline" "66" "257" "578" "578" "578" "578" "578" "578")
-# MODE_NAMES=("baseline_nondet" "det_mode_66" "det_mode_257" "det_mode_578_temp0_1pct" "det_mode_578_temp0_2pct" "det_mode_578_temp0_5pct" "det_mode_578_temp0_10pct" "det_mode_578_temp0_50pct" "det_mode_578_temp0_100pct")
-# TEMP0_PERCENTAGES=("0" "0" "0" "1" "2" "5" "10" "50" "100")
-MODES=("baseline" "66" "257")
-MODE_NAMES=("baseline_nondet" "det_mode_66" "det_mode_257")
-TEMP0_PERCENTAGES=("0" "0" "0")
+# Modes to test
+MODES=("66" "578")
+MODE_NAMES=("det_mode_66" "det_mode_578_temp0_100pct")
+TEMP0_PERCENTAGES=("0" "100")
 MODE_DESCRIPTIONS=(
-    "Baseline (Non-deterministic)"
-    "Mode 66 (batch-invariant: vllm-rmsnorm + cutlass)"
-    "Mode 257 (batch-invariant: native-rmsnorm + TM)"
-    # "Mode 578 (temp-based: 1% temp=0, 99% temp=1)"
-    # "Mode 578 (temp-based: 2% temp=0, 98% temp=1)"
-    # "Mode 578 (temp-based: 5% temp=0, 95% temp=1)"
-    # "Mode 578 (temp-based: 10% temp=0, 90% temp=1)"
-    # "Mode 578 (temp-based: 50% temp=0, 50% temp=1)"
-    # "Mode 578 (temp-based: 100% temp=0, 0% temp=1)"
+    "Mode 66 (Static deterministic: vllm-rmsnorm + cutlass)"
+    "Mode 578 (Temperature-based: 100% temp=0, 0% temp=1)"
 )
 
 # Parse command line arguments
@@ -88,16 +66,11 @@ while [[ $# -gt 0 ]]; do
         --help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
-            echo "Component-based deterministic testing script"
-            echo "Tests different deterministic modes with varying temperature distributions"
+            echo "Quick comparison test between static and temperature-based deterministic modes"
             echo ""
             echo "Test modes:"
-            echo "  1. Baseline - Non-deterministic (all components)"
-            echo "  2. Mode 66 - batch-invariant (vllm-rmsnorm + cutlass matmul)"
-            echo "  3. Mode 257 - batch-invariant (native-rmsnorm + thinking-machine matmul)"
-            echo "  4-9. Mode 578 - temperature-based switching with different temp=0 percentages:"
-            echo "       - 1%, 2%, 5%, 10%, 50%, 100% requests with temperature=0"
-            echo "       - Remaining requests with temperature=1"
+            echo "  1. Mode 66 - Static deterministic (baseline)"
+            echo "  2. Mode 578 - Temperature-based with 100% temp=0 (should match mode 66)"
             echo ""
             echo "Options:"
             echo "  --model MODEL           Model path (default: $MODEL)"
@@ -128,7 +101,7 @@ else
 fi
 
 echo "================================================"
-echo "Component-based Deterministic Testing"
+echo "Deterministic Mode Comparison Test"
 echo "================================================"
 echo "Model: $MODEL"
 echo "Port: $PORT"
@@ -186,32 +159,18 @@ launch_server() {
     kill_server
     
     # Launch new server
-    if [ "$mode" = "baseline" ]; then
-        echo "Starting non-deterministic server..."
-        $PYTHON_CMD -m sglang.launch_server \
-            --model-path $MODEL \
-            --host $HOST \
-            --port $PORT \
-            --tp-size $TP_SIZE \
-            --attention-backend $ATTENTION_BACKEND \
-            --disable-radix-cache \
-            --cuda-graph-max-bs 32 \
-            --mem-fraction-static 0.7 \
-            > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
-    else
-        echo "Starting server with deterministic mode $mode..."
-        $PYTHON_CMD -m sglang.launch_server \
-            --model-path $MODEL \
-            --host $HOST \
-            --port $PORT \
-            --tp-size $TP_SIZE \
-            --attention-backend $ATTENTION_BACKEND \
-            --disable-radix-cache \
-            --cuda-graph-max-bs 32 \
-            --mem-fraction-static 0.7 \
-            --enable-deterministic-inference $mode \
-            > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
-    fi
+    echo "Starting server with deterministic mode $mode..."
+    $PYTHON_CMD -m sglang.launch_server \
+        --model-path $MODEL \
+        --host $HOST \
+        --port $PORT \
+        --tp-size $TP_SIZE \
+        --attention-backend $ATTENTION_BACKEND \
+        --disable-radix-cache \
+        --cuda-graph-max-bs 32 \
+        --mem-fraction-static 0.7 \
+        --enable-deterministic-inference $mode \
+        > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
     
     SERVER_PID=$!
     echo "Server PID: $SERVER_PID"
@@ -284,7 +243,7 @@ run_benchmark() {
             return 1
         fi
     else
-        # Standard etalon benchmark for baseline and other modes
+        # Standard etalon benchmark for mode 66
         if python3 -m etalon.run_benchmark \
             --client_config_model "$MODEL" \
             --max_completed_requests $MAX_REQUESTS \
@@ -318,7 +277,7 @@ run_benchmark() {
 }
 
 # Main test loop
-echo "Starting component-based testing..."
+echo "Starting comparison test..."
 echo ""
 
 for i in "${!MODES[@]}"; do
@@ -346,7 +305,7 @@ done
 # Kill server after all tests
 echo ""
 echo "================================================"
-echo "All component tests completed!"
+echo "Comparison test completed!"
 echo "================================================"
 kill_server
 
@@ -354,6 +313,29 @@ echo ""
 echo "Results saved to: $OUTPUT_DIR"
 echo ""
 
-echo "To plot results, run:"
-echo "  ./plot_component_results.sh --input-dir $OUTPUT_DIR"
+# Quick comparison of results
+echo "================================================"
+echo "Quick Results Comparison"
+echo "================================================"
+echo ""
+
+for i in "${!MODE_NAMES[@]}"; do
+    mode_name="${MODE_NAMES[$i]}"
+    ttft_file="${OUTPUT_DIR}/${mode_name}/ttft.csv"
+    
+    if [ -f "$ttft_file" ]; then
+        echo "### $mode_name ###"
+        echo "Description: ${MODE_DESCRIPTIONS[$i]}"
+        
+        # Extract p50 and p99 TTFT
+        p50=$(awk -F',' 'NR==51 {print $3}' "$ttft_file")
+        p99=$(awk -F',' 'NR==100 {print $3}' "$ttft_file")
+        
+        echo "  TTFT p50: $p50 seconds"
+        echo "  TTFT p99: $p99 seconds"
+        echo ""
+    fi
+done
+
+echo "For detailed analysis, check the CSV files in: $OUTPUT_DIR"
 echo ""

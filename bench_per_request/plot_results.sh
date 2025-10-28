@@ -4,7 +4,7 @@
 # Makes it easier to run the plotting script
 
 # Default configuration
-INPUT_DIR="updated_etalon_results"
+INPUT_DIR="partial_etalon_results"
 OUTPUT_DIR=""
 
 # Parse command line arguments

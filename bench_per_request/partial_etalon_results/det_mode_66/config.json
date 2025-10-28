@@ -2,7 +2,7 @@
     "seed": 42,
     "timeout": 600,
     "max_completed_requests": 256,
-    "timestamp": "2025-10-27-18-06-54",
+    "timestamp": "2025-10-28-03-42-40",
     "client_config": {
         "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "tokenizer": "meta-llama/Meta-Llama-3.1-8B-Instruct",
@@ -14,7 +14,7 @@
         "additional_sampling_params_dict": {}
     },
     "metrics_config": {
-        "output_dir": "updated_etalon_results/baseline_nondet",
+        "output_dir": "partial_etalon_results/det_mode_66",
         "should_use_given_dir": true,
         "should_write_metrics": true,
         "wandb_project": null,

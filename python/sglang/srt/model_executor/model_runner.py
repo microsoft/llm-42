@@ -448,7 +448,7 @@ class ModelRunner:
         # Counters for tracking batch-invariant vs non-deterministic forward passes
         self.num_batch_invariant = 0
         self.num_non_deterministic = 0
-        self._stats_log_interval = 5  # Log stats every 5 forward passes
+        self._stats_log_interval = 100  # Log stats every 100 forward passes
 
         # Init memory pool and attention backends
         self.init_memory_pool(
