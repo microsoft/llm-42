@@ -237,6 +237,53 @@ void vllm_fused_add_rmsnorm_dynamic(torch::Tensor& input,     // [..., hidden_si
   }
 }
 
+void vllm_fused_add_rmsnorm_fixed(torch::Tensor& input,     // [..., hidden_size]
+                        torch::Tensor& residual,  // [..., hidden_size]
+                        torch::Tensor& weight,    // [hidden_size]
+                        int64_t max_block_size,
+                        double epsilon) {
+  TORCH_CHECK(weight.scalar_type() == input.scalar_type());
+  TORCH_CHECK(input.scalar_type() == residual.scalar_type());
+  TORCH_CHECK(residual.is_contiguous());
+  TORCH_CHECK(weight.is_contiguous());
+  int64_t hidden_size = input.size(-1);
+  int64_t input_stride = input.stride(-2);
+  int num_tokens = input.numel() / hidden_size;
+
+  dim3 grid(num_tokens);
+  /* This kernel is memory-latency bound in many scenarios.
+     When num_tokens is large, a smaller block size allows
+     for increased block occupancy on CUs and better latency
+     hiding on global mem ops. */
+  dim3 block(std::min(hidden_size, max_block_size));
+  const at::cuda::OptionalCUDAGuard device_guard(device_of(input));
+  const cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  /*If the tensor types are FP16/BF16, try to use the optimized kernel
+    with packed + vectorized ops.
+    Max optimization is achieved with a width-8 vector of FP16/BF16s
+    since we can load at most 128 bits at once in a global memory op.
+    However, this requires each tensor's data to be aligned to 16
+    bytes.
+   */
+  auto inp_ptr = reinterpret_cast<std::uintptr_t>(input.data_ptr());
+  auto res_ptr = reinterpret_cast<std::uintptr_t>(residual.data_ptr());
+  auto wt_ptr = reinterpret_cast<std::uintptr_t>(weight.data_ptr());
+  constexpr int vector_width = 8;
+  constexpr int req_alignment_bytes =
+      vector_width * 2;  // vector_width * sizeof(bfloat16 or float16) (float32
+                         // falls back to non-vectorized version anyway)
+  bool ptrs_are_aligned = inp_ptr % req_alignment_bytes == 0 &&
+                          res_ptr % req_alignment_bytes == 0 &&
+                          wt_ptr % req_alignment_bytes == 0;
+  bool offsets_are_multiple_of_vector_width =
+      hidden_size % vector_width == 0 && input_stride % vector_width == 0;
+  if (ptrs_are_aligned && offsets_are_multiple_of_vector_width) {
+    LAUNCH_FUSED_ADD_RMS_NORM(8);
+  } else {
+    LAUNCH_FUSED_ADD_RMS_NORM(0);
+  }
+}
+
 void vllm_fused_add_rmsnorm_256(torch::Tensor& input,     // [..., hidden_size]
                         torch::Tensor& residual,  // [..., hidden_size]
                         torch::Tensor& weight,    // [hidden_size]

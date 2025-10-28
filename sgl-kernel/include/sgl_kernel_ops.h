@@ -140,6 +140,8 @@ void sgl_fused_add_rmsnorm(
 void vllm_rmsnorm(at::Tensor& output, at::Tensor& input, at::Tensor& weight, double eps);
 void vllm_fused_add_rmsnorm_dynamic(
     torch::Tensor& input, torch::Tensor& residual, torch::Tensor& weight, double eps);
+void vllm_fused_add_rmsnorm_fixed(
+    torch::Tensor& input, torch::Tensor& residual, torch::Tensor& weight, int64_t max_blk_size, double eps);
 void vllm_fused_add_rmsnorm_256(
     torch::Tensor& input, torch::Tensor& residual, torch::Tensor& weight, double eps);
 void vllm_fused_add_rmsnorm_1024(

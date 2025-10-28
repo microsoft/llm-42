@@ -79,6 +79,9 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
   m.def("vllm_fused_add_rmsnorm_dynamic(Tensor! input, Tensor! residual, Tensor weight, float eps) -> ()");
   m.impl("vllm_fused_add_rmsnorm_dynamic", torch::kCUDA, &vllm_fused_add_rmsnorm_dynamic);
 
+  m.def("vllm_fused_add_rmsnorm_fixed(Tensor! input, Tensor! residual, Tensor weight, int max_blk_size, float eps) -> ()");
+  m.impl("vllm_fused_add_rmsnorm_fixed", torch::kCUDA, &vllm_fused_add_rmsnorm_fixed);
+
   m.def("vllm_fused_add_rmsnorm_256(Tensor! input, Tensor! residual, Tensor weight, float eps) -> ()");
   m.impl("vllm_fused_add_rmsnorm_256", torch::kCUDA, &vllm_fused_add_rmsnorm_256);
 

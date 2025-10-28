@@ -57,6 +57,7 @@ if _is_cuda:
         vllm_fused_add_rmsnorm_256,
         vllm_fused_add_rmsnorm_1024,
         vllm_fused_add_rmsnorm_dynamic,
+        vllm_fused_add_rmsnorm_fixed,
         vllm_rmsnorm,
     )
 
@@ -96,10 +97,6 @@ class RMSNorm(CustomOp):
         self.deterministic = get_int_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE")
         self.enable_temperature_based_switching = bool(self.deterministic & 512)
 
-        # Store deterministic inference configuration
-        self.deterministic = get_int_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE")
-        self.enable_temperature_based_switching = bool(self.deterministic & 512)
-
         # Check for vLLM fused RMSNorm configuration
         # SGLANG_USE_VLLM_RMSNORM can be: "256", "1024", "dynamic", or empty/unset
         self.vllm_rmsnorm_mode = os.getenv("SGLANG_USE_VLLM_RMSNORM", "").lower()
@@ -109,15 +106,12 @@ class RMSNorm(CustomOp):
         # Static vLLM RMSNorm mode (bit 256 controls vLLM RMSNorm)
         # When bit 256 is NOT set AND bit 512 is NOT set, use vLLM RMSNorm implementation
         if self.deterministic and not (self.deterministic & 256):
-        # Static vLLM RMSNorm mode (bit 256 controls vLLM RMSNorm)
-        # When bit 256 is NOT set AND bit 512 is NOT set, use vLLM RMSNorm implementation
-        if self.deterministic and not (self.deterministic & 256):
             self.vllm_rmsnorm_mode = "256"
 
         if self.deterministic and not (self.deterministic & 256) and not (self.deterministic & 512):
             self._forward_method = self.forward_vllm
 
-                # Static deterministic mode (bit 64 controls layernorm determinism)
+        # Static deterministic mode (bit 64 controls layernorm determinism)
         # When bit 64 is NOT set AND bit 512 is NOT set (not using temperature-based switching),
         # always use native deterministic implementation
         if self.deterministic and not (self.deterministic & 64) and not (self.deterministic & 512):
@@ -167,6 +161,10 @@ class RMSNorm(CustomOp):
                 vllm_fused_add_rmsnorm_1024(x, residual, self.weight.data, self.variance_epsilon)
             elif self.vllm_rmsnorm_mode == "dynamic":
                 vllm_fused_add_rmsnorm_dynamic(x, residual, self.weight.data, self.variance_epsilon)
+            elif self.vllm_rmsnorm_mode == "128":
+                vllm_fused_add_rmsnorm_fixed(x, residual, self.weight.data, 128, self.variance_epsilon)
+            elif self.vllm_rmsnorm_mode == "512":
+                vllm_fused_add_rmsnorm_fixed(x, residual, self.weight.data, 512, self.variance_epsilon)
             else:
                 raise ValueError(f"Invalid vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}. Valid options: '256', '1024', 'dynamic'")
             return x, residual

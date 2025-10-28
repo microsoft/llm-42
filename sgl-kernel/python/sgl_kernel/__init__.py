@@ -238,6 +238,7 @@ from sgl_kernel.elementwise import (
     downcast_fp8,
     fused_add_rmsnorm,
     vllm_fused_add_rmsnorm_dynamic,
+    vllm_fused_add_rmsnorm_fixed,
     vllm_fused_add_rmsnorm_256,
     vllm_fused_add_rmsnorm_1024,
     vllm_rmsnorm,
