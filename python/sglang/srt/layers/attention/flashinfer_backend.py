@@ -72,6 +72,7 @@ class PrefillMetadata:
     prefill_wrappers: List[BatchPrefillWithPagedKVCacheWrapper]
     use_ragged: bool
     extend_no_prefix: bool
+    #mixed_determinism: bool = False
 
 
 # Reuse this workspace buffer across all flashinfer wrappers
@@ -152,8 +153,13 @@ class FlashInferAttnBackend(AttentionBackend):
         self.decode_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
 
-        # Apply deterministic settings for both static mode AND temperature-based switching
-        if self.enable_deterministic or self.enable_temperature_based_switching:
+        # For temperature-based switching, we DON'T override settings here.
+        # Instead, we apply different settings during CUDA graph capture based on
+        # is_batch_invariant_mode_enabled() in init_forward_metadata_capture_cuda_graph.
+        # This allows the deterministic graph to use deterministic settings and the
+        # non-deterministic graph to use non-deterministic settings.
+        if self.enable_deterministic:
+            # Static deterministic mode: always use deterministic settings
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -163,6 +169,8 @@ class FlashInferAttnBackend(AttentionBackend):
             )
             self.disable_cuda_graph_kv_split = True
             global_config.flashinfer_workspace_size = 2048 * 1024 * 1024
+            if self.prefill_split_tile_size < 4096:
+                global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
         elif self.enable_temperature_based_switching:
             # Temperature-based switching: settings will be applied during graph capture
             # Set default deterministic values that will be used when batch_invariant is enabled
@@ -175,10 +183,23 @@ class FlashInferAttnBackend(AttentionBackend):
             # For non-CUDA graph passes, we need to disable kv split when in deterministic mode
             self.disable_cuda_graph_kv_split = True
             global_config.flashinfer_workspace_size = 2048 * 1024 * 1024
+            print("[FlashInferAttnBackend] Temperature-based deterministic inference is enabled.")
+
+        '''
+        if model_runner.server_args.enable_deterministic_inference & 8:
+            print("[FlashInferAttnBackend] Mixed determinism is enabled.")
+            self.det_stream = torch.cuda.Stream()
+            self.nondet_stream = torch.cuda.Stream()
+            self.mixed_determinism = True
+            self.det_event = torch.cuda.Event()
+            self.nondet_event = torch.cuda.Event()
+        else:
+            self.mixed_determinism = False
+        '''
 
         # Allocate buffers
         global global_workspace_buffer
-        if global_workspace_buffer is None:
+        if global_workspace_buffer is None or global_workspace_buffer.numel() < global_config.flashinfer_workspace_size:
             # different from flashinfer zero_init_global_workspace_buffer
             global_workspace_size = global_config.flashinfer_workspace_size
             global_workspace_buffer = torch.empty(
@@ -186,6 +207,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 dtype=torch.uint8,
                 device=model_runner.device,
             )
+            print("[FlashInferAttnBackend] Allocated global workspace buffer of size", global_workspace_size)
         self.workspace_buffer = global_workspace_buffer
         max_bs = model_runner.req_to_token_pool.size
         if kv_indptr_buf is None:
@@ -331,10 +353,41 @@ class FlashInferAttnBackend(AttentionBackend):
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
                     # logger.info(f"[FlashInfer Temperature-based] batch_invariant_enabled={enable_deterministic_current}, use_ragged={not enable_deterministic_current}")
-
                 use_ragged = not enable_deterministic_current
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
+            '''
+            if self.mixed_determinism:
+                bs = forward_batch.req_pool_indices.shape[0]
+                bs1 = bs // 2
+                bs2 = bs - bs1
 
+                # TODO: What is forward_batch.encoder_lens?
+                self.indices_updater_prefill.update(
+                    forward_batch.req_pool_indices[:bs1],
+                    forward_batch.seq_lens[:bs1],
+                    forward_batch.seq_lens_cpu[:bs1],
+                    forward_batch.seq_lens_sum - forward_batch.seq_lens[bs1:].sum().item(),
+                    prefix_lens[:bs1],
+                    prefill_wrappers=self.prefill_wrappers_paged,
+                    use_ragged=True,
+                    encoder_lens=forward_batch.encoder_lens,
+                    spec_info=None,
+                    fixed_split_size=None,
+                )
+                self.indices_updater_prefill.update(
+                    forward_batch.req_pool_indices[bs1:],
+                    forward_batch.seq_lens[bs1:],
+                    forward_batch.seq_lens_cpu[bs1:],
+                    forward_batch.seq_lens_sum - forward_batch.seq_lens[:bs1].sum().item(),
+                    prefix_lens[bs1:],
+                    prefill_wrappers=self.prefill_wrappers_paged,
+                    use_ragged=use_ragged,
+                    encoder_lens=forward_batch.encoder_lens,
+                    spec_info=None,
+                    fixed_split_size=self.prefill_split_tile_size,
+                )
+            else:
+            '''
             self.indices_updater_prefill.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
@@ -348,7 +401,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 fixed_split_size=current_prefill_split_tile_size,
             )
             self.forward_metadata = PrefillMetadata(
-                self.prefill_wrappers_paged, use_ragged, extend_no_prefix
+                self.prefill_wrappers_paged, use_ragged, extend_no_prefix#, self.mixed_determinism
             )
 
     def init_cuda_graph_state(
@@ -455,6 +508,22 @@ class FlashInferAttnBackend(AttentionBackend):
                     fast_decode_plan, decode_wrappers[i]
                 )
         elif forward_mode.is_target_verify():
+            # For temperature-based switching, apply different settings for each graph
+            if self.enable_temperature_based_switching:
+                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                is_deterministic_graph = is_batch_invariant_mode_enabled()
+
+                # Choose settings based on which graph we're capturing
+                if is_deterministic_graph:
+                    # Deterministic graph: use fixed split size
+                    fixed_split_size = self.prefill_split_tile_size
+                else:
+                    # Non-deterministic graph: no fixed split size
+                    fixed_split_size = None
+            else:
+                # Static mode or no temperature switching: no fixed split size
+                fixed_split_size = None
+
             prefill_wrappers = []
             for i in range(self.num_wrappers):
                 prefill_wrappers.append(
@@ -485,6 +554,22 @@ class FlashInferAttnBackend(AttentionBackend):
             self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
             self.forward_metadata = PrefillMetadata(prefill_wrappers, False, False)
         elif forward_mode.is_draft_extend():
+            # For temperature-based switching, apply different settings for each graph
+            if self.enable_temperature_based_switching:
+                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                is_deterministic_graph = is_batch_invariant_mode_enabled()
+
+                # Choose settings based on which graph we're capturing
+                if is_deterministic_graph:
+                    # Deterministic graph: use fixed split size
+                    fixed_split_size = self.prefill_split_tile_size
+                else:
+                    # Non-deterministic graph: no fixed split size
+                    fixed_split_size = None
+            else:
+                # Static mode or no temperature switching: no fixed split size
+                fixed_split_size = None
+
             prefill_wrappers = []
             for i in range(self.num_wrappers):
                 prefill_wrappers.append(
@@ -537,11 +622,6 @@ class FlashInferAttnBackend(AttentionBackend):
                 disable_split_kv = use_deterministic
             else:
                 storage_key = bs
-                # For static deterministic mode, use the same restrictive settings
-                if self.enable_deterministic:
-                    disable_split_kv = self.disable_cuda_graph_kv_split
-                else:
-                    disable_split_kv = False
 
             self.indices_updater_decode.update(
                 req_pool_indices[:bs],
@@ -605,6 +685,62 @@ class FlashInferAttnBackend(AttentionBackend):
         logits_soft_cap = layer.logit_cap
 
         q = q.contiguous()
+        '''
+        if self.forward_metadata.mixed_determinism:
+            if k is not None:
+                assert v is not None
+                if save_kv_cache:
+                    forward_batch.token_to_kv_pool.set_kv_buffer(
+                        layer, cache_loc, k, v, layer.k_scale, layer.v_scale
+                    )
+
+            self.det_event.record()
+            # Wait for default stream to finish previous work
+            self.det_stream.wait_event(self.det_event)
+            self.nondet_stream.wait_event(self.nondet_event)
+
+            q_split1, q_split2 = torch.split(q.view(-1, layer.tp_q_head_num, layer.head_dim), [q.shape[0] // 2, q.shape[0] - q.shape[0] // 2], dim=0)
+            o = torch.empty(
+                q.view(-1, layer.tp_q_head_num, layer.head_dim).shape[:-1] + v.shape[-1:], dtype=q.dtype, device=q.device
+            )
+            out_split1, out_split2 = torch.split(o, [o.shape[0] // 2, o.shape[0] - o.shape[0] // 2], dim=0)
+            with torch.cuda.stream(self.det_stream):
+                prefill_wrapper_paged._causal = not layer.is_cross_attention
+                prefill_wrapper_paged._sm_scale = layer.scaling
+                prefill_wrapper_paged._window_left = layer.sliding_window_size
+                prefill_wrapper_paged._logits_soft_cap = logits_soft_cap
+                o = prefill_wrapper_paged.run(
+                    q_split1,
+                    forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
+                    #out=out_split1,
+                    #causal=not layer.is_cross_attention,
+                    #sm_scale=layer.scaling,
+                    #window_left=layer.sliding_window_size,
+                    #logits_soft_cap=logits_soft_cap,
+                    # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
+                    k_scale=layer.k_scale_float,
+                    v_scale=layer.v_scale_float,
+                )
+            with torch.cuda.stream(self.nondet_stream):
+                self.prefill_wrapper_ragged._causal = (layer.attn_type != AttentionType.ENCODER_ONLY)
+                self.prefill_wrapper_ragged._sm_scale = layer.scaling
+                self.prefill_wrapper_ragged._logits_soft_cap = logits_soft_cap
+                self.prefill_wrapper_ragged.run(
+                    q_split2,
+                    k.view(-1, layer.tp_k_head_num, layer.head_dim),
+                    v.view(-1, layer.tp_v_head_num, layer.head_dim),
+                    #out=out_split2,
+                    #causal=(layer.attn_type != AttentionType.ENCODER_ONLY),
+                    #sm_scale=layer.scaling,
+                    #logits_soft_cap=logits_soft_cap,
+                )
+            self.det_event.record(self.det_stream)
+            self.nondet_event.record(self.nondet_stream)
+            # Make sure default stream waits for both streams to finish
+            torch.cuda.current_stream().wait_event(self.det_event)
+            torch.cuda.current_stream().wait_event(self.nondet_event)
+        el
+        '''
         if not self.forward_metadata.use_ragged:
             if k is not None:
                 assert v is not None
