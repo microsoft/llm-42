@@ -12,8 +12,8 @@ def split_kernel_wrapper(a, b, split_frac=0.0):
 
 def test_equality():
     B, D = 2048, 4096
-    a = torch.linspace(-100, 100, B*D).reshape(B, D).to(torch.float16).cuda()
-    b = torch.linspace(-100, 100, D*D).reshape(D, D).to(torch.float16).cuda()
+    a = torch.linspace(-100, 100, B*D).reshape(B, D).to(torch.bfloat16).cuda()
+    b = torch.linspace(-100, 100, D*D).reshape(D, D).to(torch.bfloat16).cuda()
 
     out1 = torch.mm(a, b)
     out2 = matmul_persistent(a, b)
@@ -32,8 +32,8 @@ def test_equality():
 
 def test_batch_invariance(matmul_func):
     B, D = 2048, 4096
-    a = torch.linspace(-100, 100, B*D).reshape(B, D).to(torch.float16)
-    b = torch.linspace(-100, 100, D*D).reshape(D, D).to(torch.float16)
+    a = torch.linspace(-100, 100, B*D).reshape(B, D).to(torch.bfloat16)
+    b = torch.linspace(-100, 100, D*D).reshape(D, D).to(torch.bfloat16)
 
     # Method 1: Matrix-vector multiplication (batch size 1)
     out1 = matmul_func(a[:1], b)
@@ -60,16 +60,9 @@ def run_iters(func, iters=10):
         difflist.append(df)
     print( f"Batch Deterministic: {is_deterministic} run-to-run max/min/diff {max(difflist)}/{min(difflist)}/{max(difflist)-min(difflist)} for {iters} iterations")
 
-def bench_perf(matmul_func, B, K=16384, D=4096, iterations=10):
-    M = B
-    N = D
-    # K = D * 4
-
-    a = torch.randn(M, K, device='cuda', dtype=torch.float16)
-    b = torch.randn(K, N, device='cuda', dtype=torch.float16)
-
+def bench_perf(matmul_func, a, b, warmup=5, iterations=10):
     # Warm-up
-    for _ in range(5):
+    for _ in range(warmup):
         _ = matmul_func(a, b)
 
     torch.cuda.synchronize()
@@ -110,9 +103,9 @@ CONFIGS = [
     "torch",
     "bi",
     "bi_fused",
-    # "split_12.5",
-    # "split_25",
-    # "split_50",
+    #"split_12.5",
+    #"split_25",
+    #"split_50",
     #"split_75",
     #"split_87.5"
 ]
@@ -123,21 +116,23 @@ for config in CONFIGS:
 
 # Benchmark performance
 for batch_size in BATCHES:
-    tflops_results["torch"][batch_size] = bench_perf(torch.mm, B=batch_size)
-    tflops_results["bi"][batch_size] = bench_perf(matmul_persistent, B=batch_size)
-    tflops_results["bi_fused"][batch_size] = bench_perf(bi_kernel_wrapper, B=batch_size)
-    # tflops_results["split_12.5"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.125), B=batch_size)
-    # tflops_results["split_25"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.25), B=batch_size)
-    # tflops_results["split_50"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.5), B=batch_size)
-    #tflops_results["split_75"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.75), B=batch_size)
-    #tflops_results["split_87.5"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.875), B=batch_size)
+    D = 4096
+    M = batch_size
+    N = D
+    K = D * 4
+    a = torch.randn(M, K, device='cuda', dtype=torch.bfloat16)
+    b = torch.randn(K, N, device='cuda', dtype=torch.bfloat16)
 
-    #print(tflops_results)
-    #print([f'{k}: {tflops_results[k][batch_size]:.2f}' for k in CONFIGS if k.startswith('split_')])
-    #BI TFLOPS: {tflops_results["bi"][batch_size]:.2f} |
-    print(f"Batch Size: {batch_size} | PyTorch TFLOPS: {tflops_results["torch"][batch_size]:.2f} | "
-          f" BI-Fused TFLOPS: {tflops_results["bi_fused"][batch_size]:.2f} | "
-          f"Split TFLOPS: {', '.join([f'{k}: {tflops_results[k][batch_size]:.2f}' for k in CONFIGS if k.startswith('split_')])}")
+    tflops_results["torch"][batch_size] = bench_perf(torch.mm, a, b)
+    tflops_results["bi"][batch_size] = bench_perf(matmul_persistent, a, b)
+    tflops_results["bi_fused"][batch_size] = bench_perf(bi_kernel_wrapper, a, b)
+    #tflops_results["split_12.5"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.125), a, b)
+    #tflops_results["split_25"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.25), a, b)
+    #tflops_results["split_50"][batch_size] = bench_perf(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.5), a, b)
+
+    #print(f"Batch Size: {batch_size} | PyTorch TFLOPS: {tflops_results["torch"][batch_size]:.2f} | "
+    #      f" BI-Fused TFLOPS: {tflops_results["bi_fused"][batch_size]:.2f} | "
+    #      f"Split TFLOPS: {', '.join([f'{k}: {tflops_results[k][batch_size]:.2f}' for k in CONFIGS if k.startswith('split_')])}")
 
 import matplotlib
 matplotlib.use('Agg')

@@ -56,7 +56,7 @@ def test_equality(op_name):
     M = config["M"](B)
     K = config["K"]
     N = config["N"]
-    
+
     a = torch.linspace(-100, 100, M*K).reshape(M, K).to(torch.float16).cuda()
     b = torch.linspace(-100, 100, K*N).reshape(K, N).to(torch.float16).cuda()
 
@@ -83,7 +83,7 @@ def test_batch_invariance(matmul_func, op_name):
     M = config["M"](B)
     K = config["K"]
     N = config["N"]
-    
+
     a = torch.linspace(-100, 100, M*K).reshape(M, K).to(torch.float16)
     b = torch.linspace(-100, 100, K*N).reshape(K, N).to(torch.float16)
 
@@ -151,19 +151,19 @@ print("\n\n--- Testing Batch Invariance ---")
 for op_name in OPS_CONFIG.keys():
     config = OPS_CONFIG[op_name]
     print(f"\n{op_name} ({config['desc']}):")
-    
+
     print("  Standard PyTorch:")
     run_iters(torch.mm, op_name)
-    
+
     print("  Batch-Invariant Mode:")
     run_iters(matmul_persistent, op_name)
-    
+
     print("  Batch-Invariant-Fused-kernel Mode:")
     run_iters(bi_kernel_wrapper, op_name)
-    
+
     print("  Batch-Invariant-Fused-kernel 25% Mode:")
     run_iters(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.25), op_name)
-    
+
     print("  Batch-Invariant-Fused-kernel 50% Mode:")
     run_iters(lambda a, b: split_kernel_wrapper(a, b, split_frac=0.5), op_name)
 
@@ -179,7 +179,7 @@ print("\n\n--- Performance Benchmarks ---")
 for op_name in OPS_CONFIG.keys():
     config = OPS_CONFIG[op_name]
     print(f"\n{op_name} ({config['desc']}):")
-    
+
     tflops_results = {}
     for impl in CONFIGS:
         tflops_results[impl] = {}
@@ -191,38 +191,8 @@ for op_name in OPS_CONFIG.keys():
         tflops_results["bi_fused"][batch_size] = bench_perf(bi_kernel_wrapper, op_name, B=batch_size)
 
         print(f"  Batch Size: {batch_size:5d} | PyTorch: {tflops_results['torch'][batch_size]:6.2f} TFLOPS | "
-              f"BI: {tflops_results['bi'][batch_size]:6.2f} TFLOPS | "
-              f"BI-Fused: {tflops_results['bi_fused'][batch_size]:6.2f} TFLOPS")
-
-    # Plot results
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-
-    # Prepare data (preserve the BATCHES order)
-    x = BATCHES
-    torch_vals = [tflops_results['torch'].get(b, 0.0) for b in x]
-    bi_vals = [tflops_results['bi'].get(b, 0.0) for b in x]
-    bi_fused_vals = [tflops_results['bi_fused'].get(b, 0.0) for b in x]
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(x, torch_vals, marker='o', label='PyTorch (torch.mm)')
-    plt.plot(x, bi_vals, marker='s', label='Batch-Invariant (matmul_persistent)')
-    plt.plot(x, bi_fused_vals, marker='^', label='BI-Fused (bi_kernel_wrapper)')
-
-    plt.xscale('log', base=2)
-    plt.xticks(x, [str(b) for b in x], rotation=45)
-    plt.yscale('log', base=10)
-    plt.xlabel('Batch size')
-    plt.ylabel('TFLOPS')
-    plt.title(f'TFLOPS vs Batch size - {op_name} ({config["desc"]}), H100-PCIe, bf16')
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-    plt.legend()
-    plt.tight_layout()
-
-    outfile = f'tflops_vs_batch_{op_name}.pdf'
-    plt.savefig(outfile, dpi=1200)
-    print(f"  Saved plot to {outfile}")
+              f"ThinkingMachines: {tflops_results['bi'][batch_size]:6.2f} TFLOPS | "
+              f"Ours: {tflops_results['bi_fused'][batch_size]:6.2f} TFLOPS")
 
 print("\n" + "="*80)
 print("Benchmarking Complete!")

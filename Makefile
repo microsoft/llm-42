@@ -53,21 +53,27 @@ conda:
 	export LD_LIBRARY_PATH=$CUDA_HOME/lib:$LD_LIBRARY_PATH
 
 
-MODEL = Qwen/Qwen3-4B
-BACKEND ?= fa3
-TOKENS = 1024
-BATCH ?= 256
+MODEL = meta-llama/Meta-Llama-3-8B 
+BACKEND ?= flashinfer
+TOKENS = 8192
+BATCH ?= 2048
 PROFILE = #--profile
 OVERRIDE = #--json-model-override-args '{"num_hidden_layers": 1}'
 OUTPUT ?= output/offline2_Q3-4B_
-TOKEN ?= 1024
+INPUT_TOKEN ?= 1024
+OUTPUT_TOKEN ?= 1024
 EXTRA ?= #--enable-deterministic-inference
 POST ?= 
+PRE_ENVS ?= 
 
 run_offline:
 	python3 -m sglang.bench_offline_throughput --model-path ${MODEL} ${PROFILE} ${OVERRIDE} \
 		--num-prompts ${BATCH} --attention-backend ${BACKEND} \
-		--dataset-name random --random-input ${TOKEN} --random-output ${TOKEN} ${EXTRA} > ${OUTPUT}${BACKEND}_b${BATCH}_${TOKEN}_${POST}.txt;
+		--dataset-name random --random-input ${INPUT_TOKEN} --random-output ${OUTPUT_TOKEN} ${EXTRA} > ${OUTPUT}${BACKEND}_b${BATCH}_in${INPUT_TOKEN}_out${OUTPUT_TOKEN}_${POST}.txt 2>&1;
+
+run_offline_vllm:
+	${PRE_ENVS} vllm bench throughput --dataset-name=random --input-len=1024 --output-len=256 --num-prompts=${BATCH} \
+		--model=${MODEL} > ${OUTPUT}b${BATCH}_in${INPUT_TOKEN}_out${OUTPUT_TOKEN}_${POST}.txt 2>&1
 
 # Bitmask values for deterministic inference modes:
 # 1   = On with defaults (det matmul, det rmsnorm, det attention)
@@ -110,8 +116,8 @@ run_test_perf:
 	mkdir -p output
 	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
 	for token in ${TOKENS}; do \
-		$(MAKE) run_offline TOKEN=$${token}; \
-		$(MAKE) run_offline_det TOKEN=$${token} MODE=96; \
+		$(MAKE) run_offline INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}; \
+		$(MAKE) run_offline_det INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token} MODE=96; \
 	done
 	$(MAKE) extract_test_deterministic_perf;
 
@@ -119,11 +125,11 @@ run_test_all_modes: ## Run benchmarks with all deterministic mode combinations
 	mkdir -p output
 	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
 	for token in ${TOKENS}; do \
-		echo "Running baseline (non-deterministic) with token=$${token}"; \
-		$(MAKE) run_offline TOKEN=$${token}; \
+		echo "Running baseline (non-deterministic) with INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}"; \
+		$(MAKE) run_offline INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}; \
 		for mode in $(MODES_ALL); do \
-			echo "Running deterministic mode=$${mode} with token=$${token}"; \
-			$(MAKE) run_offline_det TOKEN=$${token} MODE=$${mode}; \
+			echo "Running deterministic mode=$${mode} with INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}"; \
+			$(MAKE) run_offline_det INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token} MODE=$${mode}; \
 		done \
 	done
 
@@ -131,11 +137,11 @@ run_test_det_modes: ## Run benchmarks with fully deterministic modes only
 	mkdir -p output
 	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
 	for token in ${TOKENS}; do \
-		echo "Running baseline (non-deterministic) with token=$${token}"; \
-		$(MAKE) run_offline TOKEN=$${token}; \
+		echo "Running baseline (non-deterministic) with INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}"; \
+		$(MAKE) run_offline INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}; \
 		for mode in $(MODES_DET); do \
-			echo "Running deterministic mode=$${mode} with token=$${token}"; \
-			$(MAKE) run_offline_det TOKEN=$${token} MODE=$${mode}; \
+			echo "Running deterministic mode=$${mode} with INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}"; \
+			$(MAKE) run_offline_det INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token} MODE=$${mode}; \
 		done \
 	done
 
@@ -143,11 +149,11 @@ run_test_nondet_modes: ## Run benchmarks with non-deterministic component modes
 	mkdir -p output
 	export SGLANG_TORCH_PROFILER_DIR=$$(pwd)/profile_output; \
 	for token in ${TOKENS}; do \
-		echo "Running baseline (non-deterministic) with token=$${token}"; \
-		$(MAKE) run_offline TOKEN=$${token}; \
+		echo "Running baseline (non-deterministic) with INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}"; \
+		$(MAKE) run_offline INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}; \
 		for mode in $(MODES_NONDET); do \
-			echo "Running mode=$${mode} (non-det components) with token=$${token}"; \
-			$(MAKE) run_offline_det TOKEN=$${token} MODE=$${mode}; \
+			echo "Running mode=$${mode} (non-det components) with INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token}"; \
+			$(MAKE) run_offline_det INPUT_TOKEN=$${token} OUTPUT_TOKEN=$${token} MODE=$${mode}; \
 		done \
 	done
 
@@ -160,3 +166,54 @@ extract_test_deterministic_perf:
 
 #	python3 -m sglang.bench_offline_throughput --model-path ${MODEL} --num-prompts 256 --attention-backend flashinfer --dataset-name random --random-input 8192 --random-output 8192 | grep -A11 "Offline Throughput Benchmark Result"
 #	python3 -m sglang.bench_offline_throughput --model-path ${MODEL} --num-prompts 256 --attention-backend flashinfer --dataset-name random --random-input 8192 --random-output 8192 --enable-deterministic-inference | grep -A11 "Offline Throughput Benchmark Result"
+
+# Plotted experiments
+INTRO_OUT = output/intro/
+FIGURES = figures/
+figure_1_sgl:
+	mkdir -p ${INTRO_OUT};
+	$(MAKE) run_offline INPUT_TOKEN=1024 OUTPUT_TOKEN=256 OUTPUT=${INTRO_OUT} POST=nondet;
+	$(MAKE) run_offline_det INPUT_TOKEN=1024 OUTPUT_TOKEN=256 OUTPUT=${INTRO_OUT} MODE=1 POST=detbase;
+	$(MAKE) run_offline_det INPUT_TOKEN=1024 OUTPUT_TOKEN=256 OUTPUT=${INTRO_OUT} MODE=66 POST=ours;
+
+	$(MAKE) run_offline INPUT_TOKEN=1024 OUTPUT_TOKEN=512 OUTPUT=${INTRO_OUT} POST=nondet;
+	$(MAKE) run_offline_det INPUT_TOKEN=1024 OUTPUT_TOKEN=512 OUTPUT=${INTRO_OUT} MODE=1 POST=detbase;
+	$(MAKE) run_offline_det INPUT_TOKEN=1024 OUTPUT_TOKEN=512 OUTPUT=${INTRO_OUT} MODE=66 POST=ours;
+
+	$(MAKE) run_offline INPUT_TOKEN=2048 OUTPUT_TOKEN=1024 OUTPUT=${INTRO_OUT} POST=nondet;
+	$(MAKE) run_offline_det INPUT_TOKEN=2048 OUTPUT_TOKEN=1024 OUTPUT=${INTRO_OUT} MODE=1 POST=detbase;
+	$(MAKE) run_offline_det INPUT_TOKEN=2048 OUTPUT_TOKEN=1024 OUTPUT=${INTRO_OUT} MODE=66 POST=ours;
+
+plot_figure_1:
+	mkdir -p ${FIGURES}
+	python3 batch_invariant/scripts/plot_introfig.py ${INTRO_OUT} -o ${FIGURES}/figure_1.png
+
+figure_1_vllm:
+	mkdir -p ${INTRO_OUT};
+	$(MAKE) run_offline_vllm INPUT_TOKEN=1024 OUTPUT_TOKEN=256 OUTPUT=${INTRO_OUT} POST=vllm_nondet;
+	$(MAKE) run_offline_vllm INPUT_TOKEN=1024 OUTPUT_TOKEN=256 OUTPUT=${INTRO_OUT} POST=vllm_det PRE_ENVS="VLLM_BATCH_INVARIANT=1";
+	VLLM_BATCH_INVARIANT=1 vllm bench throughput --dataset-name=random --input-len=1024 --output-len=256 --num-prompts=${BATCH} \
+		--model=${MODEL} > ${INTRO_OUT}b${BATCH}_in${INPUT_TOKEN}_out${OUTPUT_TOKEN}_vllmnondet.txt 2>&1
+	VLLM_BATCH_INVARIANT=1 vllm bench throughput --dataset-name=random --input-len=1024 --output-len=256 --num-prompts=${BATCH} \
+		--model=${MODEL} > ${INTRO_OUT}b${BATCH}_in${INPUT_TOKEN}_out${OUTPUT_TOKEN}_vllmdet.txt 2>&1
+
+figure_prefill:
+	mkdir -p output/figure_3/
+	python batch_invariant/bench_flashinfer.py > output/figure_3/figure_3_results.txt 2>&1
+
+plot_figure_prefill:
+	python batch_invariant/scripts/plot_flashinfer_prefill.py output/figure_3/figure_3_results.txt
+
+figure_matmul:
+	mkdir -p output/figure_4/
+	python batch_invariant/bench_llama3_ops.py > output/figure_4/figure_4_results.txt 2>&1
+
+plot_matmul:
+	python batch_invariant/scripts/plot_llama_matmul.py output/figure_4/figure_4_results.txt
+
+figure_rmsnorm:
+	mkdir -p output/figure_rmsnorm/
+	python batch_invariant/bench_rmsnorm.py > output/figure_rmsnorm/figure_rmsnorm_results.txt 2>&1
+
+plot_rmsnorm:
+	python batch_invariant/scripts/plot_rmsnorm.py output/figure_rmsnorm/figure_rmsnorm_results.txt

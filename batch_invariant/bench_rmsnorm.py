@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Add parent paths to import sglang
-sys.path.insert(0, "/mnt/ddn/t-rajagond/batch_inv/sglang-deterministic/python")
+#sys.path.insert(0, "/mnt/ddn/t-rajagond/batch_inv/sglang-deterministic/python")
 
 # Import sglang RMSNorm layer
 from sglang.srt.layers.layernorm import RMSNorm
@@ -97,19 +97,19 @@ def create_rmsnorm_layer(hidden_size: int, eps: float = 1e-6, vllm_mode: Optiona
     # Clear any existing environment variables
     os.environ.pop("SGLANG_USE_VLLM_RMSNORM", None)
     os.environ.pop("SGLANG_ENABLE_DETERMINISTIC_INFERENCE", None)
-    
+
     if use_native:
         # Set deterministic inference without bit 64 to force native mode
         os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = "1"
     elif vllm_mode:
         os.environ["SGLANG_USE_VLLM_RMSNORM"] = vllm_mode
-    
+
     # Force reimport to pick up environment variable changes
     import importlib
     import sglang.srt.layers.layernorm
     importlib.reload(sglang.srt.layers.layernorm)
     from sglang.srt.layers.layernorm import RMSNorm
-    
+
     return RMSNorm(hidden_size, eps).cuda()
 
 
@@ -185,15 +185,15 @@ def test_correctness(batch_size=4, hidden_size=4096):
     """
     dtype = torch.bfloat16
     eps = 1e-6
-    
+
     # Generate test data
     x = torch.randn(batch_size, hidden_size, dtype=dtype, device="cuda")
     weight = torch.randn(hidden_size, dtype=dtype, device="cuda")
     residual = torch.randn_like(x)
-    
+
     # Get reference output from naive implementation
     output_naive = rmsnorm_naive(x.clone(), weight, residual.clone(), eps)
-    
+
     implementations = [
         ("SGLang-Default", rmsnorm_sglang_default),
         ("SGLang-Native", rmsnorm_sglang_native),
@@ -201,21 +201,21 @@ def test_correctness(batch_size=4, hidden_size=4096):
         ("vLLM-BS=256", rmsnorm_vllm_256),
         ("vLLM-BS=1024", rmsnorm_vllm_1024),
     ]
-    
+
     print(f"\n{'='*80}")
     print(f"Correctness Test (batch={batch_size}, hidden={hidden_size}, with residual)")
     print(f"{'='*80}")
     print(f"{'Implementation':<25} | {'Status':<10}")
     print(f"{'-'*80}")
-    
+
     all_correct = True
     for name, func in implementations:
         try:
             output = func(x.clone(), weight, residual.clone(), eps)
-            
+
             output_test = output[0]
             output_ref = output_naive[0]
-            
+
             # Use torch.testing.assert_close for correctness check
             torch.testing.assert_close(
                 output_test,
@@ -224,7 +224,7 @@ def test_correctness(batch_size=4, hidden_size=4096):
                 atol=1e-2,
                 msg=f"Mismatch between {name} and reference",
             )
-            
+
             status = "✓ PASS"
             print(f"{name:<25} | {status:<10}")
         except AssertionError as e:
@@ -235,7 +235,7 @@ def test_correctness(batch_size=4, hidden_size=4096):
             print(f"{name:<25} | {'✗ ERROR':<10}")
             print(f"  {str(e)[:100]}")
             all_correct = False
-    
+
     print(f"{'-'*80}")
     print(f"Overall: {'✓ All tests passed' if all_correct else '✗ Some tests failed'}")
     return all_correct
@@ -283,7 +283,7 @@ def run_batch_invariance_test(rmsnorm_func, name, iterations=5):
     print(f"\n{name}:")
     difflist = []
     is_deterministic = True
-    
+
     for i in range(iterations):
         try:
             isd, df = test_batch_invariance(rmsnorm_func)
@@ -292,7 +292,7 @@ def run_batch_invariance_test(rmsnorm_func, name, iterations=5):
         except Exception as e:
             print(f"  Error: {e}")
             return
-    
+
     print(f"  Batch Invariant: {is_deterministic}")
     print(f"  Max diff: {max(difflist):.2e}, Min diff: {min(difflist):.2e}")
     print(f"  Run-to-run variation: {max(difflist) - min(difflist):.2e}")
@@ -328,11 +328,11 @@ def benchmark_rmsnorm(
                 return None, str(e)
 
         torch.cuda.synchronize()
-        
+
         # Benchmark using CUDA events for accurate timing
         start_events = [torch.cuda.Event(enable_timing=True) for _ in range(bench_iters)]
         end_events = [torch.cuda.Event(enable_timing=True) for _ in range(bench_iters)]
-        
+
         for i in range(bench_iters):
             # Clone BEFORE recording the event
             input_tensor = x.clone()
@@ -341,10 +341,10 @@ def benchmark_rmsnorm(
             start_events[i].record()
             _ = norm_layer(input_tensor, residual_tensor)
             end_events[i].record()
-        
+
         # Wait for events to complete
         torch.cuda.synchronize()
-        
+
         # Calculate elapsed time in milliseconds
         elapsed_time_ms = [start_events[i].elapsed_time(end_events[i]) for i in range(bench_iters)]
         avg_time_ms = sum(elapsed_time_ms) / bench_iters
@@ -354,9 +354,9 @@ def benchmark_rmsnorm(
     # Write: batch_size * hidden_size (output) + batch_size * hidden_size (residual)
     bytes_per_element = 2  # bfloat16
     total_bytes = batch_size * hidden_size * 4 * bytes_per_element + hidden_size * bytes_per_element
-    
+
     bandwidth_gbs = (total_bytes / (avg_time_ms / 1000)) / 1e9
-    
+
     return avg_time_ms, bandwidth_gbs
 
 
@@ -365,11 +365,11 @@ def run_benchmark_suite():
     # Test configurations
     batch_sizes = [1, 8, 32, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
     hidden_sizes = [4096, 8192]
-    
+
     # Store results for plotting (initialize once for all hidden sizes)
-    layer_names = ["SGLang-Default", "SGLang-Native", "vLLM-Dynamic", "vLLM-BS=256", "vLLM-BS=1024"]
+    layer_names = ["SGLang-Default", "SGLang-Native", "vLLM-Dynamic", "vLLM-BS=128", "vLLM-BS=256", "vLLM-BS=512", "vLLM-BS=1024"]
     results = {name: {'batch_sizes': batch_sizes, 'times': {}, 'bandwidths': {}} for name in layer_names}
-    
+
     print(f"\n{'='*80}")
     print(f"Performance Benchmark (with residual)")
     print(f"{'='*80}")
@@ -380,10 +380,12 @@ def run_benchmark_suite():
             "SGLang-Default": create_rmsnorm_layer(hidden_size, vllm_mode=None, use_native=False),
             "SGLang-Native": create_rmsnorm_layer(hidden_size, vllm_mode=None, use_native=True),
             "vLLM-Dynamic": create_rmsnorm_layer(hidden_size, vllm_mode="dynamic", use_native=False),
+            "vLLM-BS=128": create_rmsnorm_layer(hidden_size, vllm_mode="128", use_native=False),
             "vLLM-BS=256": create_rmsnorm_layer(hidden_size, vllm_mode="256", use_native=False),
+            "vLLM-BS=512": create_rmsnorm_layer(hidden_size, vllm_mode="512", use_native=False),
             "vLLM-BS=1024": create_rmsnorm_layer(hidden_size, vllm_mode="1024", use_native=False),
         }
-        
+
         print(f"\nHidden Size: {hidden_size}")
         print(f"{'-'*80}")
         print(f"{'Batch Size':<12} | {'Implementation':<25} | {'Time (ms)':<12} | {'BW (GB/s)':<12}")
@@ -395,7 +397,7 @@ def run_benchmark_suite():
                 if result[0] is not None:
                     time_ms, bandwidth_gbs = result
                     print(f"{batch_size:<12} | {name:<25} | {time_ms:>10.4f} | {bandwidth_gbs:>10.2f}")
-                    
+
                     # Store for plotting
                     if hidden_size not in results[name]['times']:
                         results[name]['times'][hidden_size] = []
@@ -404,7 +406,7 @@ def run_benchmark_suite():
                     results[name]['bandwidths'][hidden_size].append(bandwidth_gbs)
                 else:
                     print(f"{batch_size:<12} | {name:<25} | {'ERROR':<12} | {result[1]}")
-    
+
     return results, batch_sizes, hidden_sizes
 
 
@@ -414,43 +416,43 @@ def run_benchmark_suite():
 
 def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
     """Plot performance comparison: raw execution times and speedup vs SGLang-Native side by side"""
-    
+
     # Create figure with subplots for each hidden size (2 rows x 2 columns)
     # Each row: raw time (left) and speedup (right)
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('RMSNorm Performance Comparison', fontsize=16, fontweight='bold')
-    
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-    markers = ['o', 's', '^', 'D', 'v']
+
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
+    markers = ['o', 's', '^', 'D', 'v', 'P', '*']
     baseline_name = "SGLang-Native"
-    
+
     for idx, hidden_size in enumerate(hidden_sizes):
         ax_time = axes[idx, 0]
         ax_speedup = axes[idx, 1]
-        
+
         # Get baseline times for speedup calculation
         baseline_times = None
         if baseline_name in results and hidden_size in results[baseline_name]['times']:
             baseline_times = np.array(results[baseline_name]['times'][hidden_size])
-        
+
         # Create equally spaced x positions for batch sizes
         x_positions = np.arange(len(batch_sizes))
-        
+
         # Plot raw execution times and speedups
         for (name, _), color, marker in zip(results.items(), colors, markers):
             if hidden_size in results[name]['times']:
                 times = np.array(results[name]['times'][hidden_size])
-                
+
                 # Plot raw times at equally spaced positions
-                ax_time.plot(x_positions, times, marker=marker, color=color, 
+                ax_time.plot(x_positions, times, marker=marker, color=color,
                            label=name, linewidth=2, markersize=8)
-                
+
                 # Plot speedup (if not the baseline itself)
                 if baseline_times is not None and name != baseline_name:
                     speedups = baseline_times / times
                     ax_speedup.plot(x_positions, speedups, marker=marker, color=color,
                                   label=name, linewidth=2, markersize=8)
-        
+
         # Configure raw time subplot
         ax_time.set_xlabel('Batch Size', fontsize=12)
         ax_time.set_ylabel('Execution Time (ms)', fontsize=12)
@@ -459,9 +461,9 @@ def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
         ax_time.set_xticklabels([str(bs) for bs in batch_sizes])
         ax_time.grid(True, alpha=0.3, linestyle='--')
         ax_time.legend(fontsize=9, loc='best')
-        
+
         # Configure speedup subplot
-        ax_speedup.axhline(y=1.0, color='black', linestyle='--', linewidth=2, 
+        ax_speedup.axhline(y=1.0, color='black', linestyle='--', linewidth=2,
                           label=f'Baseline ({baseline_name})', alpha=0.7)
         ax_speedup.set_xlabel('Batch Size', fontsize=12)
         ax_speedup.set_ylabel('Speedup vs SGLang-Native', fontsize=12)
@@ -470,14 +472,14 @@ def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
         ax_speedup.set_xticklabels([str(bs) for bs in batch_sizes])
         ax_speedup.grid(True, alpha=0.3, linestyle='--')
         ax_speedup.legend(fontsize=9, loc='best')
-    
+
     plt.tight_layout()
-    
+
     # Save plot as PDF
-    output_path = os.path.join(output_dir, 'rmsnorm_benchmark_all_configs.pdf')
-    plt.savefig(output_path, format='pdf', bbox_inches='tight')
+    output_path = os.path.join(output_dir, 'rmsnorm_benchmark_all_configs.png')
+    plt.savefig(output_path, format='png', bbox_inches='tight')
     print(f"\n✓ Plot saved to: {output_path}")
-    
+
     plt.close('all')
 
 
@@ -490,7 +492,7 @@ def main():
     parser = argparse.ArgumentParser(description="Benchmark RMSNorm implementations")
     parser.add_argument("--test-correctness", action="store_true",
                        help="Test correctness against naive PyTorch implementation")
-    parser.add_argument("--test-invariance", action="store_true", 
+    parser.add_argument("--test-invariance", action="store_true",
                        help="Test batch invariance properties")
     parser.add_argument("--benchmark", action="store_true",
                        help="Run performance benchmarks")
@@ -521,9 +523,9 @@ def main():
         print("\n" + "="*80)
         print("Correctness Tests")
         print("="*80)
-        
+
         test_correctness(batch_size=4, hidden_size=4096)
-        
+
         # Test with different sizes
         print("\n--- Large Hidden Size (8192) ---")
         test_correctness(batch_size=8, hidden_size=8192)
@@ -532,7 +534,7 @@ def main():
         print("\n" + "="*80)
         print("Batch Invariance Tests")
         print("="*80)
-        
+
         run_batch_invariance_test(rmsnorm_naive, "Naive (PyTorch)")
         run_batch_invariance_test(rmsnorm_sglang_default, "SGLang-Default")
         run_batch_invariance_test(rmsnorm_sglang_native, "SGLang-Native")
@@ -543,7 +545,7 @@ def main():
     results = None
     if args.benchmark or args.all or args.plot:
         results, batch_sizes, hidden_sizes = run_benchmark_suite()
-    
+
     if args.plot or args.all:
         if results is not None:
             print("\n" + "="*80)

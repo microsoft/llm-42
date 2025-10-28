@@ -1,40 +1,33 @@
 import unittest
 
 import torch
-import os
-os.environ["SGLANG_ENABLE_TORCH_COMPILE"] = "1"
 
 from sglang.srt.configs.model_config import AttentionArch
-from sglang.srt.layers.attention.flashinfer_backend import FlashInferAttnBackend
+from sglang.srt.layers.attention.flashattention_backend import FlashAttentionBackend
 from sglang.srt.layers.attention.torch_native_backend import TorchNativeAttnBackend
 from sglang.srt.layers.radix_attention import RadixAttention
 from sglang.srt.mem_cache.memory_pool import MHATokenToKVPool
 from sglang.srt.model_executor.forward_batch_info import ForwardBatch, ForwardMode
 from sglang.srt.model_executor.model_runner import ServerArgs
 from sglang.test.test_utils import CustomTestCase
-from sglang.srt.layers import dp_attention
 
 import time
-
 
 class MockModelRunner:
     def __init__(
         self,
-        num_heads,
-        num_heads_kv,
-        head_dim,
-        hidden_size,
         deterministic=0,
         max_batch_size=512, # Max batch size for the test.
-        max_context_len=32768, # Total tokens(prefix + extend + decode) in the test should not exceed this length.
+        max_context_len=16384, # Total tokens(prefix + extend + decode) in the test should not exceed this length.
         page_size=1,
+        num_heads=2,
+        head_dim=8,
     ):
         self.device = "cuda"
-        self.dtype = torch.bfloat16
-        self.kv_cache_dtype = torch.bfloat16
+        self.dtype = torch.float16
+        self.kv_cache_dtype = torch.float16
         attention_arch = AttentionArch.MHA
         self.is_hybrid = False
-        hf_config = type("HFConfig", (), {"architectures": ["Qwen3ForCausalLM"]})
         self.model_config = type(
             "ModelConfig",
             (),
@@ -42,12 +35,6 @@ class MockModelRunner:
                 "context_len": max_context_len,
                 "is_multimodal": False,
                 "attention_arch": attention_arch,
-                "num_attention_heads": num_heads,
-                "hidden_size": hidden_size,
-                "get_num_kv_heads": lambda self: num_heads_kv,
-                "is_encoder_decoder": False,
-                "hf_config": hf_config,
-                "head_dim": head_dim,
             },
         )
         self.sliding_window_size = None
@@ -68,44 +55,26 @@ class MockModelRunner:
                 ),
             },
         )
-        self.token_to_kv_pool_allocator = None
         self.page_size = page_size
-        max_total_num_tokens = max_context_len * 2
+        max_total_num_tokens = max_batch_size * max_context_len
         self.token_to_kv_pool = MHATokenToKVPool(
             size=max_total_num_tokens,
             page_size=page_size,
             dtype=self.dtype,
-            head_num=num_heads_kv,
+            head_num=num_heads,
             head_dim=head_dim,
             layer_num=1,  # only consider layer=1 for unit test
             device=self.device,
             enable_memory_saver=False,
         )
         self.server_args = type("ServerArgs", (), {})()
-        self.server_args.device = self.device
-        self.server_args.kv_cache_dtype = "bfloat16"
+        self.server_args.kv_cache_dtype = "float16"
         self.server_args.enable_deterministic_inference = deterministic
         self.server_args.speculative_eagle_topk = None
         self.server_args.speculative_num_draft_tokens = None
-        # DP stuff
-        self.server_args.enable_dp_attention = False
-        self.server_args.tp_size = 1
-        self.server_args.dp_size = 1
-        self.server_args.moe_dense_tp_size = 1
-        self.server_args.pp_size = 1
-
-        dp_attention._ATTN_TP_SIZE = 1
-
-        #initialize_dp_attention(self.server_args, self.model_config)
         # Required by torch native backend
         #self.server_args = ServerArgs(model_path="fake_model_path")
 
-# Llama3-8B dimensions
-INTERMEDIATE_SIZE = 14336
-NUM_HEADS = 32
-NUM_KV_HEADS = 8
-HEAD_DIM = 128
-HIDDEN_SIZE = HEAD_DIM * NUM_HEADS
 
 class BenchFlashAttentionBackend:
     def __init__(self, deterministic=0):
@@ -113,24 +82,19 @@ class BenchFlashAttentionBackend:
 
     def setUp(self):
         # Test parameters
-        self.num_heads = NUM_HEADS
-        self.head_dim = HEAD_DIM
-        self.num_heads_kv = NUM_KV_HEADS
-        self.hidden_size = HIDDEN_SIZE
+        self.num_heads = 8
+        self.head_dim = 128
         self.device = "cuda"
-        self.dtype = torch.bfloat16
+        self.dtype = torch.float16
 
     def _init_model_runner(self, page_size=1):
         self.model_runner = MockModelRunner(
             page_size=page_size,
             num_heads=self.num_heads,
-            num_heads_kv=self.num_heads_kv,
-            hidden_size=self.hidden_size,
             head_dim=self.head_dim,
             deterministic=self.deterministic,
         )
-
-        self.backend = FlashInferAttnBackend(self.model_runner)
+        self.backend = FlashAttentionBackend(self.model_runner)
         self.ref_backend = TorchNativeAttnBackend(self.model_runner)
         self.model_runner.model_config.num_attention_heads = self.num_heads
 
@@ -138,10 +102,10 @@ class BenchFlashAttentionBackend:
         # if page_size > 1, the token pool stores the index to the page.
         # so we need to multiply the index by page_size.
         self.req_to_token = (
-            (torch.arange(0, batch_size, dtype=torch.int32, device=self.device)[:, None]
+            torch.arange(0, batch_size, dtype=torch.int32, device=self.device)[:, None]
             * seq_len
-            + torch.arange(0, seq_len, dtype=torch.int32, device=self.device)[None, :])
-            * page_size
+            + torch.arange(0, seq_len, dtype=torch.int32, device=self.device)[None, :]
+            + page_size
         )
         self.model_runner.req_to_token_pool.req_to_token[:batch_size, :seq_len] = (
             self.req_to_token
@@ -153,18 +117,17 @@ class BenchFlashAttentionBackend:
             num_heads=self.num_heads,
             head_dim=self.head_dim,
             scaling=1.0,
-            num_kv_heads=self.num_heads_kv,
+            num_kv_heads=self.num_heads,
             layer_id=0,
         )
 
     def _create_qkv_tensors(self, tokens_len):
         """Create q, k, v tensors for testing."""
         shape = (tokens_len, self.num_heads, self.head_dim)
-        shape_kv = (tokens_len, self.num_heads_kv, self.head_dim)
         return (
             torch.randn(shape, dtype=self.dtype, device=self.device),
-            torch.randn(shape_kv, dtype=self.dtype, device=self.device),
-            torch.randn(shape_kv, dtype=self.dtype, device=self.device),
+            torch.randn(shape, dtype=self.dtype, device=self.device),
+            torch.randn(shape, dtype=self.dtype, device=self.device),
         )
 
     def _run_reference_forward(
@@ -179,25 +142,24 @@ class BenchFlashAttentionBackend:
 
     def _verify_output(self, output, expected_shape, output_ref=None):
         """Verify output tensor shape, dtype, and values."""
-        #assert output.shape == expected_shape, f"Expected shape {expected_shape}, got {output.shape}"
+        assert output.shape == expected_shape, f"Expected shape {expected_shape}, got {output.shape}"
         assert output.dtype == self.dtype
         assert output.device.type == "cuda"
         assert torch.isnan(output).sum().item() == 0, "Output contains NaN values"
 
         if output_ref is not None:
-            if not torch.allclose(output, output_ref[:output.shape[0]], atol=1e-1, rtol=0.0):
+            if not torch.allclose(output, output_ref, atol=1e-1, rtol=0.0):
                 # Check where the values differ beyond the given tolerances
-                diff_mask = ~torch.isclose(output, output_ref[:output.shape[0]], atol=1e-1, rtol=0.0)
+                diff_mask = ~torch.isclose(output, output_ref, atol=1e-1, rtol=0.0)
 
                 # Find the first index where the difference occurs
                 if diff_mask.any():
                     first_mismatch_idx = diff_mask.nonzero()[0]
                     print(
-                        "First mismatch at index:", tuple(first_mismatch_idx.tolist()), flush=True
+                        "First mismatch at index:", tuple(first_mismatch_idx.tolist())
                     )
-                    print("output:", output[tuple(first_mismatch_idx.tolist())], flush=True)
-                    print("output_ref:", output_ref[tuple(first_mismatch_idx.tolist())], flush=True)
-                    print(output, output_ref, flush=True)
+                    print("output:", output[tuple(first_mismatch_idx.tolist())])
+                    print("output_ref:", output_ref[tuple(first_mismatch_idx.tolist())])
                 raise AssertionError(
                     "Attention output is not close to the torch native backend output"
                 )
@@ -315,7 +277,7 @@ class BenchFlashAttentionBackend:
             layer.v_scale,
         )
 
-    def _run_attention_test(self, mode, q_len, seq_len, batch_size, prefix_len=0, page_size=1, warmup=20, iters=100):
+    def _run_attention_test(self, mode, q_len, seq_len, batch_size, prefix_len=0, page_size=1, warmup=25, iters=1000):
         """
             Run an attention test with the specified parameters.
         Args:
@@ -402,14 +364,8 @@ def test_forward_decode_with_page_size_greater_than_1(bench, batch_size=128, seq
 
 bench_nondet = BenchFlashAttentionBackend()
 bench_det = BenchFlashAttentionBackend(deterministic=1)
-bench_mixed = BenchFlashAttentionBackend(deterministic=8)
 bench_nondet.setUp()
 bench_det.setUp()
-bench_mixed.setUp()
-
-SEQ_LENS = [1024, 2048, 4096, 8192]
-BATCH_SIZES = [1, 2, 4, 16, 64, 128, 256]
-SPLIT_TILES = [1024, 2048, 4096, 8192]
 
 pref_non_det = {}
 pref_det = {}
@@ -417,25 +373,49 @@ pref_det = {}
 dec_non_det = {}
 dec_det = {}
 
-for seq_len in SEQ_LENS:
-    print(seq_len, flush=True)
+for seq_len in [512, 1024, 2048, 4096, 8192, 16384]:
     pref_non_det[seq_len] = test_forward_extend(bench_nondet, seq_len)
-    pref_det[seq_len] = {}
-    for split in SPLIT_TILES:
-        os.environ["SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE"] = str(split)
-        pref_det[seq_len][split] = test_forward_extend(bench_det, seq_len)
+    pref_det[seq_len] = test_forward_extend(bench_det, seq_len)
 
-
-for seq_len in SEQ_LENS:
-    print(f"Extend seq_len={seq_len}: Non-deterministic time = {pref_non_det[seq_len]:.4f}s, "
-          f"{' '.join([f'Deterministic (split size {split}) time = {pref_det[seq_len][split]:.4f}s' for split in SPLIT_TILES])}"
-          )
-
-'''
-for batch_size in BATCH_SIZES:
+for batch_size in [1, 16, 64, 128, 256, 512]:
     dec_non_det[batch_size] = test_forward_decode(bench_nondet, batch_size=batch_size, seq_len=8192)
     dec_det[batch_size] = test_forward_decode(bench_det, batch_size=batch_size, seq_len=8192)
 
-for batch_size in BATCH_SIZES:
-    print(f"Decode batch_size={batch_size}: Non-deterministic time = {dec_non_det[batch_size]:.4f}s, Deterministic time = {dec_det[batch_size]:.4f}s")
-'''
+
+import matplotlib.pyplot as plt
+
+# Preference (extend) plot: x = seq_len
+x_pref = sorted(pref_non_det.keys())
+y_pref_non = [pref_non_det[k] for k in x_pref]
+y_pref_det = [pref_det[k] for k in x_pref]
+
+plt.figure(figsize=(8, 5))
+plt.plot(x_pref, y_pref_non, marker="o", label="Non-deterministic")
+plt.plot(x_pref, y_pref_det, marker="o", label="Deterministic")
+plt.xscale("log", base=2)
+plt.xlabel("Sequence length")
+plt.ylabel("time (s)")
+plt.title("Extend (prefix) performance")
+plt.legend()
+plt.grid(True, which="both", ls="--", alpha=0.5)
+plt.tight_layout()
+plt.savefig("pref_compare.png")
+plt.show()
+
+# Decode plot: x = batch_size
+x_dec = sorted(dec_non_det.keys())
+y_dec_non = [dec_non_det[k] for k in x_dec]
+y_dec_det = [dec_det[k] for k in x_dec]
+
+plt.figure(figsize=(8, 5))
+plt.plot(x_dec, y_dec_non, marker="o", label="Non-determinstic")
+plt.plot(x_dec, y_dec_det, marker="o", label="Deterministic")
+plt.xscale("log", base=2)
+plt.xlabel("Batch size")
+plt.ylabel("time (s)")
+plt.title("Decode performance")
+plt.legend()
+plt.grid(True, which="both", ls="--", alpha=0.5)
+plt.tight_layout()
+plt.savefig("dec_compare.png")
+plt.show()
