@@ -575,17 +575,19 @@ def disable_batch_invariant_mode():
 @contextlib.contextmanager
 def set_batch_invariant_mode(enabled: bool = True):
     global _batch_invariant_MODE, _batch_invariant_LIB
-    old_data = (_batch_invariant_MODE, _batch_invariant_LIB)
+    old_mode = _batch_invariant_MODE
     # print(f"DEBUG:: [Context Manager] Setting batch_invariant mode: enabled={enabled}, was_enabled={_batch_invariant_MODE}", flush=True)
     if enabled:
         enable_batch_invariant_mode(2)
     else:
         disable_batch_invariant_mode()
     yield
-    # print(f"DEBUG:: [Context Manager] Restoring batch_invariant mode: restoring_to={old_data[0]}", flush=True)
-    if _batch_invariant_LIB is not None:
-        _batch_invariant_LIB._destroy()
-    _batch_invariant_MODE, _batch_invariant_LIB = old_data
+    # print(f"DEBUG:: [Context Manager] Restoring batch_invariant mode: restoring_to={old_mode}", flush=True)
+    # Disable current mode first
+    disable_batch_invariant_mode()
+    # Re-enable if it was previously enabled
+    if old_mode:
+        enable_batch_invariant_mode(2)
 
 
 AttentionBlockSize = namedtuple("AttentionBlockSize", ["block_m", "block_n"])
