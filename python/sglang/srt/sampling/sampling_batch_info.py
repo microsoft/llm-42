@@ -26,6 +26,9 @@ class SamplingBatchInfo:
     top_ks: torch.Tensor
     min_ps: torch.Tensor
 
+    # Whether any requests use zero temperature
+    is_any_deterministic: bool
+
     # Whether all requests use greedy sampling
     is_all_greedy: bool
 
@@ -87,6 +90,9 @@ class SamplingBatchInfo:
             dtype=torch.float,
             device=device,
         ).view(-1, 1)
+        is_any_deterministic = any(
+            [r.sampling_params.is_deterministic for r in reqs]
+        )
         top_ps = torch.tensor(
             [r.sampling_params.top_p for r in reqs], dtype=torch.float, device=device
         )
@@ -167,6 +173,7 @@ class SamplingBatchInfo:
 
         ret = cls(
             temperatures=temperatures,
+            is_any_deterministic=is_any_deterministic,
             top_ps=top_ps,
             top_ks=top_ks,
             min_ps=min_ps,

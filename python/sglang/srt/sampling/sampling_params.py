@@ -84,12 +84,16 @@ class SamplingParams:
         self.stream_interval = stream_interval
         self.logit_bias = logit_bias
         self.sampling_seed = sampling_seed
+        self.is_deterministic = bool
 
         # Process some special cases
         if 0 <= self.temperature < _SAMPLING_EPS:
             # top_k = 1 means greedy sampling
             self.temperature = 1.0
             self.top_k = 1
+            self.is_deterministic = True
+        else:
+            self.is_deterministic = False
         if self.top_k == -1:
             self.top_k = TOP_K_ALL  # whole vocabulary
 

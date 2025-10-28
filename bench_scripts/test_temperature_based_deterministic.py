@@ -7,18 +7,6 @@ This script demonstrates how the system now behaves:
 2. When temperature > 0, the system uses non-deterministic mode
 3. In a batch, if ALL requests are non-deterministic (temp > 0), use default implementation
 4. Otherwise (at least one request has temp == 0), use batch-invariant implementation
-
-Usage:
-    # Enable dynamic temperature-based mode (bit 512 = 512)
-    # Combined with mode 1 (existing kernel): 512 + 1 = 513
-    python -m sglang.launch_server \
-        --model-path <model_path> \
-        --enable-deterministic-inference 513
-
-    # Or with mode 2 (CUDA kernel): 512 + 2 = 514
-    python -m sglang.launch_server \
-        --model-path <model_path> \
-        --enable-deterministic-inference 514
 """
 
 import requests

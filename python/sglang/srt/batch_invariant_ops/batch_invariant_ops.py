@@ -519,29 +519,31 @@ def mean_batch_invariant(input, dim, keepdim=False, dtype: torch.dtype | None = 
 
 _batch_invariant_MODE = False
 _batch_invariant_LIB = None
+_mode = 0
 
 
 def is_batch_invariant_mode_enabled():
+    # print(f"DEBUG:: Checking batch_invariant mode: {_batch_invariant_MODE}", flush=True)
     return _batch_invariant_MODE
 
 
 def enable_batch_invariant_mode(mode: int = 1):
-    global _batch_invariant_MODE, _batch_invariant_LIB
+    global _batch_invariant_MODE, _batch_invariant_LIB, _mode
     if _batch_invariant_MODE:
         return
 
     _batch_invariant_MODE = True
     _batch_invariant_LIB = torch.library.Library("aten", "IMPL")
     if mode & 1:
-        print("Enabling batch invariant mode with existing kernels...", flush=True)
+        # print("Enabling batch invariant mode with existing kernels...", flush=True)
         _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
         _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
     elif mode & 2:
-        print("Enabling batch invariant mode with CUDA kernels...", flush=True)
+        # print("Enabling batch invariant mode with CUDA kernels...", flush=True)
         _batch_invariant_LIB.impl("aten::mm", mm_bi_kernel, "CUDA")
         _batch_invariant_LIB.impl("aten::addmm", addmm_bi_kernel, "CUDA")
     elif mode & 4:
-        print("Enabling batch invariant mode with 25% split CUDA kernels...", flush=True)
+        # print("Enabling batch invariant mode with 25% split CUDA kernels...", flush=True)
         _batch_invariant_LIB.impl(
             "aten::mm",
             lambda a, b: mm_bi_fused_kernel(a, b, split_frac=0.25),
@@ -575,7 +577,7 @@ def set_batch_invariant_mode(enabled: bool = True):
     old_data = (_batch_invariant_MODE, _batch_invariant_LIB)
     # print(f"DEBUG:: [Context Manager] Setting batch_invariant mode: enabled={enabled}, was_enabled={_batch_invariant_MODE}", flush=True)
     if enabled:
-        enable_batch_invariant_mode()
+        enable_batch_invariant_mode(2)
     else:
         disable_batch_invariant_mode()
     yield

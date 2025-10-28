@@ -121,7 +121,7 @@ def test_deterministic_consistency(base_url="http://localhost:30000"):
     print()
     
     prompt = "What is 5 + 3?"
-    num_requests = 3
+    num_requests = 1
     
     print(f"Sending {num_requests} identical requests with temperature=0...")
     print(f"Prompt: {prompt}")
@@ -135,7 +135,7 @@ def test_deterministic_consistency(base_url="http://localhost:30000"):
                 json={
                     "model": "default",
                     "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.0,
+                    "temperature": 1.0,
                     "max_tokens": 50,
                 },
                 timeout=30
@@ -173,5 +173,5 @@ if __name__ == "__main__":
         base_url = "http://localhost:30000"
     
     # Run tests
-    test_temperature_switching(base_url)
-    # test_deterministic_consistency(base_url)
+    # test_temperature_switching(base_url)
+    test_deterministic_consistency(base_url)

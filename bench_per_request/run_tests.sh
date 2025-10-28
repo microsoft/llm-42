@@ -22,7 +22,7 @@ HOST="0.0.0.0"
 PORT=30000
 TP_SIZE=1
 ATTENTION_BACKEND="flashinfer"
-OUTPUT_DIR="partial_etalon_results"
+OUTPUT_DIR="without_cudagraph_etalon_results"
 QPS=1.0
 MAX_REQUESTS=256
 TIMEOUT=600
@@ -36,22 +36,22 @@ WARMUP_TIME=30  # Time to wait for server to warmup
 # Mode 66 = batch-invariant:: vllm-rmsnorm + cutlass matmul
 # Mode 257 = batch-invariant:: native-rmsnorm + thinking-machine mat
 # Mode 578 = temperature-based switching + cutlass matmul + vllm-rmsnorm
-# MODES=("baseline" "66" "257" "578" "578" "578" "578" "578" "578")
-# MODE_NAMES=("baseline_nondet" "det_mode_66" "det_mode_257" "det_mode_578_temp0_1pct" "det_mode_578_temp0_2pct" "det_mode_578_temp0_5pct" "det_mode_578_temp0_10pct" "det_mode_578_temp0_50pct" "det_mode_578_temp0_100pct")
-# TEMP0_PERCENTAGES=("0" "0" "0" "1" "2" "5" "10" "50" "100")
-MODES=("baseline" "66" "257")
-MODE_NAMES=("baseline_nondet" "det_mode_66" "det_mode_257")
-TEMP0_PERCENTAGES=("0" "0" "0")
+MODES=("baseline" "66" "257" "578" "578" "578" "578" "578" "578")
+MODE_NAMES=("baseline_nondet" "det_mode_66" "det_mode_257" "det_mode_578_temp0_1pct" "det_mode_578_temp0_2pct" "det_mode_578_temp0_5pct" "det_mode_578_temp0_10pct" "det_mode_578_temp0_50pct" "det_mode_578_temp0_100pct")
+TEMP0_PERCENTAGES=("0" "0" "0" "1" "2" "5" "10" "50" "100")
+# MODES=("baseline" "66" "257")
+# MODE_NAMES=("baseline_nondet" "det_mode_66" "det_mode_257")
+# TEMP0_PERCENTAGES=("0" "0" "0")
 MODE_DESCRIPTIONS=(
     "Baseline (Non-deterministic)"
     "Mode 66 (batch-invariant: vllm-rmsnorm + cutlass)"
     "Mode 257 (batch-invariant: native-rmsnorm + TM)"
-    # "Mode 578 (temp-based: 1% temp=0, 99% temp=1)"
-    # "Mode 578 (temp-based: 2% temp=0, 98% temp=1)"
-    # "Mode 578 (temp-based: 5% temp=0, 95% temp=1)"
-    # "Mode 578 (temp-based: 10% temp=0, 90% temp=1)"
-    # "Mode 578 (temp-based: 50% temp=0, 50% temp=1)"
-    # "Mode 578 (temp-based: 100% temp=0, 0% temp=1)"
+    "Mode 578 (temp-based: 1% temp=0, 99% temp=1)"
+    "Mode 578 (temp-based: 2% temp=0, 98% temp=1)"
+    "Mode 578 (temp-based: 5% temp=0, 95% temp=1)"
+    "Mode 578 (temp-based: 10% temp=0, 90% temp=1)"
+    "Mode 578 (temp-based: 50% temp=0, 50% temp=1)"
+    "Mode 578 (temp-based: 100% temp=0, 0% temp=1)"
 )
 
 # Parse command line arguments
@@ -195,8 +195,7 @@ launch_server() {
             --tp-size $TP_SIZE \
             --attention-backend $ATTENTION_BACKEND \
             --disable-radix-cache \
-            --cuda-graph-max-bs 32 \
-            --mem-fraction-static 0.7 \
+            --disable-cuda-graph \
             > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
     else
         echo "Starting server with deterministic mode $mode..."
@@ -207,8 +206,7 @@ launch_server() {
             --tp-size $TP_SIZE \
             --attention-backend $ATTENTION_BACKEND \
             --disable-radix-cache \
-            --cuda-graph-max-bs 32 \
-            --mem-fraction-static 0.7 \
+            --disable-cuda-graph \
             --enable-deterministic-inference $mode \
             > "${OUTPUT_DIR}/${mode_name}_server.log" 2>&1 &
     fi

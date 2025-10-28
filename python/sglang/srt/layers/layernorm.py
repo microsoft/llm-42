@@ -127,7 +127,6 @@ class RMSNorm(CustomOp):
             if self.enable_temperature_based_switching:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_batch_inv_enabled = is_batch_invariant_mode_enabled()
-                # print(f"[RMSNorm Temperature-based] {x.shape}", flush=True)
                 # logger.info(f"[RMSNorm Temperature-based] batch_invariant_enabled={is_batch_inv_enabled}, using {('vllm_rmsnorm' if self.vllm_rmsnorm_mode else 'native') if is_batch_inv_enabled else 'optimized'}")
                 if is_batch_inv_enabled:
                     # Use deterministic native implementation when batch-invariant is active
@@ -139,7 +138,7 @@ class RMSNorm(CustomOp):
             if self.variance_size_override is not None:
                 return self.forward_native(x, residual)
             
-            
+            # print(f"[RMSNorm Temperature-based] Optimized", flush=True)
             if residual is not None:
                 fused_add_rmsnorm(x, residual, self.weight.data, self.variance_epsilon)
                 return x, residual
@@ -152,6 +151,7 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Forward using vLLM fused RMSNorm implementations"""
+        # print(f"[RMSNorm Temperature-based] vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}", flush=True)
         if residual is not None:
             if self.vllm_rmsnorm_mode == "256":
                 vllm_fused_add_rmsnorm_256(x, residual, self.weight.data, self.variance_epsilon)
@@ -231,6 +231,7 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         with record_function("rmsnorm"):
+            # print(f"[RMSNorm Temperature-based] native", flush=True)
             if not x.is_contiguous():
                 x = x.contiguous()
             orig_dtype = x.dtype

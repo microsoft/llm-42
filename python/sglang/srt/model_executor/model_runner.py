@@ -2015,37 +2015,6 @@ class ModelRunner:
             and self.graph_runner.can_run(forward_batch)
         )
 
-        if can_run_graph:
-            # With dual CUDA graphs enabled, we can now dynamically select between
-            # deterministic and non-deterministic graphs based on temperature.
-            # The graph_runner.replay() will automatically select the right graph.
-            
-            # Increment counters for CUDA graph path
-            if self.enable_temperature_based_switching:
-                # Check if ALL requests are non-greedy to determine which graph is used
-                should_disable_batch_invariant = False
-                if forward_batch.sampling_info is not None:
-                    is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
-                                   torch.any(forward_batch.sampling_info.top_ks <= 1).item()
-                    should_disable_batch_invariant = not is_any_greedy
-                
-                if should_disable_batch_invariant:
-                    self.num_non_deterministic += 1
-                else:
-                    self.num_batch_invariant += 1
-                
-                # Periodic logging of stats
-                total = self.num_batch_invariant + self.num_non_deterministic
-                if total > 0 and total % self._stats_log_interval == 0:
-                    self.log_deterministic_stats()
-            
-            ret = self.graph_runner.replay(
-                forward_batch,
-                skip_attn_backend_init=skip_attn_backend_init,
-                pp_proxy_tensors=pp_proxy_tensors,
-            )
-            return ret, can_run_graph
-
         # Temperature-based dynamic batch-invariant switching (new feature)
         # When bit 512 is set:
         #   - Batch-invariant is enabled by default (at initialization)
@@ -2057,16 +2026,13 @@ class ModelRunner:
         if self.enable_temperature_based_switching:
             # Check if ALL requests are non-greedy (all want non-deterministic)
             if forward_batch.sampling_info is not None:
-                # is_all_greedy is True when all top_k <= 1 (which means greedy/deterministic)
-                # We want to disable batch_invariant when is_all_greedy is False (all are non-greedy)
-                is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
-                               torch.any(forward_batch.sampling_info.top_ks <= 1).item()
-                should_disable_batch_invariant = not is_any_greedy
-                
-                # Debug logging
-                # logger.info(f"[Temperature-based] top_ks: {forward_batch.sampling_info.top_ks.tolist()}, "
-                #            f"is_all_greedy: {forward_batch.sampling_info.is_all_greedy}, "
-                #            f"is_any_greedy: {is_any_greedy}, should_disable: {should_disable_batch_invariant}")
+                # is_any_deterministic checks for greedy sampling (top_k==1, which is what temp=0 converts to)
+                # We want to disable batch_invariant when is_any_deterministic is False (all are non-greedy)
+                is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
+                should_disable_batch_invariant = not is_any_deterministic
+                # print(f"Forward pass {self.forward_pass_id}: is_any_deterministic={is_any_deterministic}, "
+                #       f"should_disable_batch_invariant={should_disable_batch_invariant}", flush=True)
+            
         
         # Use context manager to temporarily disable batch_invariant when needed
         from sglang.srt.batch_invariant_ops import set_batch_invariant_mode
@@ -2083,6 +2049,9 @@ class ModelRunner:
             # Batch-invariant is enabled (either statically or not disabled)
             if self.enable_temperature_based_switching:
                 self.num_batch_invariant += 1
+
+        print(f"Forward pass {self.forward_pass_id}: "
+              f"{'Disabling' if should_disable_batch_invariant else 'Enabling'} batch-invariant mode.")
         
         # Periodic logging of stats
         if self.enable_temperature_based_switching:
@@ -2091,6 +2060,13 @@ class ModelRunner:
                 self.log_deterministic_stats()
         
         try:
+            if can_run_graph:
+                ret = self.graph_runner.replay(
+                    forward_batch,
+                    skip_attn_backend_init=skip_attn_backend_init,
+                    pp_proxy_tensors=pp_proxy_tensors,
+                )
+                return ret, can_run_graph
             # For MLP sync
             if forward_batch.global_num_tokens_cpu is not None:
                 forward_batch.prepare_mlp_sync_batch(self)

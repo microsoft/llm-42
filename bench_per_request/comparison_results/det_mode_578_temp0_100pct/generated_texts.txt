@@ -434,14 +434,6 @@ Em, I want you to have a chance at a better future.
 Like stones of worth they thinly placed are,
 <p> High Contrast himself describes The Agony &
 ------------------------------
-"""Basilisk: The basilisk appears in Harry Potter and the Chamber of Secrets as the monster inside the Chamber of Secrets.
-It makes sense .
-You and -- you just want to break up something good that my brother has in his life .
-Since mind at first in character was done!
-@Brad: Do n't let us keep you .
-To speak of that which gives thee all thy might?
-Well , I did see him again later that week and let 's just say :
-------------------------------
 """These kids , it 's just random violence .
 So long as men can breathe or eyes can see,
 Spend'st thou thy fury on some worthless song,
@@ -451,6 +443,14 @@ SOAP corpus: 100 million words | US Soap Operas | 2000-2012
 Sing to the ear that doth thy lays esteem
 while the more recent field of molecular phylogenetics uses nucleotide sequences encoding genes or amino acid sequences encoding proteins
 You hear
+------------------------------
+"""Basilisk: The basilisk appears in Harry Potter and the Chamber of Secrets as the monster inside the Chamber of Secrets.
+It makes sense .
+You and -- you just want to break up something good that my brother has in his life .
+Since mind at first in character was done!
+@Brad: Do n't let us keep you .
+To speak of that which gives thee all thy might?
+Well , I did see him again later that week and let 's just say :
 ------------------------------
 """Since mind at first in character was done!
 At the Cotton Club, 
@@ -854,17 +854,6 @@ You and -- you just want to break up something good that my brother has in his l
 @Nikki: Oh , I 'm not .
 
 ------------------------------
-"""<p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring the NHS isn't overwhelmed at any one point
-Then look I death my days should expiate.
-Because he's a good person.
-“It is soooooo heavy (this is just the top section) and made of recycled branches [and] our decorations are from @countryroad,” she wrote.
-High Contrast is set to reinstate his reputation at the top table with this superb twelve-track long player.
-but their opportunities of intercourse were rare and brief
-Canada (13 March 2020): The spread of the novel coronavirus that causes COVID-19 continues, with more cases diagnosed in Canada.
-You haven't even mentioned her.
-@Jack: Guys, Guys, putting a partner on the cover is not exactly a great selling point.
-Which happies those that pay
-------------------------------
 """Let 's get this thing settled , then .
 Ok , so , what ?
 " The hippies were saying , ' Love everybody , ' but
@@ -879,6 +868,17 @@ India (general):
 That 's -- that 's it ?
 These kids , it 's just random violence .
 So thou prevent'st his scythe and crooked
+------------------------------
+"""<p> Slowing down the transmission rate is a very important part of flattening the curve and ensuring the NHS isn't overwhelmed at any one point
+Then look I death my days should expiate.
+Because he's a good person.
+“It is soooooo heavy (this is just the top section) and made of recycled branches [and] our decorations are from @countryroad,” she wrote.
+High Contrast is set to reinstate his reputation at the top table with this superb twelve-track long player.
+but their opportunities of intercourse were rare and brief
+Canada (13 March 2020): The spread of the novel coronavirus that causes COVID-19 continues, with more cases diagnosed in Canada.
+You haven't even mentioned her.
+@Jack: Guys, Guys, putting a partner on the cover is not exactly a great selling point.
+Which happies those that pay
 ------------------------------
 """As I have said , hysterical women certainly do exhibit a marked ability to go without both food and drink . 
 He also loves horror movies and
@@ -992,19 +992,6 @@ an image of a breaching great white shark currently making the rounds on Twitter
 WEB PAGES: Reviewer: Fireball.
 If there be nothing new,
 ------------------------------
-"""and sometimes both , 
-We were in love , we were together .
-The which he will not every hour survey,
-Marcie and I , we had something special .
-Somebody must have heard .
-United States (Dec 2016, Gizmodo): 
-And the Mutants , they 're not like the usual street crooks .
-With a little umbrella in it .
-It 's a continuation of the same nightmare that you and I have been living for months .
-You hear that ? Five months .
-Or whether revolution be the same.
-You 're not worried about me , are
-------------------------------
 So long lives this and this gives life to thee.
 @Sharon: Um, well, I don't know.
 They're hiding, turning a blind eye.
@@ -1018,6 +1005,19 @@ For all that beauty that doth cover thee
 @Tad: Yeah.
 It's a continuation of the same nightmare that you and I have been living for months.
 Which happies those that pay the willing loan
+------------------------------
+"""and sometimes both , 
+We were in love , we were together .
+The which he will not every hour survey,
+Marcie and I , we had something special .
+Somebody must have heard .
+United States (Dec 2016, Gizmodo): 
+And the Mutants , they 're not like the usual street crooks .
+With a little umbrella in it .
+It 's a continuation of the same nightmare that you and I have been living for months .
+You hear that ? Five months .
+Or whether revolution be the same.
+You 're not worried about me , are
 ------------------------------
 """I was n't the one who gave the station a new sunroof , pal . 
 1936 US Gold Diggers of 1937 Comedy, Musical, Romance
@@ -2355,6 +2355,10 @@ With a little umbrella in it .
 Within 24 hours the photo has clocked up 10,000 likes and almost 300 comments, with many slamming the “tree” as an “epic fail”.
 a high
 ------------------------------
+Here is a long text of at least 192 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
+
+"""It's a lot of fun to pull off-the-wall stunts that actually work in special situations. O, that record could with a backward look, High Contrast is set to reinstate his reputation at the top table with this superb twelve-track long player. Yet I had to be satisfied with eight pounds, fifteen shillings, less deductions. No, you were the one who stabbed Rogue in the chest. It makes sense. @Dante: That's what make me crazy, okay. - Oh, you liked it? They cut me off. I'm gon na find Rogue. The word apavitra anna refers to food that is unacceptable for a Vaisnava. He could soon loosen restrictions on restaurants and nonessential retail that have been long been limited to curbside pickup and delivery to slow
+------------------------------
 """He 's not coming with us , is he ?
 While certainly dramatic, 
 And every fair from fair sometime declines,
@@ -2378,10 +2382,6 @@ Sing to the ear that doth thy lays esteem
 kick ass .
 Life .
 “When
-------------------------------
-Here is a long text of at least 192 tokens, mimicking the style and structure of the given text enclosed in """ quotes:
-
-"""It's a lot of fun to pull off-the-wall stunts that actually work in special situations. O, that record could with a backward look, High Contrast is set to reinstate his reputation at the top table with this superb twelve-track long player. Yet I had to be satisfied with eight pounds, fifteen shillings, less deductions. No, you were the one who stabbed Rogue in the chest. It makes sense. @Dante: That's what make me crazy, okay. - Oh, you liked it? They cut me off. I'm gon na find Rogue. The word apavitra anna refers to food that is unacceptable for a Vaisnava. He could soon loosen restrictions on restaurants and nonessential retail that have been long been limited to curbside pickup and delivery to slow
 ------------------------------
 """In artificial radioactivity, the radioactivity has been induced by irradiation.
 - Was he like this when you found him? - Just a little fresher.
@@ -2443,21 +2443,6 @@ General Hospital
 inexplicably , 
 In fact, it isn’t even a
 ------------------------------
-"""2001 UK The Office Comedy, Drama
-Why do n't you give that poor old devil a chance ?
-Traditional phylogenetics relies on morphological data obtained by measuring and quantifying the phenotypic properties of representative organisms,
-a high-speed train line and , 
-Being had, to triumph, being lack'd, to hope.
-By chance or nature's changing course untrimm'd;
-It 's complicated .
-His one and only virtue is honesty .
-Australia (2 Feb 2020): " reconsider your need to travel " to China overall and " do not travel " to Hubei Province due to the outbreak of coronavirus . "
-But when in thee time's furrows I behold,
-@Michael: No , no , you see , stop right there , ok ?
-I 'm gon na find Rogue .
-Vidya Balan added, ”And then, much later, 
-2012 USA Batman: The Dark Knight Returns, Pt 1 Action,
-------------------------------
 """evenly divided (~120-130 million words each) into spoken, 
 - Crew all assembled ?
 Things got a little creepy .
@@ -2489,6 +2474,21 @@ You hear that ? Five months .
 @Nikki: Oh , I 'm not .
 Being had, to triumph, being lack'd, to hope.
 <p> This
+------------------------------
+"""2001 UK The Office Comedy, Drama
+Why do n't you give that poor old devil a chance ?
+Traditional phylogenetics relies on morphological data obtained by measuring and quantifying the phenotypic properties of representative organisms,
+a high-speed train line and , 
+Being had, to triumph, being lack'd, to hope.
+By chance or nature's changing course untrimm'd;
+It 's complicated .
+His one and only virtue is honesty .
+Australia (2 Feb 2020): " reconsider your need to travel " to China overall and " do not travel " to Hubei Province due to the outbreak of coronavirus . "
+But when in thee time's furrows I behold,
+@Michael: No , no , you see , stop right there , ok ?
+I 'm gon na find Rogue .
+Vidya Balan added, ”And then, much later, 
+2012 USA Batman: The Dark Knight Returns, Pt 1 Action,
 ------------------------------
 """Sri Caitanya Mahaprabhu replied , "
 He also loves horror movies and

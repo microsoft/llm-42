@@ -809,9 +809,9 @@ class CudaGraphRunner:
             self.use_deterministic = True  # Default to deterministic
             if forward_batch.sampling_info is not None:
                 # If ANY request has top_k <= 1 (greedy), use deterministic graph
-                is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
-                               torch.any(forward_batch.sampling_info.top_ks <= 1).item()
-                self.use_deterministic = is_any_greedy
+                # is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
+                #                torch.any(forward_batch.sampling_info.top_ks <= 1).item()
+                self.use_deterministic = forward_batch.sampling_info.is_any_deterministic
         
         # Attention backend
         self.model_runner.attn_backend.init_forward_metadata_replay_cuda_graph(
@@ -854,9 +854,11 @@ class CudaGraphRunner:
                 use_deterministic = True  # Default to deterministic
                 if forward_batch.sampling_info is not None:
                     # If ANY request has top_k <= 1 (greedy), use deterministic graph
-                    is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
-                                   torch.any(forward_batch.sampling_info.top_ks <= 1).item()
-                    use_deterministic = is_any_greedy
+                    is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
+                    # print(f"CUDA GRAPH:: Forward pass {self.forward_pass_id}: is_any_deterministic={is_any_deterministic}", flush=True)
+                    # is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
+                    #                torch.any(forward_batch.sampling_info.top_ks <= 1).item()
+                    use_deterministic = is_any_deterministic
             
             graph_key = (self.bs, use_deterministic)
         else:
