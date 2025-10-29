@@ -92,17 +92,20 @@ def rmsnorm_naive(
 # Wrapper functions for different implementations
 # ============================================================================
 
-def create_rmsnorm_layer(hidden_size: int, eps: float = 1e-6, vllm_mode: Optional[str] = None, use_native: bool = False):
+def create_rmsnorm_layer(hidden_size: int, eps: float = 1e-6, vllm_mode: Optional[str] = None, use_native: bool = False, use_triton: bool = False) -> RMSNorm:
     """Create RMSNorm layer with optional vLLM mode or native mode configuration"""
     # Clear any existing environment variables
     os.environ.pop("SGLANG_USE_VLLM_RMSNORM", None)
     os.environ.pop("SGLANG_ENABLE_DETERMINISTIC_INFERENCE", None)
+    os.environ.pop("SGLANG_USE_TRITON_RMSNORM", None)
 
     if use_native:
         # Set deterministic inference without bit 64 to force native mode
         os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = "1"
     elif vllm_mode:
         os.environ["SGLANG_USE_VLLM_RMSNORM"] = vllm_mode
+    elif use_triton:
+        os.environ["SGLANG_USE_TRITON_RMSNORM"] = str(use_triton)
 
     # Force reimport to pick up environment variable changes
     import importlib
@@ -172,7 +175,16 @@ def rmsnorm_vllm_1024(
     norm_layer.weight.data = weight
     return norm_layer(x, residual)
 
-
+def rmsnorm_triton(
+    x: torch.Tensor,
+    weight: torch.Tensor,
+    residual: torch.Tensor,
+    eps: float = 1e-6,
+):
+    """Triton-based RMSNorm implementation from vLLM"""
+    norm_layer = create_rmsnorm_layer(x.shape[-1], eps, vllm_mode=None, use_native=False, use_triton=True)
+    norm_layer.weight.data = weight
+    return norm_layer(x, residual)
 
 # ============================================================================
 # Correctness testing
@@ -200,6 +212,7 @@ def test_correctness(batch_size=4, hidden_size=4096):
         ("vLLM-Dynamic", rmsnorm_vllm_dynamic),
         ("vLLM-BS=256", rmsnorm_vllm_256),
         ("vLLM-BS=1024", rmsnorm_vllm_1024),
+        ("Triton-BatchInv", rmsnorm_triton)
     ]
 
     print(f"\n{'='*80}")
@@ -367,7 +380,7 @@ def run_benchmark_suite():
     hidden_sizes = [4096, 8192]
 
     # Store results for plotting (initialize once for all hidden sizes)
-    layer_names = ["SGLang-Default", "SGLang-Native", "vLLM-Dynamic", "vLLM-BS=128", "vLLM-BS=256", "vLLM-BS=512", "vLLM-BS=1024"]
+    layer_names = ["SGLang-Default", "SGLang-Native", "vLLM-Dynamic", "vLLM-BS=128", "vLLM-BS=256", "vLLM-BS=512", "vLLM-BS=1024", "Triton-BatchInv"]
     results = {name: {'batch_sizes': batch_sizes, 'times': {}, 'bandwidths': {}} for name in layer_names}
 
     print(f"\n{'='*80}")
@@ -384,6 +397,7 @@ def run_benchmark_suite():
             "vLLM-BS=256": create_rmsnorm_layer(hidden_size, vllm_mode="256", use_native=False),
             "vLLM-BS=512": create_rmsnorm_layer(hidden_size, vllm_mode="512", use_native=False),
             "vLLM-BS=1024": create_rmsnorm_layer(hidden_size, vllm_mode="1024", use_native=False),
+            "Triton-BatchInv": create_rmsnorm_layer(hidden_size, vllm_mode=None, use_native=False, use_triton=True),
         }
 
         print(f"\nHidden Size: {hidden_size}")
@@ -422,8 +436,8 @@ def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('RMSNorm Performance Comparison', fontsize=16, fontweight='bold')
 
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
-    markers = ['o', 's', '^', 'D', 'v', 'P', '*']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f']
+    markers = ['o', 's', '^', 'D', 'v', 'P', '*', 'X']
     baseline_name = "SGLang-Native"
 
     for idx, hidden_size in enumerate(hidden_sizes):
@@ -541,6 +555,7 @@ def main():
         run_batch_invariance_test(rmsnorm_vllm_dynamic, "vLLM-Dynamic")
         run_batch_invariance_test(rmsnorm_vllm_256, "vLLM-BS=256")
         run_batch_invariance_test(rmsnorm_vllm_1024, "vLLM-BS=1024")
+        run_batch_invariance_test(rmsnorm_triton, "Triton-BatchInv")
 
     results = None
     if args.benchmark or args.all or args.plot:

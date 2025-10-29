@@ -79,7 +79,7 @@ def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
     plt.close('all')
 
 
-def plot_one(results, batch_sizes, hidden_size, lines, output_dir=".", file_name="rmsnorm_benchmark_one.png"):
+def plot_one(results, batch_sizes, hidden_size, lines, titles=None, output_dir=".", file_name="rmsnorm_benchmark_one.png"):
     """Plot performance comparison: raw execution times and speedup vs SGLang-Native side by side"""
 
     # Create figure with subplots for each hidden size (2 rows x 2 columns)
@@ -87,8 +87,8 @@ def plot_one(results, batch_sizes, hidden_size, lines, output_dir=".", file_name
     fig, axes = plt.subplots(1, 1, figsize=(8, 4))
     #fig.suptitle('RMSNorm Performance Comparison', fontsize=16, fontweight='bold')
 
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
-    markers = ['o', 's', '^', 'D', 'v', 'P', '*']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f']
+    markers = ['o', 's', '^', 'D', 'v', 'P', '*', 'X']
 
     print(f"Plotting results for hidden size: {hidden_size}")
     ax_time = axes
@@ -100,6 +100,9 @@ def plot_one(results, batch_sizes, hidden_size, lines, output_dir=".", file_name
     for (name, _), color, marker in zip(results.items(), colors, markers):
         if hidden_size in results[name]['times'] and name in lines:
             times = np.array(results[name]['times'][hidden_size])
+
+            if titles:
+                name = titles[lines.index(name)]
 
             # Plot raw times at equally spaced positions
             ax_time.plot(x_positions, times, marker=marker, color=color,
@@ -123,8 +126,6 @@ def plot_one(results, batch_sizes, hidden_size, lines, output_dir=".", file_name
     print(f"\n✓ Plot saved to: {output_path}")
 
     plt.close('all')
-
-
 
 if len(sys.argv) > 1:
     fname = sys.argv[1]
@@ -184,3 +185,10 @@ plot_results(results, sorted(batch_sizes), sorted(hidden_sizes), output_dir="fig
 plot_one(results, sorted(batch_sizes), 8192,
          ['vLLM-Dynamic', 'vLLM-BS=128', 'vLLM-BS=256', 'vLLM-BS=512', 'vLLM-BS=1024'],
          output_dir="figures/", file_name="figure5.png")
+
+# 'SGLang (Batch-invariant)',
+#'SGLang-Native',
+plot_one(results, sorted(batch_sizes), 8192,
+         ['SGLang-Native', 'vLLM-Dynamic', 'Triton-BatchInv'],
+         titles=['Torch (Batch-invariant)', 'vLLM (Non-deterministic)', 'Triton (Batch-invariant)'],
+         output_dir="figures/", file_name="rmsnorm_impl.png")

@@ -10,6 +10,7 @@ from .batch_invariant_ops import (
     matmul_persistent,
     mean_dim,
     set_batch_invariant_mode,
+    rms_norm_batch_invariant,
 )
 
 __version__ = "0.1.0"

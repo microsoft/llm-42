@@ -35,6 +35,7 @@ from sglang.srt.utils import (
     is_xpu,
     supports_custom_op,
 )
+from sglang.srt.batch_invariant_ops import rms_norm_batch_invariant
 
 _is_cuda = is_cuda()
 _is_flashinfer_available = is_flashinfer_available()
@@ -117,6 +118,10 @@ class RMSNorm(CustomOp):
         if self.deterministic and not (self.deterministic & 64) and not (self.deterministic & 512):
             self._forward_method = self.forward_native
 
+        self.triton_rmsnorm_mode = os.getenv("SGLANG_USE_TRITON_RMSNORM", "").lower()
+        if self.triton_rmsnorm_mode:
+            self._forward_method = self.forward_triton_invariant
+
     def forward_cuda(
         self,
         x: torch.Tensor,
@@ -171,6 +176,23 @@ class RMSNorm(CustomOp):
         else:
             out = vllm_rmsnorm(x, self.weight.data, self.variance_epsilon)
             return out
+
+    def forward_triton_invariant(
+        self,
+        x: torch.Tensor,
+        residual: Optional[torch.Tensor] = None,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        if residual is not None:
+            return rms_norm_batch_invariant(
+                x + residual,
+                self.weight.data,
+                self.variance_epsilon,
+            ), residual
+        return rms_norm_batch_invariant(
+            x,
+            self.weight.data,
+            self.variance_epsilon,
+        )
 
     def forward_npu(
         self,
