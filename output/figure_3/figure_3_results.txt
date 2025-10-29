@@ -1,0 +1,12 @@
+/m-coriander/coriander/akkamath/miniconda3/envs/sglang_run/lib/python3.12/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+1024
+[FlashInferAttnBackend] Allocated global workspace buffer of size 536870912
+[FlashInferAttnBackend] Allocated global workspace buffer of size 8589934592
+2048
+4096
+8192
+Extend seq_len=1024: Non-deterministic time = 0.0088s, Deterministic (split size 1024) time = 0.0101s Deterministic (split size 2048) time = 0.0094s Deterministic (split size 4096) time = 0.0100s Deterministic (split size 8192) time = 0.0108s
+Extend seq_len=2048: Non-deterministic time = 0.0114s, Deterministic (split size 1024) time = 0.0338s Deterministic (split size 2048) time = 0.0186s Deterministic (split size 4096) time = 0.0185s Deterministic (split size 8192) time = 0.0185s
+Extend seq_len=4096: Non-deterministic time = 0.0319s, Deterministic (split size 1024) time = 0.0838s Deterministic (split size 2048) time = 0.0825s Deterministic (split size 4096) time = 0.0532s Deterministic (split size 8192) time = 0.0534s
+Extend seq_len=8192: Non-deterministic time = 0.1081s, Deterministic (split size 1024) time = 0.2504s Deterministic (split size 2048) time = 0.2365s Deterministic (split size 4096) time = 0.2337s Deterministic (split size 8192) time = 0.1757s

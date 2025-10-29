@@ -1,0 +1,157 @@
+/m-coriander/coriander/akkamath/miniconda3/envs/sglang_run/lib/python3.12/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+================================================================================
+Llama3-8B Operation Benchmarks
+================================================================================
+
+--- Testing Correctness ---
+
+preproj (Attention Q/K/V Projection):
+  Shape: [2048, 4096] @ [4096, 4096]
+  Diff (matmul_persistent vs torch.mm): 0.0
+  Diff (bi_kernel vs torch.mm): 0.0
+  Diff (split 25% vs torch.mm): 0.0
+  Diff (split 50% vs torch.mm): 2722.0
+
+postproj (Attention O Projection):
+  Shape: [2048, 4096] @ [4096, 4096]
+  Diff (matmul_persistent vs torch.mm): 0.0
+  Diff (bi_kernel vs torch.mm): 0.0
+  Diff (split 25% vs torch.mm): 0.0
+  Diff (split 50% vs torch.mm): 2722.0
+
+mlp_up (MLP Gate+Up Projection):
+  Shape: [2048, 4096] @ [4096, 28672]
+  Diff (matmul_persistent vs torch.mm): 0.0
+  Diff (bi_kernel vs torch.mm): 0.0
+  Diff (split 25% vs torch.mm): 0.0
+  Diff (split 50% vs torch.mm): 2718.0
+
+mlp_down (MLP Down Projection):
+  Shape: [2048, 14336] @ [14336, 4096]
+  Diff (matmul_persistent vs torch.mm): 0.0
+  Diff (bi_kernel vs torch.mm): 0.0
+  Diff (split 25% vs torch.mm): 0.0
+  Diff (split 50% vs torch.mm): 5840.0
+
+
+--- Testing Batch Invariance ---
+
+preproj (Attention Q/K/V Projection):
+  Standard PyTorch:
+  Batch Deterministic: False run-to-run max/min/diff 40.0/40.0/0.0 for 10 iterations
+  Batch-Invariant Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel 25% Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel 50% Mode:
+  Batch Deterministic: False run-to-run max/min/diff 1258.0/1258.0/0.0 for 10 iterations
+
+postproj (Attention O Projection):
+  Standard PyTorch:
+  Batch Deterministic: False run-to-run max/min/diff 40.0/40.0/0.0 for 10 iterations
+  Batch-Invariant Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel 25% Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel 50% Mode:
+  Batch Deterministic: False run-to-run max/min/diff 1258.0/1258.0/0.0 for 10 iterations
+
+mlp_up (MLP Gate+Up Projection):
+  Standard PyTorch:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel 25% Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel 50% Mode:
+  Batch Deterministic: False run-to-run max/min/diff 1253.0/1253.0/0.0 for 10 iterations
+
+mlp_down (MLP Down Projection):
+  Standard PyTorch:
+  Batch Deterministic: False run-to-run max/min/diff 1472.0/1472.0/0.0 for 10 iterations
+  Batch-Invariant Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel 25% Mode:
+  Batch Deterministic: True run-to-run max/min/diff 0.0/0.0/0.0 for 10 iterations
+  Batch-Invariant-Fused-kernel 50% Mode:
+  Batch Deterministic: False run-to-run max/min/diff 1144.0/1144.0/0.0 for 10 iterations
+
+
+--- Performance Benchmarks ---
+
+preproj (Attention Q/K/V Projection):
+  Batch Size:     1 | PyTorch:   1.11 TFLOPS | ThinkingMachines:   0.26 TFLOPS | Ours:   1.21 TFLOPS
+  Batch Size:     2 | PyTorch:   2.44 TFLOPS | ThinkingMachines:   0.52 TFLOPS | Ours:   2.28 TFLOPS
+  Batch Size:     4 | PyTorch:   5.38 TFLOPS | ThinkingMachines:   1.02 TFLOPS | Ours:   5.25 TFLOPS
+  Batch Size:     8 | PyTorch:   9.84 TFLOPS | ThinkingMachines:   2.09 TFLOPS | Ours:   8.93 TFLOPS
+  Batch Size:    16 | PyTorch:  20.62 TFLOPS | ThinkingMachines:   4.02 TFLOPS | Ours:  20.29 TFLOPS
+  Batch Size:    32 | PyTorch:  41.12 TFLOPS | ThinkingMachines:   8.44 TFLOPS | Ours:  35.04 TFLOPS
+  Batch Size:    64 | PyTorch: 104.36 TFLOPS | ThinkingMachines:  17.95 TFLOPS | Ours:  86.35 TFLOPS
+  Batch Size:   128 | PyTorch: 212.05 TFLOPS | ThinkingMachines:  33.47 TFLOPS | Ours: 165.07 TFLOPS
+  Batch Size:   256 | PyTorch: 380.97 TFLOPS | ThinkingMachines:  54.02 TFLOPS | Ours: 313.16 TFLOPS
+  Batch Size:   512 | PyTorch: 591.80 TFLOPS | ThinkingMachines: 104.61 TFLOPS | Ours: 539.88 TFLOPS
+  Batch Size:  1024 | PyTorch: 702.74 TFLOPS | ThinkingMachines: 200.34 TFLOPS | Ours: 675.77 TFLOPS
+  Batch Size:  2048 | PyTorch: 746.72 TFLOPS | ThinkingMachines: 210.44 TFLOPS | Ours: 723.35 TFLOPS
+  Batch Size:  4096 | PyTorch: 773.14 TFLOPS | ThinkingMachines: 218.37 TFLOPS | Ours: 746.49 TFLOPS
+  Batch Size:  8192 | PyTorch: 793.59 TFLOPS | ThinkingMachines: 224.94 TFLOPS | Ours: 756.78 TFLOPS
+
+postproj (Attention O Projection):
+  Batch Size:     1 | PyTorch:   1.33 TFLOPS | ThinkingMachines:   0.24 TFLOPS | Ours:   1.22 TFLOPS
+  Batch Size:     2 | PyTorch:   2.57 TFLOPS | ThinkingMachines:   0.46 TFLOPS | Ours:   2.52 TFLOPS
+  Batch Size:     4 | PyTorch:   5.11 TFLOPS | ThinkingMachines:   1.04 TFLOPS | Ours:   5.07 TFLOPS
+  Batch Size:     8 | PyTorch:   8.98 TFLOPS | ThinkingMachines:   2.11 TFLOPS | Ours:  10.28 TFLOPS
+  Batch Size:    16 | PyTorch:  19.75 TFLOPS | ThinkingMachines:   3.94 TFLOPS | Ours:  20.27 TFLOPS
+  Batch Size:    32 | PyTorch:  40.02 TFLOPS | ThinkingMachines:   8.27 TFLOPS | Ours:  42.95 TFLOPS
+  Batch Size:    64 | PyTorch: 100.99 TFLOPS | ThinkingMachines:  16.69 TFLOPS | Ours:  76.55 TFLOPS
+  Batch Size:   128 | PyTorch: 201.34 TFLOPS | ThinkingMachines:  34.46 TFLOPS | Ours: 159.87 TFLOPS
+  Batch Size:   256 | PyTorch: 402.76 TFLOPS | ThinkingMachines:  68.89 TFLOPS | Ours: 244.39 TFLOPS
+  Batch Size:   512 | PyTorch: 626.55 TFLOPS | ThinkingMachines: 140.50 TFLOPS | Ours: 515.05 TFLOPS
+  Batch Size:  1024 | PyTorch: 706.75 TFLOPS | ThinkingMachines: 200.13 TFLOPS | Ours: 576.63 TFLOPS
+  Batch Size:  2048 | PyTorch: 522.10 TFLOPS | ThinkingMachines: 205.04 TFLOPS | Ours: 694.44 TFLOPS
+  Batch Size:  4096 | PyTorch: 649.59 TFLOPS | ThinkingMachines: 215.43 TFLOPS | Ours: 741.57 TFLOPS
+  Batch Size:  8192 | PyTorch: 789.48 TFLOPS | ThinkingMachines: 224.04 TFLOPS | Ours: 752.18 TFLOPS
+
+mlp_up (MLP Gate+Up Projection):
+  Batch Size:     1 | PyTorch:   3.79 TFLOPS | ThinkingMachines:   0.74 TFLOPS | Ours:   2.46 TFLOPS
+  Batch Size:     2 | PyTorch:   7.85 TFLOPS | ThinkingMachines:   1.42 TFLOPS | Ours:   4.77 TFLOPS
+  Batch Size:     4 | PyTorch:  15.66 TFLOPS | ThinkingMachines:   2.88 TFLOPS | Ours:   9.09 TFLOPS
+  Batch Size:     8 | PyTorch:  31.15 TFLOPS | ThinkingMachines:   5.77 TFLOPS | Ours:  21.65 TFLOPS
+  Batch Size:    16 | PyTorch:  61.37 TFLOPS | ThinkingMachines:  11.87 TFLOPS | Ours:  43.92 TFLOPS
+  Batch Size:    32 | PyTorch: 119.72 TFLOPS | ThinkingMachines:  26.21 TFLOPS | Ours:  90.02 TFLOPS
+  Batch Size:    64 | PyTorch: 233.12 TFLOPS | ThinkingMachines:  56.67 TFLOPS | Ours: 217.05 TFLOPS
+  Batch Size:   128 | PyTorch: 278.87 TFLOPS | ThinkingMachines: 166.72 TFLOPS | Ours: 372.44 TFLOPS
+  Batch Size:   256 | PyTorch: 640.49 TFLOPS | ThinkingMachines: 183.79 TFLOPS | Ours: 539.32 TFLOPS
+  Batch Size:   512 | PyTorch: 702.37 TFLOPS | ThinkingMachines: 214.30 TFLOPS | Ours: 718.88 TFLOPS
+  Batch Size:  1024 | PyTorch: 771.04 TFLOPS | ThinkingMachines: 225.56 TFLOPS | Ours: 760.09 TFLOPS
+  Batch Size:  2048 | PyTorch: 786.29 TFLOPS | ThinkingMachines: 234.38 TFLOPS | Ours: 769.15 TFLOPS
+  Batch Size:  4096 | PyTorch: 793.84 TFLOPS | ThinkingMachines: 232.52 TFLOPS | Ours: 755.56 TFLOPS
+  Batch Size:  8192 | PyTorch: 754.06 TFLOPS | ThinkingMachines: 234.31 TFLOPS | Ours: 707.22 TFLOPS
+
+mlp_down (MLP Down Projection):
+  Batch Size:     1 | PyTorch:   3.04 TFLOPS | ThinkingMachines:   0.31 TFLOPS | Ours:   1.71 TFLOPS
+  Batch Size:     2 | PyTorch:   6.33 TFLOPS | ThinkingMachines:   0.66 TFLOPS | Ours:   3.79 TFLOPS
+  Batch Size:     4 | PyTorch:  12.76 TFLOPS | ThinkingMachines:   1.34 TFLOPS | Ours:   8.10 TFLOPS
+  Batch Size:     8 | PyTorch:  24.84 TFLOPS | ThinkingMachines:   2.73 TFLOPS | Ours:  14.26 TFLOPS
+  Batch Size:    16 | PyTorch:  48.53 TFLOPS | ThinkingMachines:   5.83 TFLOPS | Ours:  32.62 TFLOPS
+  Batch Size:    32 | PyTorch:  97.20 TFLOPS | ThinkingMachines:  12.17 TFLOPS | Ours:  74.46 TFLOPS
+  Batch Size:    64 | PyTorch: 185.20 TFLOPS | ThinkingMachines:  25.28 TFLOPS | Ours: 182.61 TFLOPS
+  Batch Size:   128 | PyTorch: 358.68 TFLOPS | ThinkingMachines:  51.14 TFLOPS | Ours: 359.19 TFLOPS
+  Batch Size:   256 | PyTorch: 552.45 TFLOPS | ThinkingMachines: 102.36 TFLOPS | Ours: 549.79 TFLOPS
+  Batch Size:   512 | PyTorch: 722.68 TFLOPS | ThinkingMachines: 201.73 TFLOPS | Ours: 684.69 TFLOPS
+  Batch Size:  1024 | PyTorch: 787.91 TFLOPS | ThinkingMachines: 210.25 TFLOPS | Ours: 765.87 TFLOPS
+  Batch Size:  2048 | PyTorch: 805.70 TFLOPS | ThinkingMachines: 219.32 TFLOPS | Ours: 785.09 TFLOPS
+  Batch Size:  4096 | PyTorch: 815.75 TFLOPS | ThinkingMachines: 223.67 TFLOPS | Ours: 787.41 TFLOPS
+  Batch Size:  8192 | PyTorch: 815.35 TFLOPS | ThinkingMachines: 221.88 TFLOPS | Ours: 788.80 TFLOPS
+
+================================================================================
+Benchmarking Complete!
+================================================================================

@@ -1,0 +1,26 @@
+INFO 10-28 00:55:56 [__init__.py:216] Automatically detected platform cuda.
+Traceback (most recent call last):
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/bin/vllm", line 3, in <module>
+    from vllm.entrypoints.cli.main import main
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/entrypoints/cli/__init__.py", line 4, in <module>
+    from vllm.entrypoints.cli.benchmark.serve import BenchmarkServingSubcommand
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/entrypoints/cli/benchmark/serve.py", line 5, in <module>
+    from vllm.benchmarks.serve import add_cli_args, main
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/benchmarks/serve.py", line 39, in <module>
+    from vllm.benchmarks.datasets import (SampleRequest, add_dataset_parser,
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/benchmarks/datasets.py", line 37, in <module>
+    from vllm.lora.utils import get_adapter_absolute_path
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/lora/utils.py", line 19, in <module>
+    from vllm.lora.layers import (BaseLayerWithLoRA, ColumnParallelLinearWithLoRA,
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/lora/layers/__init__.py", line 4, in <module>
+    from vllm.lora.layers.column_parallel_linear import (
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/lora/layers/column_parallel_linear.py", line 13, in <module>
+    from vllm.model_executor.layers.linear import (ColumnParallelLinear,
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/model_executor/layers/linear.py", line 21, in <module>
+    from vllm.model_executor.layers.utils import dispatch_unquantized_gemm
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/model_executor/layers/utils.py", line 8, in <module>
+    from vllm import _custom_ops as ops
+  File "/m-coriander/coriander/akkamath/miniconda3/envs/vllm/lib/python3.12/site-packages/vllm/_custom_ops.py", line 24, in <module>
+    import vllm._moe_C  # noqa: F401
+    ^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

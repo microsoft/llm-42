@@ -1,0 +1,956 @@
+/m-coriander/coriander/akkamath/miniconda3/envs/sglang_run/lib/python3.12/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+`torch_dtype` is deprecated! Use `dtype` instead!
+WARNING:sglang.srt.server_args:Sampling backend is set to pytorch for deterministic inference.
+WARNING:sglang.srt.server_args:Currently radix cache is not compatible with flashinfer attention backend for deterministic inference. It will be supported in the future.
+WARNING:sglang.srt.server_args:Sampling backend is set to pytorch for deterministic inference.
+WARNING:sglang.srt.server_args:Currently radix cache is not compatible with flashinfer attention backend for deterministic inference. It will be supported in the future.
+[2025-10-28 00:53:10] No chat template found, defaulting to 'string' content format
+/m-coriander/coriander/akkamath/miniconda3/envs/sglang_run/lib/python3.12/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+/m-coriander/coriander/akkamath/miniconda3/envs/sglang_run/lib/python3.12/site-packages/torch/cuda/__init__.py:63: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+`torch_dtype` is deprecated! Use `dtype` instead!
+[2025-10-28 00:53:26] Init torch distributed begin.
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[2025-10-28 00:53:26] Init torch distributed ends. mem usage=0.00 GB
+[2025-10-28 00:53:27] MOE_RUNNER_BACKEND is not initialized, using triton backend
+[2025-10-28 00:53:27] Load weight begin. avail mem=139.30 GB
+[2025-10-28 00:53:28] Using model weights format ['*.safetensors']
+Ignored error while writing commit hash to /m-coriander/coriander/hf/hub/models--meta-llama--Meta-Llama-3-8B/refs/main: [Errno 13] Permission denied: '/m-coriander/coriander/hf/hub/models--meta-llama--Meta-Llama-3-8B/refs/main'.
+[2025-10-28 00:53:28] Ignored error while writing commit hash to /m-coriander/coriander/hf/hub/models--meta-llama--Meta-Llama-3-8B/refs/main: [Errno 13] Permission denied: '/m-coriander/coriander/hf/hub/models--meta-llama--Meta-Llama-3-8B/refs/main'.
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+RMSNorm: Using vLLM deterministic implementation
+RMSNorm: Using native deterministic implementation
+Loading safetensors checkpoint shards:   0% Completed | 0/4 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards:  25% Completed | 1/4 [00:00<00:02,  1.28it/s]
+Loading safetensors checkpoint shards:  50% Completed | 2/4 [00:01<00:01,  1.69it/s]
+Loading safetensors checkpoint shards:  75% Completed | 3/4 [00:02<00:00,  1.39it/s]
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:03<00:00,  1.17it/s]
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:03<00:00,  1.26it/s]
+
+[2025-10-28 00:53:31] Load weight end. type=LlamaForCausalLM, dtype=torch.bfloat16, avail mem=124.23 GB, mem usage=15.07 GB.
+Enabling batch invariant mode with existing kernels...
+/m-coriander/coriander/akkamath/miniconda3/envs/sglang_run/lib/python3.12/site-packages/torch/library.py:381: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+  Overriding a previously registered kernel for the same operator and the same dispatch key
+  operator: aten::mm(Tensor self, Tensor mat2) -> Tensor
+    registered at /pytorch/build/aten/src/ATen/RegisterSchema.cpp:6
+  dispatch key: CUDA
+  previous kernel: registered at /pytorch/aten/src/ATen/LegacyBatchingRegistrations.cpp:1079
+       new kernel: registered at /dev/null:431 (Triggered internally at /pytorch/aten/src/ATen/core/dispatch/OperatorEntry.cpp:218.)
+  self.m.impl(
+[2025-10-28 00:53:31] Using KV cache dtype: torch.bfloat16
+[2025-10-28 00:53:32] KV Cache is allocated. #tokens: 911568, K size: 55.64 GB, V size: 55.64 GB
+[2025-10-28 00:53:32] Memory pool end. avail mem=12.66 GB
+[2025-10-28 00:53:32] Capture cuda graph begin. This can take up to several minutes. avail mem=10.56 GB
+[2025-10-28 00:53:32] Capture cuda graph bs [1, 2, 4, 8, 12, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232, 240, 248, 256]
+[FlashInferAttnBackend] Prefill split tile size: 4096
+  0%|          | 0/36 [00:00<?, ?it/s]Capturing batches (bs=256 avail_mem=10.42 GB):   0%|          | 0/36 [00:00<?, ?it/s]Capturing batches (bs=256 avail_mem=10.42 GB):   3%|▎         | 1/36 [00:00<00:14,  2.34it/s]Capturing batches (bs=248 avail_mem=10.26 GB):   3%|▎         | 1/36 [00:00<00:14,  2.34it/s]Capturing batches (bs=248 avail_mem=10.26 GB):   6%|▌         | 2/36 [00:00<00:10,  3.33it/s]Capturing batches (bs=240 avail_mem=10.25 GB):   6%|▌         | 2/36 [00:00<00:10,  3.33it/s]Capturing batches (bs=240 avail_mem=10.25 GB):   8%|▊         | 3/36 [00:00<00:08,  3.82it/s]Capturing batches (bs=232 avail_mem=10.22 GB):   8%|▊         | 3/36 [00:00<00:08,  3.82it/s]Capturing batches (bs=232 avail_mem=10.22 GB):  11%|█         | 4/36 [00:01<00:07,  4.15it/s]Capturing batches (bs=224 avail_mem=10.21 GB):  11%|█         | 4/36 [00:01<00:07,  4.15it/s]Capturing batches (bs=224 avail_mem=10.21 GB):  14%|█▍        | 5/36 [00:01<00:06,  4.50it/s]Capturing batches (bs=216 avail_mem=10.18 GB):  14%|█▍        | 5/36 [00:01<00:06,  4.50it/s]Capturing batches (bs=216 avail_mem=10.18 GB):  17%|█▋        | 6/36 [00:01<00:06,  4.67it/s]Capturing batches (bs=208 avail_mem=10.16 GB):  17%|█▋        | 6/36 [00:01<00:06,  4.67it/s]Capturing batches (bs=208 avail_mem=10.16 GB):  19%|█▉        | 7/36 [00:01<00:06,  4.79it/s]Capturing batches (bs=200 avail_mem=10.13 GB):  19%|█▉        | 7/36 [00:01<00:06,  4.79it/s]Capturing batches (bs=200 avail_mem=10.13 GB):  22%|██▏       | 8/36 [00:01<00:05,  4.83it/s]Capturing batches (bs=192 avail_mem=10.12 GB):  22%|██▏       | 8/36 [00:01<00:05,  4.83it/s]Capturing batches (bs=192 avail_mem=10.12 GB):  25%|██▌       | 9/36 [00:02<00:05,  4.97it/s]Capturing batches (bs=184 avail_mem=10.09 GB):  25%|██▌       | 9/36 [00:02<00:05,  4.97it/s]Capturing batches (bs=184 avail_mem=10.09 GB):  28%|██▊       | 10/36 [00:02<00:05,  4.93it/s]Capturing batches (bs=176 avail_mem=10.08 GB):  28%|██▊       | 10/36 [00:02<00:05,  4.93it/s]Capturing batches (bs=176 avail_mem=10.08 GB):  31%|███       | 11/36 [00:02<00:05,  4.86it/s]Capturing batches (bs=168 avail_mem=10.05 GB):  31%|███       | 11/36 [00:02<00:05,  4.86it/s]Capturing batches (bs=168 avail_mem=10.05 GB):  33%|███▎      | 12/36 [00:02<00:04,  4.89it/s]Capturing batches (bs=160 avail_mem=10.04 GB):  33%|███▎      | 12/36 [00:02<00:04,  4.89it/s]Capturing batches (bs=160 avail_mem=10.04 GB):  36%|███▌      | 13/36 [00:02<00:04,  4.73it/s]Capturing batches (bs=152 avail_mem=10.01 GB):  36%|███▌      | 13/36 [00:02<00:04,  4.73it/s]Capturing batches (bs=152 avail_mem=10.01 GB):  39%|███▉      | 14/36 [00:03<00:04,  4.80it/s]Capturing batches (bs=144 avail_mem=10.00 GB):  39%|███▉      | 14/36 [00:03<00:04,  4.80it/s]Capturing batches (bs=144 avail_mem=10.00 GB):  42%|████▏     | 15/36 [00:03<00:04,  4.84it/s]Capturing batches (bs=136 avail_mem=9.97 GB):  42%|████▏     | 15/36 [00:03<00:04,  4.84it/s] Capturing batches (bs=136 avail_mem=9.97 GB):  44%|████▍     | 16/36 [00:03<00:04,  4.77it/s]Capturing batches (bs=128 avail_mem=9.96 GB):  44%|████▍     | 16/36 [00:03<00:04,  4.77it/s]Capturing batches (bs=128 avail_mem=9.96 GB):  47%|████▋     | 17/36 [00:03<00:03,  4.94it/s]Capturing batches (bs=120 avail_mem=9.93 GB):  47%|████▋     | 17/36 [00:03<00:03,  4.94it/s]Capturing batches (bs=120 avail_mem=9.93 GB):  50%|█████     | 18/36 [00:03<00:03,  4.90it/s]Capturing batches (bs=112 avail_mem=9.91 GB):  50%|█████     | 18/36 [00:03<00:03,  4.90it/s]Capturing batches (bs=112 avail_mem=9.91 GB):  53%|█████▎    | 19/36 [00:04<00:03,  4.90it/s]Capturing batches (bs=104 avail_mem=9.88 GB):  53%|█████▎    | 19/36 [00:04<00:03,  4.90it/s]Capturing batches (bs=104 avail_mem=9.88 GB):  56%|█████▌    | 20/36 [00:04<00:03,  4.81it/s]Capturing batches (bs=96 avail_mem=9.87 GB):  56%|█████▌    | 20/36 [00:04<00:03,  4.81it/s] Capturing batches (bs=96 avail_mem=9.87 GB):  58%|█████▊    | 21/36 [00:04<00:03,  4.76it/s]Capturing batches (bs=88 avail_mem=9.84 GB):  58%|█████▊    | 21/36 [00:04<00:03,  4.76it/s]Capturing batches (bs=88 avail_mem=9.84 GB):  61%|██████    | 22/36 [00:04<00:02,  4.79it/s]Capturing batches (bs=80 avail_mem=9.83 GB):  61%|██████    | 22/36 [00:04<00:02,  4.79it/s]Capturing batches (bs=80 avail_mem=9.83 GB):  64%|██████▍   | 23/36 [00:04<00:02,  4.84it/s]Capturing batches (bs=72 avail_mem=9.80 GB):  64%|██████▍   | 23/36 [00:04<00:02,  4.84it/s]Capturing batches (bs=72 avail_mem=9.80 GB):  67%|██████▋   | 24/36 [00:05<00:02,  4.80it/s]Capturing batches (bs=64 avail_mem=9.79 GB):  67%|██████▋   | 24/36 [00:05<00:02,  4.80it/s]Capturing batches (bs=64 avail_mem=9.79 GB):  69%|██████▉   | 25/36 [00:05<00:02,  4.60it/s]Capturing batches (bs=56 avail_mem=9.76 GB):  69%|██████▉   | 25/36 [00:05<00:02,  4.60it/s]Capturing batches (bs=56 avail_mem=9.76 GB):  72%|███████▏  | 26/36 [00:05<00:02,  4.43it/s]Capturing batches (bs=48 avail_mem=9.75 GB):  72%|███████▏  | 26/36 [00:05<00:02,  4.43it/s]Capturing batches (bs=48 avail_mem=9.75 GB):  75%|███████▌  | 27/36 [00:05<00:02,  4.40it/s]Capturing batches (bs=40 avail_mem=9.72 GB):  75%|███████▌  | 27/36 [00:05<00:02,  4.40it/s]Capturing batches (bs=40 avail_mem=9.72 GB):  78%|███████▊  | 28/36 [00:06<00:01,  4.37it/s]Capturing batches (bs=32 avail_mem=9.71 GB):  78%|███████▊  | 28/36 [00:06<00:01,  4.37it/s]Capturing batches (bs=32 avail_mem=9.71 GB):  81%|████████  | 29/36 [00:06<00:01,  4.54it/s]Capturing batches (bs=24 avail_mem=9.68 GB):  81%|████████  | 29/36 [00:06<00:01,  4.54it/s]Capturing batches (bs=24 avail_mem=9.68 GB):  83%|████████▎ | 30/36 [00:06<00:01,  4.63it/s]Capturing batches (bs=16 avail_mem=9.67 GB):  83%|████████▎ | 30/36 [00:06<00:01,  4.63it/s]Capturing batches (bs=16 avail_mem=9.67 GB):  86%|████████▌ | 31/36 [00:06<00:01,  4.37it/s]Capturing batches (bs=12 avail_mem=9.64 GB):  86%|████████▌ | 31/36 [00:06<00:01,  4.37it/s]Capturing batches (bs=12 avail_mem=9.64 GB):  89%|████████▉ | 32/36 [00:06<00:00,  4.70it/s]Capturing batches (bs=8 avail_mem=9.63 GB):  89%|████████▉ | 32/36 [00:06<00:00,  4.70it/s] Capturing batches (bs=8 avail_mem=9.63 GB):  92%|█████████▏| 33/36 [00:07<00:00,  4.92it/s]Capturing batches (bs=4 avail_mem=9.60 GB):  92%|█████████▏| 33/36 [00:07<00:00,  4.92it/s]Capturing batches (bs=4 avail_mem=9.60 GB):  94%|█████████▍| 34/36 [00:07<00:00,  5.18it/s]Capturing batches (bs=2 avail_mem=9.59 GB):  94%|█████████▍| 34/36 [00:07<00:00,  5.18it/s]Capturing batches (bs=2 avail_mem=9.59 GB):  97%|█████████▋| 35/36 [00:07<00:00,  5.37it/s]Capturing batches (bs=1 avail_mem=9.56 GB):  97%|█████████▋| 35/36 [00:07<00:00,  5.37it/s]Capturing batches (bs=1 avail_mem=9.56 GB): 100%|██████████| 36/36 [00:07<00:00,  5.49it/s]Capturing batches (bs=1 avail_mem=9.56 GB): 100%|██████████| 36/36 [00:07<00:00,  4.71it/s]
+[2025-10-28 00:53:41] Capture cuda graph end. Time elapsed: 8.43 s. mem usage=1.01 GB. avail mem=9.55 GB.
+[2025-10-28 00:53:41] max_total_num_tokens=911568, chunked_prefill_size=8192, max_prefill_tokens=16384, max_running_requests=4096, context_len=8192, available_gpu_mem=9.55 GB
+[2025-10-28 00:54:03] 
+Warmup...
+[2025-10-28 00:54:03] Prefill batch. #new-seq: 1, #new-token: 257, #cached-token: 0, token usage: 0.00, #running-req: 0, #queue-req: 0, 
+[2025-10-28 00:54:03] Prefill batch. #new-seq: 15, #new-token: 3855, #cached-token: 0, token usage: 0.00, #running-req: 1, #queue-req: 0, 
+[2025-10-28 00:54:05] 
+Benchmark...
+[2025-10-28 00:54:05] Prefill batch. #new-seq: 1, #new-token: 1063, #cached-token: 0, token usage: 0.00, #running-req: 0, #queue-req: 0, 
+[2025-10-28 00:54:05] Prefill batch. #new-seq: 1, #new-token: 237, #cached-token: 0, token usage: 0.00, #running-req: 1, #queue-req: 0, 
+[2025-10-28 00:54:05] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.00, #running-req: 2, #queue-req: 28, 
+[2025-10-28 00:54:05] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.01, #running-req: 8, #queue-req: 43, 
+[2025-10-28 00:54:05] Prefill batch. #new-seq: 11, #new-token: 8192, #cached-token: 0, token usage: 0.02, #running-req: 16, #queue-req: 121, 
+[2025-10-28 00:54:05] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.03, #running-req: 26, #queue-req: 211, 
+[2025-10-28 00:54:06] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.04, #running-req: 33, #queue-req: 306, 
+[2025-10-28 00:54:06] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.05, #running-req: 39, #queue-req: 401, 
+[2025-10-28 00:54:06] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.06, #running-req: 47, #queue-req: 491, 
+[2025-10-28 00:54:07] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.06, #running-req: 56, #queue-req: 580, 
+[2025-10-28 00:54:07] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.07, #running-req: 64, #queue-req: 669, 
+[2025-10-28 00:54:07] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.08, #running-req: 71, #queue-req: 752, 
+[2025-10-28 00:54:08] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.09, #running-req: 78, #queue-req: 838, 
+[2025-10-28 00:54:08] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.10, #running-req: 86, #queue-req: 940, 
+[2025-10-28 00:54:08] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.11, #running-req: 92, #queue-req: 1025, 
+[2025-10-28 00:54:08] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.12, #running-req: 98, #queue-req: 1109, 
+[2025-10-28 00:54:09] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.13, #running-req: 107, #queue-req: 1205, 
+[2025-10-28 00:54:09] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.14, #running-req: 113, #queue-req: 1285, 
+[2025-10-28 00:54:09] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.14, #running-req: 120, #queue-req: 1385, 
+[2025-10-28 00:54:10] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.15, #running-req: 126, #queue-req: 1464, 
+[2025-10-28 00:54:10] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.16, #running-req: 133, #queue-req: 1554, 
+[2025-10-28 00:54:10] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.17, #running-req: 141, #queue-req: 1637, 
+[2025-10-28 00:54:11] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.18, #running-req: 149, #queue-req: 1631, 
+[2025-10-28 00:54:11] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.19, #running-req: 155, #queue-req: 1695, 
+[2025-10-28 00:54:11] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.20, #running-req: 164, #queue-req: 1795, 
+[2025-10-28 00:54:12] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.21, #running-req: 172, #queue-req: 1866, 
+[2025-10-28 00:54:12] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.22, #running-req: 181, #queue-req: 1859, 
+[2025-10-28 00:54:12] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.23, #running-req: 188, #queue-req: 1852, 
+[2025-10-28 00:54:12] Prefill batch. #new-seq: 11, #new-token: 8192, #cached-token: 0, token usage: 0.23, #running-req: 195, #queue-req: 1842, 
+[2025-10-28 00:54:13] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.24, #running-req: 205, #queue-req: 1836, 
+[2025-10-28 00:54:13] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.25, #running-req: 211, #queue-req: 1827, 
+[2025-10-28 00:54:13] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.26, #running-req: 220, #queue-req: 1820, 
+[2025-10-28 00:54:14] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.27, #running-req: 227, #queue-req: 1814, 
+[2025-10-28 00:54:14] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.28, #running-req: 233, #queue-req: 1806, 
+[2025-10-28 00:54:14] Prefill batch. #new-seq: 12, #new-token: 8192, #cached-token: 0, token usage: 0.29, #running-req: 241, #queue-req: 1795, 
+[2025-10-28 00:54:15] Prefill batch. #new-seq: 6, #new-token: 8192, #cached-token: 0, token usage: 0.30, #running-req: 252, #queue-req: 1790, 
+[2025-10-28 00:54:15] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.31, #running-req: 257, #queue-req: 1782, 
+[2025-10-28 00:54:15] Prefill batch. #new-seq: 11, #new-token: 8192, #cached-token: 0, token usage: 0.32, #running-req: 265, #queue-req: 1772, 
+[2025-10-28 00:54:15] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.32, #running-req: 275, #queue-req: 1763, 
+[2025-10-28 00:54:16] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.33, #running-req: 284, #queue-req: 1755, 
+[2025-10-28 00:54:16] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.34, #running-req: 292, #queue-req: 1747, 
+[2025-10-28 00:54:16] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.35, #running-req: 300, #queue-req: 1738, 
+[2025-10-28 00:54:17] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.36, #running-req: 309, #queue-req: 1729, 
+[2025-10-28 00:54:17] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.37, #running-req: 318, #queue-req: 1721, 
+[2025-10-28 00:54:17] Prefill batch. #new-seq: 12, #new-token: 8192, #cached-token: 0, token usage: 0.38, #running-req: 326, #queue-req: 1710, 
+[2025-10-28 00:54:18] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.39, #running-req: 337, #queue-req: 1703, 
+[2025-10-28 00:54:18] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.39, #running-req: 344, #queue-req: 1696, 
+[2025-10-28 00:54:18] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.40, #running-req: 351, #queue-req: 1688, 
+[2025-10-28 00:54:19] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.41, #running-req: 359, #queue-req: 1682, 
+[2025-10-28 00:54:19] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.42, #running-req: 365, #queue-req: 1673, 
+[2025-10-28 00:54:19] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.43, #running-req: 374, #queue-req: 1666, 
+[2025-10-28 00:54:19] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.44, #running-req: 381, #queue-req: 1658, 
+[2025-10-28 00:54:20] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.45, #running-req: 389, #queue-req: 1651, 
+[2025-10-28 00:54:20] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.46, #running-req: 396, #queue-req: 1642, 
+[2025-10-28 00:54:20] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.47, #running-req: 405, #queue-req: 1635, 
+[2025-10-28 00:54:21] Prefill batch. #new-seq: 11, #new-token: 8192, #cached-token: 0, token usage: 0.48, #running-req: 412, #queue-req: 1625, 
+[2025-10-28 00:54:21] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.48, #running-req: 422, #queue-req: 1618, 
+[2025-10-28 00:54:21] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.49, #running-req: 429, #queue-req: 1611, 
+[2025-10-28 00:54:22] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.50, #running-req: 436, #queue-req: 1602, 
+[2025-10-28 00:54:22] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.51, #running-req: 445, #queue-req: 1593, 
+[2025-10-28 00:54:22] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.52, #running-req: 454, #queue-req: 1584, 
+[2025-10-28 00:54:23] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.53, #running-req: 463, #queue-req: 1576, 
+[2025-10-28 00:54:23] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.54, #running-req: 471, #queue-req: 1569, 
+[2025-10-28 00:54:23] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.55, #running-req: 478, #queue-req: 1560, 
+[2025-10-28 00:54:23] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.56, #running-req: 487, #queue-req: 1551, 
+[2025-10-28 00:54:24] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.57, #running-req: 496, #queue-req: 1543, 
+[2025-10-28 00:54:24] Prefill batch. #new-seq: 12, #new-token: 8192, #cached-token: 0, token usage: 0.57, #running-req: 504, #queue-req: 1532, 
+[2025-10-28 00:54:24] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.58, #running-req: 515, #queue-req: 1524, 
+[2025-10-28 00:54:25] Prefill batch. #new-seq: 13, #new-token: 8192, #cached-token: 0, token usage: 0.59, #running-req: 523, #queue-req: 1512, 
+[2025-10-28 00:54:25] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.60, #running-req: 535, #queue-req: 1506, 
+[2025-10-28 00:54:25] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.61, #running-req: 541, #queue-req: 1499, 
+[2025-10-28 00:54:26] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.62, #running-req: 548, #queue-req: 1493, 
+[2025-10-28 00:54:26] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.63, #running-req: 554, #queue-req: 1484, 
+[2025-10-28 00:54:26] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.64, #running-req: 563, #queue-req: 1477, 
+[2025-10-28 00:54:27] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.65, #running-req: 570, #queue-req: 1470, 
+[2025-10-28 00:54:27] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.65, #running-req: 577, #queue-req: 1463, 
+[2025-10-28 00:54:27] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.66, #running-req: 584, #queue-req: 1454, 
+[2025-10-28 00:54:27] Prefill batch. #new-seq: 7, #new-token: 8192, #cached-token: 0, token usage: 0.67, #running-req: 593, #queue-req: 1448, 
+[2025-10-28 00:54:28] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.68, #running-req: 599, #queue-req: 1439, 
+[2025-10-28 00:54:28] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.69, #running-req: 608, #queue-req: 1430, 
+[2025-10-28 00:54:28] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.70, #running-req: 617, #queue-req: 1423, 
+[2025-10-28 00:54:29] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.71, #running-req: 624, #queue-req: 1416, 
+[2025-10-28 00:54:29] Prefill batch. #new-seq: 9, #new-token: 8192, #cached-token: 0, token usage: 0.72, #running-req: 631, #queue-req: 1408, 
+[2025-10-28 00:54:29] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.73, #running-req: 639, #queue-req: 1401, 
+[2025-10-28 00:54:30] Prefill batch. #new-seq: 8, #new-token: 8192, #cached-token: 0, token usage: 0.74, #running-req: 646, #queue-req: 1394, 
+[2025-10-28 00:54:30] Prefill batch. #new-seq: 2, #new-token: 1503, #cached-token: 0, token usage: 0.74, #running-req: 653, #queue-req: 1393, 
+[2025-10-28 00:54:30] Prefill batch. #new-seq: 1, #new-token: 508, #cached-token: 0, token usage: 0.75, #running-req: 650, #queue-req: 1392, 
+[2025-10-28 00:54:31] Prefill batch. #new-seq: 1, #new-token: 1868, #cached-token: 0, token usage: 0.75, #running-req: 649, #queue-req: 1391, 
+[2025-10-28 00:54:31] Prefill batch. #new-seq: 2, #new-token: 1820, #cached-token: 0, token usage: 0.75, #running-req: 649, #queue-req: 1389, 
+[2025-10-28 00:54:31] Prefill batch. #new-seq: 1, #new-token: 1184, #cached-token: 0, token usage: 0.76, #running-req: 649, #queue-req: 1388, 
+[2025-10-28 00:54:32] Prefill batch. #new-seq: 1, #new-token: 1981, #cached-token: 0, token usage: 0.76, #running-req: 647, #queue-req: 1387, 
+[2025-10-28 00:54:32] Prefill batch. #new-seq: 1, #new-token: 1671, #cached-token: 0, token usage: 0.76, #running-req: 647, #queue-req: 1386, 
+[2025-10-28 00:54:32] Prefill batch. #new-seq: 1, #new-token: 146, #cached-token: 0, token usage: 0.76, #running-req: 646, #queue-req: 1385, 
+[2025-10-28 00:54:32] Decode batch. #running-req: 646, #token: 693427, token usage: 0.76, cuda graph: False, gen throughput (token/s): 310.24, #queue-req: 1385, 
+[2025-10-28 00:54:32] Prefill batch. #new-seq: 1, #new-token: 1889, #cached-token: 0, token usage: 0.76, #running-req: 645, #queue-req: 1384, 
+[2025-10-28 00:54:33] Prefill batch. #new-seq: 1, #new-token: 1634, #cached-token: 0, token usage: 0.76, #running-req: 645, #queue-req: 1383, 
+[2025-10-28 00:54:33] Prefill batch. #new-seq: 1, #new-token: 958, #cached-token: 0, token usage: 0.77, #running-req: 644, #queue-req: 1382, 
+[2025-10-28 00:54:33] Prefill batch. #new-seq: 1, #new-token: 1453, #cached-token: 0, token usage: 0.77, #running-req: 643, #queue-req: 1381, 
+[2025-10-28 00:54:33] Prefill batch. #new-seq: 1, #new-token: 1774, #cached-token: 0, token usage: 0.77, #running-req: 642, #queue-req: 1380, 
+[2025-10-28 00:54:33] Prefill batch. #new-seq: 1, #new-token: 289, #cached-token: 0, token usage: 0.77, #running-req: 642, #queue-req: 1379, 
+[2025-10-28 00:54:34] Prefill batch. #new-seq: 3, #new-token: 3712, #cached-token: 0, token usage: 0.77, #running-req: 640, #queue-req: 1376, 
+[2025-10-28 00:54:34] Prefill batch. #new-seq: 2, #new-token: 1744, #cached-token: 0, token usage: 0.77, #running-req: 641, #queue-req: 1374, 
+[2025-10-28 00:54:35] Prefill batch. #new-seq: 1, #new-token: 1873, #cached-token: 0, token usage: 0.78, #running-req: 641, #queue-req: 1373, 
+[2025-10-28 00:54:35] Prefill batch. #new-seq: 2, #new-token: 2476, #cached-token: 0, token usage: 0.78, #running-req: 640, #queue-req: 1371, 
+[2025-10-28 00:54:35] Prefill batch. #new-seq: 2, #new-token: 3434, #cached-token: 0, token usage: 0.78, #running-req: 638, #queue-req: 1369, 
+[2025-10-28 00:54:36] Prefill batch. #new-seq: 1, #new-token: 6, #cached-token: 0, token usage: 0.79, #running-req: 638, #queue-req: 1368, 
+[2025-10-28 00:54:36] Prefill batch. #new-seq: 2, #new-token: 679, #cached-token: 0, token usage: 0.79, #running-req: 638, #queue-req: 1366, 
+[2025-10-28 00:54:36] Decode batch. #running-req: 640, #token: 716192, token usage: 0.79, cuda graph: False, gen throughput (token/s): 6842.39, #queue-req: 1366, 
+[2025-10-28 00:54:36] Prefill batch. #new-seq: 3, #new-token: 2445, #cached-token: 0, token usage: 0.79, #running-req: 638, #queue-req: 1363, 
+[2025-10-28 00:54:36] Prefill batch. #new-seq: 1, #new-token: 44, #cached-token: 0, token usage: 0.79, #running-req: 640, #queue-req: 1362, 
+[2025-10-28 00:54:36] Prefill batch. #new-seq: 2, #new-token: 2596, #cached-token: 0, token usage: 0.79, #running-req: 639, #queue-req: 1360, 
+[2025-10-28 00:54:37] Prefill batch. #new-seq: 3, #new-token: 3340, #cached-token: 0, token usage: 0.79, #running-req: 638, #queue-req: 1357, 
+[2025-10-28 00:54:37] Prefill batch. #new-seq: 3, #new-token: 3585, #cached-token: 0, token usage: 0.79, #running-req: 640, #queue-req: 1354, 
+[2025-10-28 00:54:38] Prefill batch. #new-seq: 1, #new-token: 1536, #cached-token: 0, token usage: 0.80, #running-req: 638, #queue-req: 1353, 
+[2025-10-28 00:54:38] Prefill batch. #new-seq: 1, #new-token: 1799, #cached-token: 0, token usage: 0.80, #running-req: 638, #queue-req: 1352, 
+[2025-10-28 00:54:38] Prefill batch. #new-seq: 1, #new-token: 1532, #cached-token: 0, token usage: 0.80, #running-req: 637, #queue-req: 1351, 
+[2025-10-28 00:54:38] Prefill batch. #new-seq: 2, #new-token: 1477, #cached-token: 0, token usage: 0.80, #running-req: 637, #queue-req: 1349, 
+[2025-10-28 00:54:39] Prefill batch. #new-seq: 1, #new-token: 503, #cached-token: 0, token usage: 0.80, #running-req: 637, #queue-req: 1348, 
+[2025-10-28 00:54:39] Prefill batch. #new-seq: 3, #new-token: 1915, #cached-token: 0, token usage: 0.80, #running-req: 636, #queue-req: 1345, 
+[2025-10-28 00:54:39] Prefill batch. #new-seq: 2, #new-token: 528, #cached-token: 0, token usage: 0.80, #running-req: 638, #queue-req: 1343, 
+[2025-10-28 00:54:40] Prefill batch. #new-seq: 2, #new-token: 2295, #cached-token: 0, token usage: 0.81, #running-req: 639, #queue-req: 1341, 
+[2025-10-28 00:54:40] Decode batch. #running-req: 641, #token: 736703, token usage: 0.81, cuda graph: False, gen throughput (token/s): 6868.34, #queue-req: 1341, 
+[2025-10-28 00:54:40] Prefill batch. #new-seq: 2, #new-token: 1211, #cached-token: 0, token usage: 0.81, #running-req: 639, #queue-req: 1339, 
+[2025-10-28 00:54:40] Prefill batch. #new-seq: 4, #new-token: 3908, #cached-token: 0, token usage: 0.80, #running-req: 636, #queue-req: 1335, 
+[2025-10-28 00:54:40] Prefill batch. #new-seq: 3, #new-token: 2171, #cached-token: 0, token usage: 0.81, #running-req: 639, #queue-req: 1332, 
+[2025-10-28 00:54:41] Prefill batch. #new-seq: 1, #new-token: 1035, #cached-token: 0, token usage: 0.81, #running-req: 640, #queue-req: 1331, 
+[2025-10-28 00:54:41] Prefill batch. #new-seq: 1, #new-token: 837, #cached-token: 0, token usage: 0.81, #running-req: 640, #queue-req: 1330, 
+[2025-10-28 00:54:41] Prefill batch. #new-seq: 1, #new-token: 1797, #cached-token: 0, token usage: 0.81, #running-req: 638, #queue-req: 1329, 
+[2025-10-28 00:54:41] Prefill batch. #new-seq: 3, #new-token: 3168, #cached-token: 0, token usage: 0.81, #running-req: 638, #queue-req: 1326, 
+[2025-10-28 00:54:42] Prefill batch. #new-seq: 2, #new-token: 3238, #cached-token: 0, token usage: 0.82, #running-req: 636, #queue-req: 1324, 
+[2025-10-28 00:54:42] Prefill batch. #new-seq: 1, #new-token: 1618, #cached-token: 0, token usage: 0.82, #running-req: 637, #queue-req: 1323, 
+[2025-10-28 00:54:42] Prefill batch. #new-seq: 3, #new-token: 3463, #cached-token: 0, token usage: 0.82, #running-req: 636, #queue-req: 1320, 
+[2025-10-28 00:54:42] Prefill batch. #new-seq: 1, #new-token: 1447, #cached-token: 0, token usage: 0.82, #running-req: 635, #queue-req: 1319, 
+[2025-10-28 00:54:42] Prefill batch. #new-seq: 2, #new-token: 1395, #cached-token: 0, token usage: 0.82, #running-req: 635, #queue-req: 1317, 
+[2025-10-28 00:54:43] Prefill batch. #new-seq: 2, #new-token: 1721, #cached-token: 0, token usage: 0.82, #running-req: 635, #queue-req: 1315, 
+[2025-10-28 00:54:43] Prefill batch. #new-seq: 4, #new-token: 2920, #cached-token: 0, token usage: 0.82, #running-req: 635, #queue-req: 1311, 
+[2025-10-28 00:54:43] Prefill batch. #new-seq: 1, #new-token: 1954, #cached-token: 0, token usage: 0.83, #running-req: 637, #queue-req: 1310, 
+[2025-10-28 00:54:43] Decode batch. #running-req: 637, #token: 756178, token usage: 0.83, cuda graph: False, gen throughput (token/s): 6930.88, #queue-req: 1310, 
+[2025-10-28 00:54:44] Prefill batch. #new-seq: 2, #new-token: 1905, #cached-token: 0, token usage: 0.83, #running-req: 636, #queue-req: 1308, 
+[2025-10-28 00:54:44] Prefill batch. #new-seq: 2, #new-token: 3420, #cached-token: 0, token usage: 0.83, #running-req: 634, #queue-req: 1306, 
+[2025-10-28 00:54:45] Prefill batch. #new-seq: 3, #new-token: 1753, #cached-token: 0, token usage: 0.83, #running-req: 633, #queue-req: 1303, 
+[2025-10-28 00:54:45] Prefill batch. #new-seq: 3, #new-token: 3371, #cached-token: 0, token usage: 0.83, #running-req: 632, #queue-req: 1300, 
+[2025-10-28 00:54:45] Prefill batch. #new-seq: 5, #new-token: 4565, #cached-token: 0, token usage: 0.83, #running-req: 634, #queue-req: 1295, 
+[2025-10-28 00:54:45] Prefill batch. #new-seq: 2, #new-token: 2907, #cached-token: 0, token usage: 0.83, #running-req: 633, #queue-req: 1293, 
+[2025-10-28 00:54:46] Prefill batch. #new-seq: 2, #new-token: 3322, #cached-token: 0, token usage: 0.84, #running-req: 634, #queue-req: 1291, 
+[2025-10-28 00:54:46] Prefill batch. #new-seq: 1, #new-token: 1171, #cached-token: 0, token usage: 0.84, #running-req: 634, #queue-req: 1290, 
+[2025-10-28 00:54:46] Prefill batch. #new-seq: 2, #new-token: 1702, #cached-token: 0, token usage: 0.84, #running-req: 634, #queue-req: 1288, 
+[2025-10-28 00:54:46] Prefill batch. #new-seq: 1, #new-token: 905, #cached-token: 0, token usage: 0.84, #running-req: 633, #queue-req: 1287, 
+[2025-10-28 00:54:47] Prefill batch. #new-seq: 1, #new-token: 1406, #cached-token: 0, token usage: 0.84, #running-req: 633, #queue-req: 1286, 
+[2025-10-28 00:54:47] Prefill batch. #new-seq: 1, #new-token: 469, #cached-token: 0, token usage: 0.85, #running-req: 633, #queue-req: 1285, 
+[2025-10-28 00:54:47] Prefill batch. #new-seq: 1, #new-token: 186, #cached-token: 0, token usage: 0.85, #running-req: 632, #queue-req: 1284, 
+[2025-10-28 00:54:47] Prefill batch. #new-seq: 3, #new-token: 3233, #cached-token: 0, token usage: 0.84, #running-req: 632, #queue-req: 1281, 
+[2025-10-28 00:54:47] Prefill batch. #new-seq: 3, #new-token: 2909, #cached-token: 0, token usage: 0.84, #running-req: 630, #queue-req: 1278, 
+[2025-10-28 00:54:48] Decode batch. #running-req: 630, #token: 771760, token usage: 0.85, cuda graph: False, gen throughput (token/s): 6287.06, #queue-req: 1278, 
+[2025-10-28 00:54:48] Prefill batch. #new-seq: 3, #new-token: 3354, #cached-token: 0, token usage: 0.85, #running-req: 632, #queue-req: 1275, 
+[2025-10-28 00:54:48] Prefill batch. #new-seq: 1, #new-token: 263, #cached-token: 0, token usage: 0.85, #running-req: 632, #queue-req: 1274, 
+[2025-10-28 00:54:48] Prefill batch. #new-seq: 2, #new-token: 1598, #cached-token: 0, token usage: 0.85, #running-req: 632, #queue-req: 1272, 
+[2025-10-28 00:54:48] Prefill batch. #new-seq: 1, #new-token: 1387, #cached-token: 0, token usage: 0.85, #running-req: 633, #queue-req: 1271, 
+[2025-10-28 00:54:49] Prefill batch. #new-seq: 1, #new-token: 1432, #cached-token: 0, token usage: 0.85, #running-req: 633, #queue-req: 1270, 
+[2025-10-28 00:54:49] Prefill batch. #new-seq: 3, #new-token: 4275, #cached-token: 0, token usage: 0.85, #running-req: 629, #queue-req: 1267, 
+[2025-10-28 00:54:49] Prefill batch. #new-seq: 2, #new-token: 2048, #cached-token: 0, token usage: 0.85, #running-req: 630, #queue-req: 1265, 
+[2025-10-28 00:54:50] Prefill batch. #new-seq: 4, #new-token: 1958, #cached-token: 0, token usage: 0.85, #running-req: 629, #queue-req: 1261, 
+[2025-10-28 00:54:50] Prefill batch. #new-seq: 3, #new-token: 1747, #cached-token: 0, token usage: 0.85, #running-req: 632, #queue-req: 1258, 
+[2025-10-28 00:54:50] Prefill batch. #new-seq: 2, #new-token: 2071, #cached-token: 0, token usage: 0.85, #running-req: 632, #queue-req: 1256, 
+[2025-10-28 00:54:50] Prefill batch. #new-seq: 3, #new-token: 3631, #cached-token: 0, token usage: 0.85, #running-req: 630, #queue-req: 1253, 
+[2025-10-28 00:54:51] Prefill batch. #new-seq: 4, #new-token: 2217, #cached-token: 0, token usage: 0.86, #running-req: 630, #queue-req: 1249, 
+[2025-10-28 00:54:51] Prefill batch. #new-seq: 3, #new-token: 3724, #cached-token: 0, token usage: 0.86, #running-req: 633, #queue-req: 1246, 
+[2025-10-28 00:54:51] Prefill batch. #new-seq: 1, #new-token: 414, #cached-token: 0, token usage: 0.86, #running-req: 634, #queue-req: 1245, 
+[2025-10-28 00:54:52] Prefill batch. #new-seq: 1, #new-token: 1749, #cached-token: 0, token usage: 0.86, #running-req: 632, #queue-req: 1244, 
+[2025-10-28 00:54:52] Decode batch. #running-req: 632, #token: 787280, token usage: 0.86, cuda graph: False, gen throughput (token/s): 6178.97, #queue-req: 1244, 
+[2025-10-28 00:54:52] Prefill batch. #new-seq: 2, #new-token: 1820, #cached-token: 0, token usage: 0.86, #running-req: 631, #queue-req: 1242, 
+[2025-10-28 00:54:52] Prefill batch. #new-seq: 2, #new-token: 1986, #cached-token: 0, token usage: 0.86, #running-req: 632, #queue-req: 1240, 
+[2025-10-28 00:54:52] Prefill batch. #new-seq: 5, #new-token: 4039, #cached-token: 0, token usage: 0.86, #running-req: 630, #queue-req: 1235, 
+[2025-10-28 00:54:52] Prefill batch. #new-seq: 1, #new-token: 1549, #cached-token: 0, token usage: 0.86, #running-req: 634, #queue-req: 1234, 
+[2025-10-28 00:54:53] Prefill batch. #new-seq: 2, #new-token: 2730, #cached-token: 0, token usage: 0.87, #running-req: 633, #queue-req: 1232, 
+[2025-10-28 00:54:53] Prefill batch. #new-seq: 3, #new-token: 2597, #cached-token: 0, token usage: 0.87, #running-req: 631, #queue-req: 1229, 
+[2025-10-28 00:54:53] Prefill batch. #new-seq: 2, #new-token: 3900, #cached-token: 0, token usage: 0.87, #running-req: 631, #queue-req: 1227, 
+[2025-10-28 00:54:54] Prefill batch. #new-seq: 2, #new-token: 1956, #cached-token: 0, token usage: 0.87, #running-req: 632, #queue-req: 1225, 
+[2025-10-28 00:54:54] Prefill batch. #new-seq: 1, #new-token: 1473, #cached-token: 0, token usage: 0.87, #running-req: 631, #queue-req: 1224, 
+[2025-10-28 00:54:54] Prefill batch. #new-seq: 1, #new-token: 1964, #cached-token: 0, token usage: 0.87, #running-req: 631, #queue-req: 1223, 
+[2025-10-28 00:54:54] Prefill batch. #new-seq: 2, #new-token: 2823, #cached-token: 0, token usage: 0.87, #running-req: 631, #queue-req: 1221, 
+[2025-10-28 00:54:54] Prefill batch. #new-seq: 1, #new-token: 1641, #cached-token: 0, token usage: 0.87, #running-req: 630, #queue-req: 1220, 
+[2025-10-28 00:54:55] Prefill batch. #new-seq: 1, #new-token: 1492, #cached-token: 0, token usage: 0.87, #running-req: 630, #queue-req: 1219, 
+[2025-10-28 00:54:55] Prefill batch. #new-seq: 1, #new-token: 170, #cached-token: 0, token usage: 0.87, #running-req: 630, #queue-req: 1218, 
+[2025-10-28 00:54:55] Prefill batch. #new-seq: 1, #new-token: 686, #cached-token: 0, token usage: 0.88, #running-req: 630, #queue-req: 1217, 
+[2025-10-28 00:54:55] Prefill batch. #new-seq: 2, #new-token: 2213, #cached-token: 0, token usage: 0.87, #running-req: 628, #queue-req: 1215, 
+[2025-10-28 00:54:55] Prefill batch. #new-seq: 2, #new-token: 1477, #cached-token: 0, token usage: 0.88, #running-req: 629, #queue-req: 1213, 
+[2025-10-28 00:54:55] Prefill batch. #new-seq: 1, #new-token: 1256, #cached-token: 0, token usage: 0.88, #running-req: 628, #queue-req: 1212, 
+[2025-10-28 00:54:56] Decode batch. #running-req: 629, #token: 801621, token usage: 0.88, cuda graph: False, gen throughput (token/s): 6084.96, #queue-req: 1212, 
+[2025-10-28 00:54:56] Prefill batch. #new-seq: 2, #new-token: 2164, #cached-token: 0, token usage: 0.88, #running-req: 627, #queue-req: 1210, 
+[2025-10-28 00:54:56] Prefill batch. #new-seq: 2, #new-token: 2487, #cached-token: 0, token usage: 0.88, #running-req: 626, #queue-req: 1208, 
+[2025-10-28 00:54:56] Prefill batch. #new-seq: 1, #new-token: 1913, #cached-token: 0, token usage: 0.88, #running-req: 627, #queue-req: 1207, 
+[2025-10-28 00:54:57] Prefill batch. #new-seq: 1, #new-token: 969, #cached-token: 0, token usage: 0.88, #running-req: 626, #queue-req: 1206, 
+[2025-10-28 00:54:57] Prefill batch. #new-seq: 3, #new-token: 1196, #cached-token: 0, token usage: 0.88, #running-req: 626, #queue-req: 1203, 
+[2025-10-28 00:54:57] Prefill batch. #new-seq: 1, #new-token: 1052, #cached-token: 0, token usage: 0.88, #running-req: 628, #queue-req: 1202, 
+[2025-10-28 00:54:57] Prefill batch. #new-seq: 3, #new-token: 3799, #cached-token: 0, token usage: 0.88, #running-req: 627, #queue-req: 1199, 
+[2025-10-28 00:54:58] Prefill batch. #new-seq: 1, #new-token: 1370, #cached-token: 0, token usage: 0.89, #running-req: 625, #queue-req: 1198, 
+[2025-10-28 00:54:58] Prefill batch. #new-seq: 1, #new-token: 503, #cached-token: 0, token usage: 0.89, #running-req: 625, #queue-req: 1197, 
+[2025-10-28 00:54:58] Prefill batch. #new-seq: 1, #new-token: 1048, #cached-token: 0, token usage: 0.89, #running-req: 625, #queue-req: 1196, 
+[2025-10-28 00:54:58] Prefill batch. #new-seq: 3, #new-token: 3227, #cached-token: 0, token usage: 0.89, #running-req: 625, #queue-req: 1193, 
+[2025-10-28 00:54:58] Prefill batch. #new-seq: 2, #new-token: 1163, #cached-token: 0, token usage: 0.89, #running-req: 625, #queue-req: 1191, 
+[2025-10-28 00:54:59] Prefill batch. #new-seq: 1, #new-token: 1714, #cached-token: 0, token usage: 0.89, #running-req: 626, #queue-req: 1190, 
+[2025-10-28 00:54:59] Prefill batch. #new-seq: 2, #new-token: 2316, #cached-token: 0, token usage: 0.89, #running-req: 625, #queue-req: 1188, 
+[2025-10-28 00:54:59] Prefill batch. #new-seq: 1, #new-token: 1379, #cached-token: 0, token usage: 0.89, #running-req: 626, #queue-req: 1187, 
+[2025-10-28 00:54:59] Decode batch. #running-req: 625, #token: 815667, token usage: 0.89, cuda graph: False, gen throughput (token/s): 6815.16, #queue-req: 1187, 
+[2025-10-28 00:55:00] Prefill batch. #new-seq: 1, #new-token: 1677, #cached-token: 0, token usage: 0.90, #running-req: 624, #queue-req: 1186, 
+[2025-10-28 00:55:00] Prefill batch. #new-seq: 1, #new-token: 653, #cached-token: 0, token usage: 0.90, #running-req: 624, #queue-req: 1185, 
+[2025-10-28 00:55:00] Prefill batch. #new-seq: 1, #new-token: 379, #cached-token: 0, token usage: 0.90, #running-req: 624, #queue-req: 1184, 
+[2025-10-28 00:55:00] Prefill batch. #new-seq: 2, #new-token: 2308, #cached-token: 0, token usage: 0.90, #running-req: 623, #queue-req: 1182, 
+[2025-10-28 00:55:00] Prefill batch. #new-seq: 2, #new-token: 757, #cached-token: 0, token usage: 0.90, #running-req: 624, #queue-req: 1180, 
+[2025-10-28 00:55:01] Prefill batch. #new-seq: 4, #new-token: 3664, #cached-token: 0, token usage: 0.90, #running-req: 623, #queue-req: 1176, 
+[2025-10-28 00:55:01] Prefill batch. #new-seq: 1, #new-token: 777, #cached-token: 0, token usage: 0.90, #running-req: 625, #queue-req: 1175, 
+[2025-10-28 00:55:01] Prefill batch. #new-seq: 1, #new-token: 248, #cached-token: 0, token usage: 0.90, #running-req: 625, #queue-req: 1174, 
+[2025-10-28 00:55:01] Prefill batch. #new-seq: 1, #new-token: 1315, #cached-token: 0, token usage: 0.90, #running-req: 624, #queue-req: 1173, 
+[2025-10-28 00:55:02] Prefill batch. #new-seq: 2, #new-token: 1861, #cached-token: 0, token usage: 0.90, #running-req: 623, #queue-req: 1171, 
+[2025-10-28 00:55:02] Prefill batch. #new-seq: 2, #new-token: 298, #cached-token: 0, token usage: 0.90, #running-req: 624, #queue-req: 1169, 
+[2025-10-28 00:55:02] Prefill batch. #new-seq: 1, #new-token: 1415, #cached-token: 0, token usage: 0.91, #running-req: 624, #queue-req: 1168, 
+[2025-10-28 00:55:02] Prefill batch. #new-seq: 2, #new-token: 2103, #cached-token: 0, token usage: 0.91, #running-req: 623, #queue-req: 1166, 
+[2025-10-28 00:55:03] Prefill batch. #new-seq: 3, #new-token: 2667, #cached-token: 0, token usage: 0.91, #running-req: 624, #queue-req: 1163, 
+[2025-10-28 00:55:03] Prefill batch. #new-seq: 2, #new-token: 687, #cached-token: 0, token usage: 0.91, #running-req: 625, #queue-req: 1161, 
+[2025-10-28 00:55:03] Prefill batch. #new-seq: 3, #new-token: 3437, #cached-token: 0, token usage: 0.91, #running-req: 625, #queue-req: 1158, 
+[2025-10-28 00:55:03] Decode batch. #running-req: 625, #token: 829235, token usage: 0.91, cuda graph: False, gen throughput (token/s): 6885.49, #queue-req: 1158, 
+[2025-10-28 00:55:03] Prefill batch. #new-seq: 2, #new-token: 1501, #cached-token: 0, token usage: 0.91, #running-req: 625, #queue-req: 1156, 
+[2025-10-28 00:55:03] Prefill batch. #new-seq: 1, #new-token: 1353, #cached-token: 0, token usage: 0.91, #running-req: 626, #queue-req: 1155, 
+[2025-10-28 00:55:04] Prefill batch. #new-seq: 3, #new-token: 2153, #cached-token: 0, token usage: 0.91, #running-req: 623, #queue-req: 1152, 
+[2025-10-28 00:55:04] Prefill batch. #new-seq: 2, #new-token: 1764, #cached-token: 0, token usage: 0.91, #running-req: 624, #queue-req: 1150, 
+[2025-10-28 00:55:04] Prefill batch. #new-seq: 1, #new-token: 1891, #cached-token: 0, token usage: 0.91, #running-req: 625, #queue-req: 1149, 
+[2025-10-28 00:55:04] Prefill batch. #new-seq: 1, #new-token: 1027, #cached-token: 0, token usage: 0.91, #running-req: 624, #queue-req: 1148, 
+[2025-10-28 00:55:04] Prefill batch. #new-seq: 2, #new-token: 389, #cached-token: 0, token usage: 0.91, #running-req: 623, #queue-req: 1146, 
+[2025-10-28 00:55:05] Prefill batch. #new-seq: 2, #new-token: 1279, #cached-token: 0, token usage: 0.92, #running-req: 624, #queue-req: 1144, 
+[2025-10-28 00:55:05] Prefill batch. #new-seq: 4, #new-token: 4286, #cached-token: 0, token usage: 0.91, #running-req: 622, #queue-req: 1140, 
+[2025-10-28 00:55:05] Prefill batch. #new-seq: 2, #new-token: 2819, #cached-token: 0, token usage: 0.92, #running-req: 621, #queue-req: 1138, 
+[2025-10-28 00:55:06] Prefill batch. #new-seq: 1, #new-token: 1441, #cached-token: 0, token usage: 0.92, #running-req: 620, #queue-req: 1137, 
+[2025-10-28 00:55:06] Prefill batch. #new-seq: 4, #new-token: 2310, #cached-token: 0, token usage: 0.92, #running-req: 618, #queue-req: 1133, 
+[2025-10-28 00:55:06] Prefill batch. #new-seq: 3, #new-token: 3423, #cached-token: 0, token usage: 0.92, #running-req: 620, #queue-req: 1130, 
+[2025-10-28 00:55:07] Prefill batch. #new-seq: 5, #new-token: 5060, #cached-token: 0, token usage: 0.92, #running-req: 618, #queue-req: 1125, 
+[2025-10-28 00:55:07] Decode batch. #running-req: 623, #token: 838287, token usage: 0.92, cuda graph: False, gen throughput (token/s): 6312.57, #queue-req: 1125, 
+[2025-10-28 00:55:07] Prefill batch. #new-seq: 3, #new-token: 4752, #cached-token: 0, token usage: 0.92, #running-req: 621, #queue-req: 1122, 
+[2025-10-28 00:55:07] Prefill batch. #new-seq: 2, #new-token: 2794, #cached-token: 0, token usage: 0.92, #running-req: 621, #queue-req: 1120, 
+[2025-10-28 00:55:08] Prefill batch. #new-seq: 1, #new-token: 1026, #cached-token: 0, token usage: 0.92, #running-req: 621, #queue-req: 1119, 
+[2025-10-28 00:55:08] Prefill batch. #new-seq: 1, #new-token: 935, #cached-token: 0, token usage: 0.92, #running-req: 621, #queue-req: 1118, 
+[2025-10-28 00:55:08] Prefill batch. #new-seq: 2, #new-token: 3258, #cached-token: 0, token usage: 0.92, #running-req: 620, #queue-req: 1116, 
+[2025-10-28 00:55:08] Prefill batch. #new-seq: 1, #new-token: 1453, #cached-token: 0, token usage: 0.93, #running-req: 621, #queue-req: 1115, 
+[2025-10-28 00:55:09] Prefill batch. #new-seq: 4, #new-token: 2713, #cached-token: 0, token usage: 0.93, #running-req: 619, #queue-req: 1111, 
+[2025-10-28 00:55:09] Prefill batch. #new-seq: 2, #new-token: 1092, #cached-token: 0, token usage: 0.93, #running-req: 620, #queue-req: 1109, 
+[2025-10-28 00:55:09] Prefill batch. #new-seq: 2, #new-token: 1477, #cached-token: 0, token usage: 0.93, #running-req: 621, #queue-req: 1107, 
+[2025-10-28 00:55:09] Prefill batch. #new-seq: 2, #new-token: 2320, #cached-token: 0, token usage: 0.93, #running-req: 622, #queue-req: 1105, 
+[2025-10-28 00:55:09] Prefill batch. #new-seq: 2, #new-token: 973, #cached-token: 0, token usage: 0.93, #running-req: 623, #queue-req: 1103, 
+[2025-10-28 00:55:09] Prefill batch. #new-seq: 2, #new-token: 1637, #cached-token: 0, token usage: 0.93, #running-req: 624, #queue-req: 1101, 
+[2025-10-28 00:55:09] Prefill batch. #new-seq: 2, #new-token: 1414, #cached-token: 0, token usage: 0.93, #running-req: 625, #queue-req: 1099, 
+[2025-10-28 00:55:10] Prefill batch. #new-seq: 1, #new-token: 1919, #cached-token: 0, token usage: 0.93, #running-req: 625, #queue-req: 1098, 
+[2025-10-28 00:55:10] Prefill batch. #new-seq: 3, #new-token: 2892, #cached-token: 0, token usage: 0.93, #running-req: 624, #queue-req: 1095, 
+[2025-10-28 00:55:10] Prefill batch. #new-seq: 1, #new-token: 1882, #cached-token: 0, token usage: 0.93, #running-req: 626, #queue-req: 1094, 
+[2025-10-28 00:55:10] Prefill batch. #new-seq: 2, #new-token: 733, #cached-token: 0, token usage: 0.93, #running-req: 625, #queue-req: 1092, 
+[2025-10-28 00:55:10] Prefill batch. #new-seq: 2, #new-token: 999, #cached-token: 0, token usage: 0.93, #running-req: 625, #queue-req: 1090, 
+[2025-10-28 00:55:10] Prefill batch. #new-seq: 1, #new-token: 1691, #cached-token: 0, token usage: 0.93, #running-req: 626, #queue-req: 1089, 
+[2025-10-28 00:55:11] Prefill batch. #new-seq: 1, #new-token: 802, #cached-token: 0, token usage: 0.93, #running-req: 626, #queue-req: 1088, 
+[2025-10-28 00:55:11] Prefill batch. #new-seq: 2, #new-token: 397, #cached-token: 0, token usage: 0.93, #running-req: 626, #queue-req: 1086, 
+[2025-10-28 00:55:11] Prefill batch. #new-seq: 1, #new-token: 1528, #cached-token: 0, token usage: 0.93, #running-req: 627, #queue-req: 1085, 
+[2025-10-28 00:55:11] Prefill batch. #new-seq: 3, #new-token: 2176, #cached-token: 0, token usage: 0.93, #running-req: 626, #queue-req: 1082, 
+[2025-10-28 00:55:11] Prefill batch. #new-seq: 7, #new-token: 6362, #cached-token: 0, token usage: 0.92, #running-req: 626, #queue-req: 1075, 
+[2025-10-28 00:55:11] Decode batch. #running-req: 626, #token: 849367, token usage: 0.93, cuda graph: False, gen throughput (token/s): 5660.44, #queue-req: 1075, 
+[2025-10-28 00:55:12] Prefill batch. #new-seq: 1, #new-token: 1681, #cached-token: 0, token usage: 0.93, #running-req: 630, #queue-req: 1074, 
+[2025-10-28 00:55:12] Prefill batch. #new-seq: 1, #new-token: 799, #cached-token: 0, token usage: 0.93, #running-req: 629, #queue-req: 1073, 
+[2025-10-28 00:55:12] Prefill batch. #new-seq: 3, #new-token: 3444, #cached-token: 0, token usage: 0.93, #running-req: 627, #queue-req: 1070, 
+[2025-10-28 00:55:13] Prefill batch. #new-seq: 2, #new-token: 2871, #cached-token: 0, token usage: 0.93, #running-req: 627, #queue-req: 1068, 
+[2025-10-28 00:55:13] Prefill batch. #new-seq: 1, #new-token: 1596, #cached-token: 0, token usage: 0.94, #running-req: 627, #queue-req: 1067, 
+[2025-10-28 00:55:13] Prefill batch. #new-seq: 3, #new-token: 3258, #cached-token: 0, token usage: 0.93, #running-req: 626, #queue-req: 1064, 
+[2025-10-28 00:55:13] Prefill batch. #new-seq: 5, #new-token: 2964, #cached-token: 0, token usage: 0.93, #running-req: 628, #queue-req: 1059, 
+[2025-10-28 00:55:13] Prefill batch. #new-seq: 1, #new-token: 1534, #cached-token: 0, token usage: 0.94, #running-req: 630, #queue-req: 1058, 
+[2025-10-28 00:55:14] Prefill batch. #new-seq: 3, #new-token: 1968, #cached-token: 0, token usage: 0.94, #running-req: 629, #queue-req: 1055, 
+[2025-10-28 00:55:14] Prefill batch. #new-seq: 2, #new-token: 784, #cached-token: 0, token usage: 0.94, #running-req: 631, #queue-req: 1053, 
+[2025-10-28 00:55:14] Prefill batch. #new-seq: 1, #new-token: 1066, #cached-token: 0, token usage: 0.94, #running-req: 632, #queue-req: 1052, 
+[2025-10-28 00:55:14] Prefill batch. #new-seq: 1, #new-token: 1914, #cached-token: 0, token usage: 0.94, #running-req: 631, #queue-req: 1051, 
+[2025-10-28 00:55:14] Prefill batch. #new-seq: 1, #new-token: 1536, #cached-token: 0, token usage: 0.94, #running-req: 631, #queue-req: 1050, 
+[2025-10-28 00:55:14] Prefill batch. #new-seq: 1, #new-token: 1136, #cached-token: 0, token usage: 0.94, #running-req: 631, #queue-req: 1049, 
+[2025-10-28 00:55:15] Prefill batch. #new-seq: 1, #new-token: 1460, #cached-token: 0, token usage: 0.94, #running-req: 630, #queue-req: 1048, 
+[2025-10-28 00:55:15] Prefill batch. #new-seq: 8, #new-token: 6134, #cached-token: 0, token usage: 0.93, #running-req: 628, #queue-req: 1040, 
+[2025-10-28 00:55:15] Prefill batch. #new-seq: 1, #new-token: 1533, #cached-token: 0, token usage: 0.94, #running-req: 632, #queue-req: 1039, 
+[2025-10-28 00:55:15] Prefill batch. #new-seq: 2, #new-token: 2268, #cached-token: 0, token usage: 0.94, #running-req: 632, #queue-req: 1037, 
+[2025-10-28 00:55:16] Prefill batch. #new-seq: 3, #new-token: 3601, #cached-token: 0, token usage: 0.94, #running-req: 629, #queue-req: 1034, 
+[2025-10-28 00:55:16] Decode batch. #running-req: 631, #token: 859108, token usage: 0.94, cuda graph: False, gen throughput (token/s): 5564.89, #queue-req: 1034, 
+[2025-10-28 00:55:16] Prefill batch. #new-seq: 2, #new-token: 3023, #cached-token: 0, token usage: 0.94, #running-req: 629, #queue-req: 1032, 
+[2025-10-28 00:55:16] Prefill batch. #new-seq: 3, #new-token: 3253, #cached-token: 0, token usage: 0.94, #running-req: 628, #queue-req: 1029, 
+[2025-10-28 00:55:17] Prefill batch. #new-seq: 1, #new-token: 1121, #cached-token: 0, token usage: 0.95, #running-req: 630, #queue-req: 1028, 
+[2025-10-28 00:55:17] Prefill batch. #new-seq: 5, #new-token: 2460, #cached-token: 0, token usage: 0.94, #running-req: 628, #queue-req: 1023, 
+[2025-10-28 00:55:17] Prefill batch. #new-seq: 1, #new-token: 1752, #cached-token: 0, token usage: 0.95, #running-req: 631, #queue-req: 1022, 
+[2025-10-28 00:55:17] Prefill batch. #new-seq: 2, #new-token: 1173, #cached-token: 0, token usage: 0.95, #running-req: 630, #queue-req: 1020, 
+[2025-10-28 00:55:17] Prefill batch. #new-seq: 1, #new-token: 33, #cached-token: 0, token usage: 0.95, #running-req: 631, #queue-req: 1019, 
+[2025-10-28 00:55:18] Prefill batch. #new-seq: 2, #new-token: 1359, #cached-token: 0, token usage: 0.95, #running-req: 631, #queue-req: 1017, 
+[2025-10-28 00:55:18] Prefill batch. #new-seq: 2, #new-token: 1043, #cached-token: 0, token usage: 0.95, #running-req: 632, #queue-req: 1015, 
+[2025-10-28 00:55:18] Prefill batch. #new-seq: 1, #new-token: 1950, #cached-token: 0, token usage: 0.95, #running-req: 632, #queue-req: 1014, 
+[2025-10-28 00:55:18] Prefill batch. #new-seq: 1, #new-token: 1446, #cached-token: 0, token usage: 0.95, #running-req: 631, #queue-req: 1013, 
+[2025-10-28 00:55:18] Prefill batch. #new-seq: 2, #new-token: 2384, #cached-token: 0, token usage: 0.95, #running-req: 631, #queue-req: 1011, 
+[2025-10-28 00:55:19] Prefill batch. #new-seq: 2, #new-token: 2392, #cached-token: 0, token usage: 0.95, #running-req: 628, #queue-req: 1009, 
+[2025-10-28 00:55:19] Prefill batch. #new-seq: 1, #new-token: 1042, #cached-token: 0, token usage: 0.95, #running-req: 629, #queue-req: 1008, 
+[2025-10-28 00:55:19] Prefill batch. #new-seq: 1, #new-token: 800, #cached-token: 0, token usage: 0.95, #running-req: 629, #queue-req: 1007, 
+[2025-10-28 00:55:19] Prefill batch. #new-seq: 2, #new-token: 3459, #cached-token: 0, token usage: 0.95, #running-req: 626, #queue-req: 1005, 
+[2025-10-28 00:55:20] Prefill batch. #new-seq: 2, #new-token: 2878, #cached-token: 0, token usage: 0.95, #running-req: 627, #queue-req: 1003, 
+[2025-10-28 00:55:20] Prefill batch. #new-seq: 1, #new-token: 701, #cached-token: 0, token usage: 0.95, #running-req: 628, #queue-req: 1002, 
+[2025-10-28 00:55:20] Prefill batch. #new-seq: 2, #new-token: 1714, #cached-token: 0, token usage: 0.95, #running-req: 628, #queue-req: 1000, 
+[2025-10-28 00:55:20] Prefill batch. #new-seq: 4, #new-token: 5926, #cached-token: 0, token usage: 0.95, #running-req: 626, #queue-req: 996, 
+[2025-10-28 00:55:20] Decode batch. #running-req: 626, #token: 867896, token usage: 0.95, cuda graph: False, gen throughput (token/s): 6139.18, #queue-req: 996, 
+[2025-10-28 00:55:20] Prefill batch. #new-seq: 3, #new-token: 2156, #cached-token: 0, token usage: 0.95, #running-req: 629, #queue-req: 993, 
+[2025-10-28 00:55:20] Prefill batch. #new-seq: 3, #new-token: 1520, #cached-token: 0, token usage: 0.95, #running-req: 630, #queue-req: 990, 
+[2025-10-28 00:55:21] Prefill batch. #new-seq: 1, #new-token: 1866, #cached-token: 0, token usage: 0.95, #running-req: 632, #queue-req: 989, 
+[2025-10-28 00:55:21] Prefill batch. #new-seq: 1, #new-token: 1606, #cached-token: 0, token usage: 0.95, #running-req: 632, #queue-req: 988, 
+[2025-10-28 00:55:21] Prefill batch. #new-seq: 3, #new-token: 2492, #cached-token: 0, token usage: 0.95, #running-req: 631, #queue-req: 985, 
+[2025-10-28 00:55:21] Prefill batch. #new-seq: 3, #new-token: 3343, #cached-token: 0, token usage: 0.95, #running-req: 633, #queue-req: 982, 
+[2025-10-28 00:55:21] Prefill batch. #new-seq: 3, #new-token: 1823, #cached-token: 0, token usage: 0.95, #running-req: 634, #queue-req: 979, 
+[2025-10-28 00:55:21] Prefill batch. #new-seq: 3, #new-token: 3907, #cached-token: 0, token usage: 0.95, #running-req: 631, #queue-req: 976, 
+[2025-10-28 00:55:22] Prefill batch. #new-seq: 2, #new-token: 1332, #cached-token: 0, token usage: 0.95, #running-req: 633, #queue-req: 974, 
+[2025-10-28 00:55:22] Prefill batch. #new-seq: 2, #new-token: 1971, #cached-token: 0, token usage: 0.96, #running-req: 634, #queue-req: 972, 
+[2025-10-28 00:55:22] Prefill batch. #new-seq: 3, #new-token: 4072, #cached-token: 0, token usage: 0.95, #running-req: 632, #queue-req: 969, 
+[2025-10-28 00:55:22] Prefill batch. #new-seq: 2, #new-token: 2787, #cached-token: 0, token usage: 0.96, #running-req: 632, #queue-req: 967, 
+[2025-10-28 00:55:23] Prefill batch. #new-seq: 2, #new-token: 2406, #cached-token: 0, token usage: 0.96, #running-req: 632, #queue-req: 965, 
+[2025-10-28 00:55:23] Prefill batch. #new-seq: 1, #new-token: 1550, #cached-token: 0, token usage: 0.96, #running-req: 633, #queue-req: 964, 
+[2025-10-28 00:55:23] Prefill batch. #new-seq: 2, #new-token: 2640, #cached-token: 0, token usage: 0.96, #running-req: 631, #queue-req: 962, 
+[2025-10-28 00:55:23] Prefill batch. #new-seq: 3, #new-token: 3461, #cached-token: 0, token usage: 0.96, #running-req: 631, #queue-req: 959, 
+[2025-10-28 00:55:24] Prefill batch. #new-seq: 3, #new-token: 3846, #cached-token: 0, token usage: 0.95, #running-req: 628, #queue-req: 956, 
+[2025-10-28 00:55:24] Prefill batch. #new-seq: 4, #new-token: 5314, #cached-token: 0, token usage: 0.95, #running-req: 630, #queue-req: 952, 
+[2025-10-28 00:55:25] Prefill batch. #new-seq: 3, #new-token: 4166, #cached-token: 0, token usage: 0.96, #running-req: 631, #queue-req: 949, 
+[2025-10-28 00:55:25] Prefill batch. #new-seq: 3, #new-token: 2223, #cached-token: 0, token usage: 0.96, #running-req: 630, #queue-req: 946, 
+[2025-10-28 00:55:25] Prefill batch. #new-seq: 3, #new-token: 2196, #cached-token: 0, token usage: 0.96, #running-req: 632, #queue-req: 943, 
+[2025-10-28 00:55:25] Decode batch. #running-req: 635, #token: 878537, token usage: 0.96, cuda graph: False, gen throughput (token/s): 4927.26, #queue-req: 943, 
+[2025-10-28 00:55:25] Prefill batch. #new-seq: 2, #new-token: 1886, #cached-token: 0, token usage: 0.96, #running-req: 634, #queue-req: 941, 
+[2025-10-28 00:55:26] Prefill batch. #new-seq: 1, #new-token: 451, #cached-token: 0, token usage: 0.96, #running-req: 633, #queue-req: 940, 
+[2025-10-28 00:55:26] Prefill batch. #new-seq: 1, #new-token: 1746, #cached-token: 0, token usage: 0.96, #running-req: 632, #queue-req: 939, 
+[2025-10-28 00:55:26] Prefill batch. #new-seq: 1, #new-token: 1979, #cached-token: 0, token usage: 0.96, #running-req: 630, #queue-req: 938, 
+[2025-10-28 00:55:26] Prefill batch. #new-seq: 1, #new-token: 1846, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 937, 
+[2025-10-28 00:55:27] Prefill batch. #new-seq: 2, #new-token: 1904, #cached-token: 0, token usage: 0.96, #running-req: 626, #queue-req: 935, 
+[2025-10-28 00:55:27] Prefill batch. #new-seq: 1, #new-token: 2016, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 934, 
+[2025-10-28 00:55:27] Prefill batch. #new-seq: 2, #new-token: 2626, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 932, 
+[2025-10-28 00:55:27] Prefill batch. #new-seq: 1, #new-token: 1068, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 931, 
+[2025-10-28 00:55:27] Prefill batch. #new-seq: 3, #new-token: 3883, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 928, 
+[2025-10-28 00:55:28] Prefill batch. #new-seq: 2, #new-token: 1118, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 926, 
+[2025-10-28 00:55:28] Prefill batch. #new-seq: 2, #new-token: 3108, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 924, 
+[2025-10-28 00:55:28] Prefill batch. #new-seq: 3, #new-token: 2836, #cached-token: 0, token usage: 0.97, #running-req: 626, #queue-req: 921, 
+[2025-10-28 00:55:29] Decode batch. #running-req: 626, #token: 886739, token usage: 0.97, cuda graph: False, gen throughput (token/s): 6814.36, #queue-req: 921, 
+[2025-10-28 00:55:29] Prefill batch. #new-seq: 1, #new-token: 1999, #cached-token: 0, token usage: 0.97, #running-req: 625, #queue-req: 920, 
+[2025-10-28 00:55:29] Prefill batch. #new-seq: 1, #new-token: 975, #cached-token: 0, token usage: 0.97, #running-req: 624, #queue-req: 919, 
+[2025-10-28 00:55:29] Prefill batch. #new-seq: 4, #new-token: 3961, #cached-token: 0, token usage: 0.97, #running-req: 622, #queue-req: 915, 
+[2025-10-28 00:55:30] Prefill batch. #new-seq: 1, #new-token: 1321, #cached-token: 0, token usage: 0.98, #running-req: 624, #queue-req: 914, 
+[2025-10-28 00:55:30] Prefill batch. #new-seq: 1, #new-token: 1892, #cached-token: 0, token usage: 0.98, #running-req: 624, #queue-req: 913, 
+[2025-10-28 00:55:30] Prefill batch. #new-seq: 3, #new-token: 2743, #cached-token: 0, token usage: 0.97, #running-req: 622, #queue-req: 910, 
+[2025-10-28 00:55:30] Prefill batch. #new-seq: 5, #new-token: 4175, #cached-token: 0, token usage: 0.97, #running-req: 623, #queue-req: 905, 
+[2025-10-28 00:55:31] Prefill batch. #new-seq: 2, #new-token: 2277, #cached-token: 0, token usage: 0.97, #running-req: 624, #queue-req: 903, 
+[2025-10-28 00:55:31] Prefill batch. #new-seq: 3, #new-token: 2502, #cached-token: 0, token usage: 0.97, #running-req: 622, #queue-req: 900, 
+[2025-10-28 00:55:31] Prefill batch. #new-seq: 4, #new-token: 4238, #cached-token: 0, token usage: 0.97, #running-req: 622, #queue-req: 896, 
+[2025-10-28 00:55:31] Prefill batch. #new-seq: 2, #new-token: 3760, #cached-token: 0, token usage: 0.97, #running-req: 625, #queue-req: 894, 
+[2025-10-28 00:55:31] Prefill batch. #new-seq: 1, #new-token: 1186, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 893, 
+[2025-10-28 00:55:32] Prefill batch. #new-seq: 1, #new-token: 813, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 892, 
+[2025-10-28 00:55:32] Prefill batch. #new-seq: 1, #new-token: 939, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 891, 
+[2025-10-28 00:55:32] Prefill batch. #new-seq: 1, #new-token: 711, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 890, 
+[2025-10-28 00:55:32] Prefill batch. #new-seq: 1, #new-token: 1027, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 889, 
+[2025-10-28 00:55:32] Prefill batch. #new-seq: 7, #new-token: 6410, #cached-token: 0, token usage: 0.97, #running-req: 623, #queue-req: 882, 
+[2025-10-28 00:55:32] Prefill batch. #new-seq: 2, #new-token: 2741, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 880, 
+[2025-10-28 00:55:33] Prefill batch. #new-seq: 2, #new-token: 2248, #cached-token: 0, token usage: 0.98, #running-req: 628, #queue-req: 878, 
+[2025-10-28 00:55:33] Prefill batch. #new-seq: 1, #new-token: 407, #cached-token: 0, token usage: 0.98, #running-req: 629, #queue-req: 877, 
+[2025-10-28 00:55:33] Prefill batch. #new-seq: 2, #new-token: 1218, #cached-token: 0, token usage: 0.98, #running-req: 628, #queue-req: 875, 
+[2025-10-28 00:55:33] Prefill batch. #new-seq: 3, #new-token: 2069, #cached-token: 0, token usage: 0.98, #running-req: 628, #queue-req: 872, 
+[2025-10-28 00:55:33] Prefill batch. #new-seq: 2, #new-token: 469, #cached-token: 0, token usage: 0.98, #running-req: 630, #queue-req: 870, 
+[2025-10-28 00:55:33] Prefill batch. #new-seq: 1, #new-token: 513, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 869, 
+[2025-10-28 00:55:34] Prefill batch. #new-seq: 1, #new-token: 1857, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 868, 
+[2025-10-28 00:55:34] Prefill batch. #new-seq: 3, #new-token: 1007, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 865, 
+[2025-10-28 00:55:34] Decode batch. #running-req: 631, #token: 888538, token usage: 0.97, cuda graph: False, gen throughput (token/s): 5084.56, #queue-req: 865, 
+[2025-10-28 00:55:34] Prefill batch. #new-seq: 2, #new-token: 1956, #cached-token: 0, token usage: 0.98, #running-req: 632, #queue-req: 863, 
+[2025-10-28 00:55:34] Prefill batch. #new-seq: 2, #new-token: 1729, #cached-token: 0, token usage: 0.97, #running-req: 631, #queue-req: 861, 
+[2025-10-28 00:55:34] Prefill batch. #new-seq: 3, #new-token: 5109, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 858, 
+[2025-10-28 00:55:35] Prefill batch. #new-seq: 1, #new-token: 86, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 857, 
+[2025-10-28 00:55:35] Prefill batch. #new-seq: 1, #new-token: 2000, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 856, 
+[2025-10-28 00:55:35] Prefill batch. #new-seq: 2, #new-token: 2353, #cached-token: 0, token usage: 0.98, #running-req: 629, #queue-req: 854, 
+[2025-10-28 00:55:35] Prefill batch. #new-seq: 4, #new-token: 3012, #cached-token: 0, token usage: 0.97, #running-req: 628, #queue-req: 850, 
+[2025-10-28 00:55:35] Prefill batch. #new-seq: 1, #new-token: 1788, #cached-token: 0, token usage: 0.98, #running-req: 630, #queue-req: 849, 
+[2025-10-28 00:55:35] Prefill batch. #new-seq: 1, #new-token: 570, #cached-token: 0, token usage: 0.98, #running-req: 630, #queue-req: 848, 
+[2025-10-28 00:55:36] Prefill batch. #new-seq: 2, #new-token: 1384, #cached-token: 0, token usage: 0.98, #running-req: 630, #queue-req: 846, 
+[2025-10-28 00:55:36] Prefill batch. #new-seq: 1, #new-token: 1977, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 845, 
+[2025-10-28 00:55:36] Prefill batch. #new-seq: 3, #new-token: 4461, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 842, 
+[2025-10-28 00:55:36] Prefill batch. #new-seq: 1, #new-token: 1971, #cached-token: 0, token usage: 0.98, #running-req: 628, #queue-req: 841, 
+[2025-10-28 00:55:37] Prefill batch. #new-seq: 3, #new-token: 2642, #cached-token: 0, token usage: 0.97, #running-req: 626, #queue-req: 838, 
+[2025-10-28 00:55:37] Prefill batch. #new-seq: 5, #new-token: 4074, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 833, 
+[2025-10-28 00:55:37] Prefill batch. #new-seq: 3, #new-token: 3148, #cached-token: 0, token usage: 0.97, #running-req: 631, #queue-req: 830, 
+[2025-10-28 00:55:37] Prefill batch. #new-seq: 2, #new-token: 2524, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 828, 
+[2025-10-28 00:55:38] Prefill batch. #new-seq: 1, #new-token: 1559, #cached-token: 0, token usage: 0.98, #running-req: 632, #queue-req: 827, 
+[2025-10-28 00:55:38] Prefill batch. #new-seq: 1, #new-token: 1973, #cached-token: 0, token usage: 0.98, #running-req: 630, #queue-req: 826, 
+[2025-10-28 00:55:38] Prefill batch. #new-seq: 1, #new-token: 119, #cached-token: 0, token usage: 0.98, #running-req: 630, #queue-req: 825, 
+[2025-10-28 00:55:38] Prefill batch. #new-seq: 3, #new-token: 4486, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 822, 
+[2025-10-28 00:55:38] Prefill batch. #new-seq: 2, #new-token: 1837, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 820, 
+[2025-10-28 00:55:39] Prefill batch. #new-seq: 4, #new-token: 4037, #cached-token: 0, token usage: 0.97, #running-req: 626, #queue-req: 816, 
+[2025-10-28 00:55:39] Decode batch. #running-req: 630, #token: 889172, token usage: 0.98, cuda graph: False, gen throughput (token/s): 5026.02, #queue-req: 816, 
+[2025-10-28 00:55:39] Prefill batch. #new-seq: 1, #new-token: 931, #cached-token: 0, token usage: 0.98, #running-req: 629, #queue-req: 815, 
+[2025-10-28 00:55:39] Prefill batch. #new-seq: 2, #new-token: 2632, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 813, 
+[2025-10-28 00:55:39] Prefill batch. #new-seq: 2, #new-token: 3372, #cached-token: 0, token usage: 0.97, #running-req: 628, #queue-req: 811, 
+[2025-10-28 00:55:39] Prefill batch. #new-seq: 1, #new-token: 447, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 810, 
+[2025-10-28 00:55:40] Prefill batch. #new-seq: 2, #new-token: 2461, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 808, 
+[2025-10-28 00:55:40] Prefill batch. #new-seq: 1, #new-token: 330, #cached-token: 0, token usage: 0.98, #running-req: 628, #queue-req: 807, 
+[2025-10-28 00:55:40] Prefill batch. #new-seq: 1, #new-token: 1987, #cached-token: 0, token usage: 0.98, #running-req: 628, #queue-req: 806, 
+[2025-10-28 00:55:40] Prefill batch. #new-seq: 7, #new-token: 2605, #cached-token: 0, token usage: 0.97, #running-req: 623, #queue-req: 799, 
+[2025-10-28 00:55:41] Prefill batch. #new-seq: 2, #new-token: 3659, #cached-token: 0, token usage: 0.97, #running-req: 628, #queue-req: 797, 
+[2025-10-28 00:55:41] Prefill batch. #new-seq: 4, #new-token: 4803, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 793, 
+[2025-10-28 00:55:41] Prefill batch. #new-seq: 1, #new-token: 556, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 792, 
+[2025-10-28 00:55:41] Prefill batch. #new-seq: 2, #new-token: 1839, #cached-token: 0, token usage: 0.98, #running-req: 626, #queue-req: 790, 
+[2025-10-28 00:55:41] Prefill batch. #new-seq: 1, #new-token: 1467, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 789, 
+[2025-10-28 00:55:42] Prefill batch. #new-seq: 2, #new-token: 2404, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 787, 
+[2025-10-28 00:55:42] Prefill batch. #new-seq: 1, #new-token: 941, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 786, 
+[2025-10-28 00:55:42] Prefill batch. #new-seq: 1, #new-token: 1996, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 785, 
+[2025-10-28 00:55:42] Prefill batch. #new-seq: 2, #new-token: 2907, #cached-token: 0, token usage: 0.97, #running-req: 622, #queue-req: 783, 
+[2025-10-28 00:55:43] Prefill batch. #new-seq: 2, #new-token: 2736, #cached-token: 0, token usage: 0.97, #running-req: 622, #queue-req: 781, 
+[2025-10-28 00:55:43] Prefill batch. #new-seq: 3, #new-token: 1869, #cached-token: 0, token usage: 0.98, #running-req: 623, #queue-req: 778, 
+[2025-10-28 00:55:43] Prefill batch. #new-seq: 4, #new-token: 3909, #cached-token: 0, token usage: 0.97, #running-req: 623, #queue-req: 774, 
+[2025-10-28 00:55:43] Prefill batch. #new-seq: 2, #new-token: 1582, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 772, 
+[2025-10-28 00:55:43] Prefill batch. #new-seq: 2, #new-token: 1085, #cached-token: 0, token usage: 0.97, #running-req: 625, #queue-req: 770, 
+[2025-10-28 00:55:43] Decode batch. #running-req: 625, #token: 889720, token usage: 0.98, cuda graph: False, gen throughput (token/s): 5522.98, #queue-req: 770, 
+[2025-10-28 00:55:44] Prefill batch. #new-seq: 2, #new-token: 1170, #cached-token: 0, token usage: 0.98, #running-req: 625, #queue-req: 768, 
+[2025-10-28 00:55:44] Prefill batch. #new-seq: 2, #new-token: 1979, #cached-token: 0, token usage: 0.97, #running-req: 625, #queue-req: 766, 
+[2025-10-28 00:55:44] Prefill batch. #new-seq: 2, #new-token: 2189, #cached-token: 0, token usage: 0.98, #running-req: 626, #queue-req: 764, 
+[2025-10-28 00:55:44] Prefill batch. #new-seq: 4, #new-token: 2944, #cached-token: 0, token usage: 0.97, #running-req: 624, #queue-req: 760, 
+[2025-10-28 00:55:44] Prefill batch. #new-seq: 3, #new-token: 2720, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 757, 
+[2025-10-28 00:55:45] Prefill batch. #new-seq: 1, #new-token: 465, #cached-token: 0, token usage: 0.98, #running-req: 628, #queue-req: 756, 
+[2025-10-28 00:55:45] Prefill batch. #new-seq: 4, #new-token: 3856, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 752, 
+[2025-10-28 00:55:45] Prefill batch. #new-seq: 3, #new-token: 1594, #cached-token: 0, token usage: 0.98, #running-req: 630, #queue-req: 749, 
+[2025-10-28 00:55:45] Prefill batch. #new-seq: 6, #new-token: 5603, #cached-token: 0, token usage: 0.97, #running-req: 628, #queue-req: 743, 
+[2025-10-28 00:55:46] Prefill batch. #new-seq: 2, #new-token: 2776, #cached-token: 0, token usage: 0.98, #running-req: 633, #queue-req: 741, 
+[2025-10-28 00:55:46] Prefill batch. #new-seq: 6, #new-token: 5631, #cached-token: 0, token usage: 0.97, #running-req: 633, #queue-req: 735, 
+[2025-10-28 00:55:46] Prefill batch. #new-seq: 3, #new-token: 2022, #cached-token: 0, token usage: 0.97, #running-req: 634, #queue-req: 732, 
+[2025-10-28 00:55:46] Prefill batch. #new-seq: 3, #new-token: 3872, #cached-token: 0, token usage: 0.97, #running-req: 635, #queue-req: 729, 
+[2025-10-28 00:55:47] Prefill batch. #new-seq: 1, #new-token: 1811, #cached-token: 0, token usage: 0.98, #running-req: 635, #queue-req: 728, 
+[2025-10-28 00:55:47] Prefill batch. #new-seq: 5, #new-token: 2899, #cached-token: 0, token usage: 0.97, #running-req: 631, #queue-req: 723, 
+[2025-10-28 00:55:47] Prefill batch. #new-seq: 2, #new-token: 2610, #cached-token: 0, token usage: 0.97, #running-req: 635, #queue-req: 721, 
+[2025-10-28 00:55:47] Prefill batch. #new-seq: 4, #new-token: 2719, #cached-token: 0, token usage: 0.97, #running-req: 635, #queue-req: 717, 
+[2025-10-28 00:55:47] Prefill batch. #new-seq: 2, #new-token: 844, #cached-token: 0, token usage: 0.98, #running-req: 638, #queue-req: 715, 
+[2025-10-28 00:55:48] Prefill batch. #new-seq: 2, #new-token: 1665, #cached-token: 0, token usage: 0.98, #running-req: 638, #queue-req: 713, 
+[2025-10-28 00:55:48] Prefill batch. #new-seq: 1, #new-token: 1545, #cached-token: 0, token usage: 0.98, #running-req: 638, #queue-req: 712, 
+[2025-10-28 00:55:48] Prefill batch. #new-seq: 2, #new-token: 3544, #cached-token: 0, token usage: 0.97, #running-req: 636, #queue-req: 710, 
+[2025-10-28 00:55:48] Decode batch. #running-req: 638, #token: 890110, token usage: 0.98, cuda graph: False, gen throughput (token/s): 5099.71, #queue-req: 710, 
+[2025-10-28 00:55:48] Prefill batch. #new-seq: 1, #new-token: 798, #cached-token: 0, token usage: 0.98, #running-req: 637, #queue-req: 709, 
+[2025-10-28 00:55:49] Prefill batch. #new-seq: 1, #new-token: 1910, #cached-token: 0, token usage: 0.98, #running-req: 636, #queue-req: 708, 
+[2025-10-28 00:55:49] Prefill batch. #new-seq: 4, #new-token: 2095, #cached-token: 0, token usage: 0.97, #running-req: 635, #queue-req: 704, 
+[2025-10-28 00:55:49] Prefill batch. #new-seq: 1, #new-token: 1258, #cached-token: 0, token usage: 0.98, #running-req: 636, #queue-req: 703, 
+[2025-10-28 00:55:49] Prefill batch. #new-seq: 4, #new-token: 4698, #cached-token: 0, token usage: 0.97, #running-req: 634, #queue-req: 699, 
+[2025-10-28 00:55:49] Prefill batch. #new-seq: 2, #new-token: 1825, #cached-token: 0, token usage: 0.97, #running-req: 637, #queue-req: 697, 
+[2025-10-28 00:55:49] Prefill batch. #new-seq: 2, #new-token: 3208, #cached-token: 0, token usage: 0.97, #running-req: 636, #queue-req: 695, 
+[2025-10-28 00:55:50] Prefill batch. #new-seq: 3, #new-token: 5067, #cached-token: 0, token usage: 0.97, #running-req: 633, #queue-req: 692, 
+[2025-10-28 00:55:50] Prefill batch. #new-seq: 2, #new-token: 3475, #cached-token: 0, token usage: 0.97, #running-req: 632, #queue-req: 690, 
+[2025-10-28 00:55:50] Prefill batch. #new-seq: 1, #new-token: 1286, #cached-token: 0, token usage: 0.98, #running-req: 633, #queue-req: 689, 
+[2025-10-28 00:55:51] Prefill batch. #new-seq: 2, #new-token: 1978, #cached-token: 0, token usage: 0.97, #running-req: 633, #queue-req: 687, 
+[2025-10-28 00:55:51] Prefill batch. #new-seq: 2, #new-token: 3437, #cached-token: 0, token usage: 0.97, #running-req: 631, #queue-req: 685, 
+[2025-10-28 00:55:51] Prefill batch. #new-seq: 1, #new-token: 475, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 684, 
+[2025-10-28 00:55:51] Prefill batch. #new-seq: 2, #new-token: 3158, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 682, 
+[2025-10-28 00:55:52] Prefill batch. #new-seq: 1, #new-token: 234, #cached-token: 0, token usage: 0.98, #running-req: 630, #queue-req: 681, 
+[2025-10-28 00:55:52] Prefill batch. #new-seq: 1, #new-token: 1717, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 680, 
+[2025-10-28 00:55:52] Prefill batch. #new-seq: 1, #new-token: 1708, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 679, 
+[2025-10-28 00:55:52] Prefill batch. #new-seq: 2, #new-token: 2318, #cached-token: 0, token usage: 0.97, #running-req: 626, #queue-req: 677, 
+[2025-10-28 00:55:52] Prefill batch. #new-seq: 2, #new-token: 1754, #cached-token: 0, token usage: 0.98, #running-req: 626, #queue-req: 675, 
+[2025-10-28 00:55:53] Prefill batch. #new-seq: 5, #new-token: 5248, #cached-token: 0, token usage: 0.97, #running-req: 623, #queue-req: 670, 
+[2025-10-28 00:55:53] Prefill batch. #new-seq: 5, #new-token: 3471, #cached-token: 0, token usage: 0.97, #running-req: 626, #queue-req: 665, 
+[2025-10-28 00:55:53] Decode batch. #running-req: 626, #token: 888367, token usage: 0.97, cuda graph: False, gen throughput (token/s): 5478.84, #queue-req: 665, 
+[2025-10-28 00:55:53] Prefill batch. #new-seq: 3, #new-token: 3860, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 662, 
+[2025-10-28 00:55:53] Prefill batch. #new-seq: 1, #new-token: 858, #cached-token: 0, token usage: 0.98, #running-req: 629, #queue-req: 661, 
+[2025-10-28 00:55:54] Prefill batch. #new-seq: 2, #new-token: 1974, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 659, 
+[2025-10-28 00:55:54] Prefill batch. #new-seq: 2, #new-token: 1956, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 657, 
+[2025-10-28 00:55:54] Prefill batch. #new-seq: 1, #new-token: 1901, #cached-token: 0, token usage: 0.97, #running-req: 628, #queue-req: 656, 
+[2025-10-28 00:55:54] Prefill batch. #new-seq: 3, #new-token: 3106, #cached-token: 0, token usage: 0.97, #running-req: 628, #queue-req: 653, 
+[2025-10-28 00:55:55] Prefill batch. #new-seq: 3, #new-token: 3985, #cached-token: 0, token usage: 0.97, #running-req: 626, #queue-req: 650, 
+[2025-10-28 00:55:55] Prefill batch. #new-seq: 1, #new-token: 1861, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 649, 
+[2025-10-28 00:55:56] Prefill batch. #new-seq: 2, #new-token: 3362, #cached-token: 0, token usage: 0.97, #running-req: 625, #queue-req: 647, 
+[2025-10-28 00:55:56] Prefill batch. #new-seq: 3, #new-token: 2800, #cached-token: 0, token usage: 0.97, #running-req: 621, #queue-req: 644, 
+[2025-10-28 00:55:56] Prefill batch. #new-seq: 4, #new-token: 3965, #cached-token: 0, token usage: 0.97, #running-req: 622, #queue-req: 640, 
+[2025-10-28 00:55:56] Prefill batch. #new-seq: 1, #new-token: 1672, #cached-token: 0, token usage: 0.98, #running-req: 623, #queue-req: 639, 
+[2025-10-28 00:55:57] Prefill batch. #new-seq: 3, #new-token: 1577, #cached-token: 0, token usage: 0.98, #running-req: 622, #queue-req: 636, 
+[2025-10-28 00:55:57] Prefill batch. #new-seq: 3, #new-token: 3488, #cached-token: 0, token usage: 0.97, #running-req: 623, #queue-req: 633, 
+[2025-10-28 00:55:57] Prefill batch. #new-seq: 3, #new-token: 4004, #cached-token: 0, token usage: 0.97, #running-req: 624, #queue-req: 630, 
+[2025-10-28 00:55:57] Prefill batch. #new-seq: 2, #new-token: 131, #cached-token: 0, token usage: 0.98, #running-req: 626, #queue-req: 628, 
+[2025-10-28 00:55:57] Prefill batch. #new-seq: 1, #new-token: 1093, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 627, 
+[2025-10-28 00:55:57] Prefill batch. #new-seq: 2, #new-token: 1551, #cached-token: 0, token usage: 0.98, #running-req: 627, #queue-req: 625, 
+[2025-10-28 00:55:57] Prefill batch. #new-seq: 5, #new-token: 2659, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 620, 
+[2025-10-28 00:55:58] Prefill batch. #new-seq: 2, #new-token: 1520, #cached-token: 0, token usage: 0.97, #running-req: 630, #queue-req: 618, 
+[2025-10-28 00:55:58] Decode batch. #running-req: 630, #token: 889256, token usage: 0.98, cuda graph: False, gen throughput (token/s): 5287.58, #queue-req: 618, 
+[2025-10-28 00:55:58] Prefill batch. #new-seq: 6, #new-token: 7116, #cached-token: 0, token usage: 0.97, #running-req: 630, #queue-req: 612, 
+[2025-10-28 00:55:58] Prefill batch. #new-seq: 2, #new-token: 3186, #cached-token: 0, token usage: 0.97, #running-req: 630, #queue-req: 610, 
+[2025-10-28 00:55:58] Prefill batch. #new-seq: 3, #new-token: 2017, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 607, 
+[2025-10-28 00:55:59] Prefill batch. #new-seq: 2, #new-token: 2002, #cached-token: 0, token usage: 0.98, #running-req: 632, #queue-req: 605, 
+[2025-10-28 00:55:59] Prefill batch. #new-seq: 3, #new-token: 3487, #cached-token: 0, token usage: 0.97, #running-req: 629, #queue-req: 602, 
+[2025-10-28 00:55:59] Prefill batch. #new-seq: 2, #new-token: 2142, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 600, 
+[2025-10-28 00:55:59] Prefill batch. #new-seq: 1, #new-token: 1824, #cached-token: 0, token usage: 0.98, #running-req: 632, #queue-req: 599, 
+[2025-10-28 00:55:59] Prefill batch. #new-seq: 1, #new-token: 1602, #cached-token: 0, token usage: 0.98, #running-req: 632, #queue-req: 598, 
+[2025-10-28 00:55:59] Prefill batch. #new-seq: 2, #new-token: 2019, #cached-token: 0, token usage: 0.98, #running-req: 631, #queue-req: 596, 
+[2025-10-28 00:56:00] Prefill batch. #new-seq: 2, #new-token: 414, #cached-token: 0, token usage: 0.98, #running-req: 632, #queue-req: 594, 
+[2025-10-28 00:56:00] Prefill batch. #new-seq: 3, #new-token: 3069, #cached-token: 0, token usage: 0.97, #running-req: 630, #queue-req: 591, 
+[2025-10-28 00:56:00] Prefill batch. #new-seq: 4, #new-token: 3031, #cached-token: 0, token usage: 0.97, #running-req: 628, #queue-req: 587, 
+[2025-10-28 00:56:01] Prefill batch. #new-seq: 8, #new-token: 5740, #cached-token: 0, token usage: 0.97, #running-req: 627, #queue-req: 579, 
+[2025-10-28 00:56:01] Prefill batch. #new-seq: 4, #new-token: 4908, #cached-token: 0, token usage: 0.97, #running-req: 632, #queue-req: 575, 
+[2025-10-28 00:56:01] Prefill batch. #new-seq: 2, #new-token: 2233, #cached-token: 0, token usage: 0.97, #running-req: 635, #queue-req: 573, 
+[2025-10-28 00:56:01] Prefill batch. #new-seq: 3, #new-token: 3623, #cached-token: 0, token usage: 0.97, #running-req: 635, #queue-req: 570, 
+[2025-10-28 00:56:01] Prefill batch. #new-seq: 1, #new-token: 925, #cached-token: 0, token usage: 0.98, #running-req: 637, #queue-req: 569, 
+[2025-10-28 00:56:02] Prefill batch. #new-seq: 2, #new-token: 2882, #cached-token: 0, token usage: 0.97, #running-req: 636, #queue-req: 567, 
+[2025-10-28 00:56:02] Prefill batch. #new-seq: 6, #new-token: 4370, #cached-token: 0, token usage: 0.97, #running-req: 634, #queue-req: 561, 
+[2025-10-28 00:56:02] Prefill batch. #new-seq: 2, #new-token: 2197, #cached-token: 0, token usage: 0.98, #running-req: 636, #queue-req: 559, 
+[2025-10-28 00:56:02] Prefill batch. #new-seq: 3, #new-token: 3065, #cached-token: 0, token usage: 0.97, #running-req: 636, #queue-req: 556, 
+[2025-10-28 00:56:03] Prefill batch. #new-seq: 4, #new-token: 4091, #cached-token: 0, token usage: 0.97, #running-req: 637, #queue-req: 552, 
+[2025-10-28 00:56:03] Decode batch. #running-req: 641, #token: 880251, token usage: 0.97, cuda graph: False, gen throughput (token/s): 4791.29, #queue-req: 552, 
+[2025-10-28 00:56:03] Prefill batch. #new-seq: 6, #new-token: 7581, #cached-token: 0, token usage: 0.97, #running-req: 639, #queue-req: 546, 
+[2025-10-28 00:56:03] Prefill batch. #new-seq: 3, #new-token: 1748, #cached-token: 0, token usage: 0.97, #running-req: 641, #queue-req: 543, 
+[2025-10-28 00:56:04] Prefill batch. #new-seq: 2, #new-token: 1540, #cached-token: 0, token usage: 0.97, #running-req: 643, #queue-req: 541, 
+[2025-10-28 00:56:04] Prefill batch. #new-seq: 1, #new-token: 1274, #cached-token: 0, token usage: 0.97, #running-req: 642, #queue-req: 540, 
+[2025-10-28 00:56:04] Prefill batch. #new-seq: 4, #new-token: 5056, #cached-token: 0, token usage: 0.97, #running-req: 639, #queue-req: 536, 
+[2025-10-28 00:56:04] Prefill batch. #new-seq: 2, #new-token: 1586, #cached-token: 0, token usage: 0.97, #running-req: 642, #queue-req: 534, 
+[2025-10-28 00:56:04] Prefill batch. #new-seq: 6, #new-token: 6410, #cached-token: 0, token usage: 0.97, #running-req: 640, #queue-req: 528, 
+[2025-10-28 00:56:05] Prefill batch. #new-seq: 6, #new-token: 5758, #cached-token: 0, token usage: 0.97, #running-req: 641, #queue-req: 522, 
+[2025-10-28 00:56:05] Prefill batch. #new-seq: 4, #new-token: 4090, #cached-token: 0, token usage: 0.97, #running-req: 645, #queue-req: 518, 
+[2025-10-28 00:56:05] Prefill batch. #new-seq: 2, #new-token: 2663, #cached-token: 0, token usage: 0.97, #running-req: 646, #queue-req: 516, 
+[2025-10-28 00:56:05] Prefill batch. #new-seq: 2, #new-token: 3662, #cached-token: 0, token usage: 0.97, #running-req: 646, #queue-req: 514, 
+[2025-10-28 00:56:06] Prefill batch. #new-seq: 5, #new-token: 6390, #cached-token: 0, token usage: 0.97, #running-req: 645, #queue-req: 509, 
+[2025-10-28 00:56:06] Prefill batch. #new-seq: 2, #new-token: 1279, #cached-token: 0, token usage: 0.97, #running-req: 647, #queue-req: 507, 
+[2025-10-28 00:56:06] Prefill batch. #new-seq: 4, #new-token: 3784, #cached-token: 0, token usage: 0.97, #running-req: 648, #queue-req: 503, 
+[2025-10-28 00:56:07] Prefill batch. #new-seq: 4, #new-token: 3057, #cached-token: 0, token usage: 0.97, #running-req: 647, #queue-req: 499, 
+[2025-10-28 00:56:07] Prefill batch. #new-seq: 4, #new-token: 4660, #cached-token: 0, token usage: 0.97, #running-req: 649, #queue-req: 495, 
+[2025-10-28 00:56:07] Prefill batch. #new-seq: 4, #new-token: 2425, #cached-token: 0, token usage: 0.97, #running-req: 649, #queue-req: 491, 
+[2025-10-28 00:56:07] Prefill batch. #new-seq: 2, #new-token: 1972, #cached-token: 0, token usage: 0.97, #running-req: 652, #queue-req: 489, 
+[2025-10-28 00:56:08] Prefill batch. #new-seq: 2, #new-token: 1971, #cached-token: 0, token usage: 0.97, #running-req: 651, #queue-req: 487, 
+[2025-10-28 00:56:08] Prefill batch. #new-seq: 1, #new-token: 1524, #cached-token: 0, token usage: 0.97, #running-req: 652, #queue-req: 486, 
+[2025-10-28 00:56:08] Prefill batch. #new-seq: 3, #new-token: 3386, #cached-token: 0, token usage: 0.97, #running-req: 649, #queue-req: 483, 
+[2025-10-28 00:56:08] Prefill batch. #new-seq: 1, #new-token: 582, #cached-token: 0, token usage: 0.97, #running-req: 650, #queue-req: 482, 
+[2025-10-28 00:56:08] Prefill batch. #new-seq: 3, #new-token: 3295, #cached-token: 0, token usage: 0.97, #running-req: 648, #queue-req: 479, 
+[2025-10-28 00:56:09] Prefill batch. #new-seq: 3, #new-token: 4048, #cached-token: 0, token usage: 0.97, #running-req: 649, #queue-req: 476, 
+[2025-10-28 00:56:09] Prefill batch. #new-seq: 1, #new-token: 678, #cached-token: 0, token usage: 0.98, #running-req: 651, #queue-req: 475, 
+[2025-10-28 00:56:09] Decode batch. #running-req: 651, #token: 883592, token usage: 0.97, cuda graph: False, gen throughput (token/s): 4265.22, #queue-req: 475, 
+[2025-10-28 00:56:09] Prefill batch. #new-seq: 4, #new-token: 5605, #cached-token: 0, token usage: 0.97, #running-req: 648, #queue-req: 471, 
+[2025-10-28 00:56:09] Prefill batch. #new-seq: 2, #new-token: 3695, #cached-token: 0, token usage: 0.97, #running-req: 647, #queue-req: 469, 
+[2025-10-28 00:56:10] Prefill batch. #new-seq: 3, #new-token: 4913, #cached-token: 0, token usage: 0.97, #running-req: 646, #queue-req: 466, 
+[2025-10-28 00:56:10] Prefill batch. #new-seq: 6, #new-token: 8116, #cached-token: 0, token usage: 0.96, #running-req: 645, #queue-req: 460, 
+[2025-10-28 00:56:10] Prefill batch. #new-seq: 2, #new-token: 2354, #cached-token: 0, token usage: 0.97, #running-req: 649, #queue-req: 458, 
+[2025-10-28 00:56:11] Prefill batch. #new-seq: 2, #new-token: 2136, #cached-token: 0, token usage: 0.97, #running-req: 649, #queue-req: 456, 
+[2025-10-28 00:56:11] Prefill batch. #new-seq: 1, #new-token: 1001, #cached-token: 0, token usage: 0.98, #running-req: 650, #queue-req: 455, 
+[2025-10-28 00:56:11] Prefill batch. #new-seq: 3, #new-token: 2980, #cached-token: 0, token usage: 0.97, #running-req: 649, #queue-req: 452, 
+[2025-10-28 00:56:11] Prefill batch. #new-seq: 3, #new-token: 3796, #cached-token: 0, token usage: 0.97, #running-req: 648, #queue-req: 449, 
+[2025-10-28 00:56:11] Prefill batch. #new-seq: 2, #new-token: 2795, #cached-token: 0, token usage: 0.97, #running-req: 648, #queue-req: 447, 
+[2025-10-28 00:56:12] Prefill batch. #new-seq: 2, #new-token: 2445, #cached-token: 0, token usage: 0.97, #running-req: 648, #queue-req: 445, 
+[2025-10-28 00:56:12] Prefill batch. #new-seq: 2, #new-token: 2360, #cached-token: 0, token usage: 0.97, #running-req: 648, #queue-req: 443, 
+[2025-10-28 00:56:12] Prefill batch. #new-seq: 3, #new-token: 3103, #cached-token: 0, token usage: 0.97, #running-req: 645, #queue-req: 440, 
+[2025-10-28 00:56:12] Prefill batch. #new-seq: 2, #new-token: 2753, #cached-token: 0, token usage: 0.97, #running-req: 646, #queue-req: 438, 
+[2025-10-28 00:56:13] Prefill batch. #new-seq: 2, #new-token: 3722, #cached-token: 0, token usage: 0.97, #running-req: 646, #queue-req: 436, 
+[2025-10-28 00:56:13] Prefill batch. #new-seq: 10, #new-token: 5368, #cached-token: 0, token usage: 0.97, #running-req: 642, #queue-req: 426, 
+[2025-10-28 00:56:13] Prefill batch. #new-seq: 1, #new-token: 999, #cached-token: 0, token usage: 0.97, #running-req: 651, #queue-req: 425, 
+[2025-10-28 00:56:13] Prefill batch. #new-seq: 3, #new-token: 3595, #cached-token: 0, token usage: 0.97, #running-req: 650, #queue-req: 422, 
+[2025-10-28 00:56:14] Prefill batch. #new-seq: 3, #new-token: 875, #cached-token: 0, token usage: 0.97, #running-req: 652, #queue-req: 419, 
+[2025-10-28 00:56:14] Prefill batch. #new-seq: 4, #new-token: 3661, #cached-token: 0, token usage: 0.97, #running-req: 653, #queue-req: 415, 
+[2025-10-28 00:56:14] Prefill batch. #new-seq: 5, #new-token: 3472, #cached-token: 0, token usage: 0.97, #running-req: 650, #queue-req: 410, 
+[2025-10-28 00:56:15] Prefill batch. #new-seq: 5, #new-token: 3956, #cached-token: 0, token usage: 0.97, #running-req: 652, #queue-req: 405, 
+[2025-10-28 00:56:15] Decode batch. #running-req: 652, #token: 887218, token usage: 0.97, cuda graph: False, gen throughput (token/s): 4563.05, #queue-req: 405, 
+[2025-10-28 00:56:15] Prefill batch. #new-seq: 5, #new-token: 6050, #cached-token: 0, token usage: 0.97, #running-req: 655, #queue-req: 400, 
+[2025-10-28 00:56:15] Prefill batch. #new-seq: 7, #new-token: 7929, #cached-token: 0, token usage: 0.96, #running-req: 654, #queue-req: 393, 
+[2025-10-28 00:56:16] Prefill batch. #new-seq: 5, #new-token: 6064, #cached-token: 0, token usage: 0.97, #running-req: 658, #queue-req: 388, 
+[2025-10-28 00:56:16] Prefill batch. #new-seq: 3, #new-token: 3396, #cached-token: 0, token usage: 0.97, #running-req: 660, #queue-req: 385, 
+[2025-10-28 00:56:16] Prefill batch. #new-seq: 3, #new-token: 4349, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 382, 
+[2025-10-28 00:56:17] Prefill batch. #new-seq: 1, #new-token: 1322, #cached-token: 0, token usage: 0.97, #running-req: 662, #queue-req: 381, 
+[2025-10-28 00:56:17] Prefill batch. #new-seq: 3, #new-token: 2219, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 378, 
+[2025-10-28 00:56:17] Prefill batch. #new-seq: 1, #new-token: 1583, #cached-token: 0, token usage: 0.97, #running-req: 662, #queue-req: 377, 
+[2025-10-28 00:56:17] Prefill batch. #new-seq: 1, #new-token: 1888, #cached-token: 0, token usage: 0.97, #running-req: 662, #queue-req: 376, 
+[2025-10-28 00:56:17] Prefill batch. #new-seq: 4, #new-token: 3455, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 372, 
+[2025-10-28 00:56:18] Prefill batch. #new-seq: 1, #new-token: 635, #cached-token: 0, token usage: 0.97, #running-req: 662, #queue-req: 371, 
+[2025-10-28 00:56:18] Prefill batch. #new-seq: 2, #new-token: 595, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 369, 
+[2025-10-28 00:56:18] Prefill batch. #new-seq: 2, #new-token: 3258, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 367, 
+[2025-10-28 00:56:18] Prefill batch. #new-seq: 2, #new-token: 810, #cached-token: 0, token usage: 0.97, #running-req: 659, #queue-req: 365, 
+[2025-10-28 00:56:18] Prefill batch. #new-seq: 2, #new-token: 1908, #cached-token: 0, token usage: 0.97, #running-req: 660, #queue-req: 363, 
+[2025-10-28 00:56:19] Prefill batch. #new-seq: 2, #new-token: 1869, #cached-token: 0, token usage: 0.97, #running-req: 660, #queue-req: 361, 
+[2025-10-28 00:56:19] Prefill batch. #new-seq: 1, #new-token: 240, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 360, 
+[2025-10-28 00:56:19] Prefill batch. #new-seq: 1, #new-token: 748, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 359, 
+[2025-10-28 00:56:19] Prefill batch. #new-seq: 4, #new-token: 4476, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 355, 
+[2025-10-28 00:56:19] Prefill batch. #new-seq: 7, #new-token: 5858, #cached-token: 0, token usage: 0.96, #running-req: 657, #queue-req: 348, 
+[2025-10-28 00:56:20] Prefill batch. #new-seq: 2, #new-token: 1715, #cached-token: 0, token usage: 0.97, #running-req: 663, #queue-req: 346, 
+[2025-10-28 00:56:20] Prefill batch. #new-seq: 6, #new-token: 6276, #cached-token: 0, token usage: 0.96, #running-req: 662, #queue-req: 340, 
+[2025-10-28 00:56:20] Prefill batch. #new-seq: 3, #new-token: 2540, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 337, 
+[2025-10-28 00:56:20] Prefill batch. #new-seq: 2, #new-token: 2392, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 335, 
+[2025-10-28 00:56:21] Decode batch. #running-req: 666, #token: 884299, token usage: 0.97, cuda graph: False, gen throughput (token/s): 4439.73, #queue-req: 335, 
+[2025-10-28 00:56:21] Prefill batch. #new-seq: 2, #new-token: 2836, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 333, 
+[2025-10-28 00:56:21] Prefill batch. #new-seq: 4, #new-token: 2668, #cached-token: 0, token usage: 0.97, #running-req: 663, #queue-req: 329, 
+[2025-10-28 00:56:21] Prefill batch. #new-seq: 2, #new-token: 1374, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 327, 
+[2025-10-28 00:56:21] Prefill batch. #new-seq: 5, #new-token: 4291, #cached-token: 0, token usage: 0.97, #running-req: 663, #queue-req: 322, 
+[2025-10-28 00:56:22] Prefill batch. #new-seq: 2, #new-token: 2732, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 320, 
+[2025-10-28 00:56:22] Prefill batch. #new-seq: 2, #new-token: 663, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 318, 
+[2025-10-28 00:56:22] Prefill batch. #new-seq: 2, #new-token: 3674, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 316, 
+[2025-10-28 00:56:22] Prefill batch. #new-seq: 1, #new-token: 239, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 315, 
+[2025-10-28 00:56:22] Prefill batch. #new-seq: 3, #new-token: 3572, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 312, 
+[2025-10-28 00:56:23] Prefill batch. #new-seq: 2, #new-token: 1691, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 310, 
+[2025-10-28 00:56:23] Prefill batch. #new-seq: 6, #new-token: 3937, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 304, 
+[2025-10-28 00:56:23] Prefill batch. #new-seq: 3, #new-token: 3470, #cached-token: 0, token usage: 0.97, #running-req: 672, #queue-req: 301, 
+[2025-10-28 00:56:23] Prefill batch. #new-seq: 3, #new-token: 3971, #cached-token: 0, token usage: 0.97, #running-req: 672, #queue-req: 298, 
+[2025-10-28 00:56:23] Prefill batch. #new-seq: 1, #new-token: 1425, #cached-token: 0, token usage: 0.97, #running-req: 674, #queue-req: 297, 
+[2025-10-28 00:56:24] Prefill batch. #new-seq: 2, #new-token: 2312, #cached-token: 0, token usage: 0.97, #running-req: 673, #queue-req: 295, 
+[2025-10-28 00:56:24] Prefill batch. #new-seq: 5, #new-token: 3960, #cached-token: 0, token usage: 0.97, #running-req: 673, #queue-req: 290, 
+[2025-10-28 00:56:24] Prefill batch. #new-seq: 2, #new-token: 2056, #cached-token: 0, token usage: 0.97, #running-req: 674, #queue-req: 288, 
+[2025-10-28 00:56:24] Prefill batch. #new-seq: 2, #new-token: 1351, #cached-token: 0, token usage: 0.97, #running-req: 674, #queue-req: 286, 
+[2025-10-28 00:56:24] Prefill batch. #new-seq: 3, #new-token: 3512, #cached-token: 0, token usage: 0.97, #running-req: 674, #queue-req: 283, 
+[2025-10-28 00:56:25] Prefill batch. #new-seq: 3, #new-token: 2119, #cached-token: 0, token usage: 0.97, #running-req: 676, #queue-req: 280, 
+[2025-10-28 00:56:25] Prefill batch. #new-seq: 3, #new-token: 3542, #cached-token: 0, token usage: 0.97, #running-req: 676, #queue-req: 277, 
+[2025-10-28 00:56:25] Prefill batch. #new-seq: 1, #new-token: 1713, #cached-token: 0, token usage: 0.97, #running-req: 678, #queue-req: 276, 
+[2025-10-28 00:56:25] Prefill batch. #new-seq: 2, #new-token: 2376, #cached-token: 0, token usage: 0.97, #running-req: 676, #queue-req: 274, 
+[2025-10-28 00:56:25] Prefill batch. #new-seq: 1, #new-token: 1322, #cached-token: 0, token usage: 0.97, #running-req: 677, #queue-req: 273, 
+[2025-10-28 00:56:26] Prefill batch. #new-seq: 1, #new-token: 1469, #cached-token: 0, token usage: 0.97, #running-req: 677, #queue-req: 272, 
+[2025-10-28 00:56:26] Prefill batch. #new-seq: 1, #new-token: 993, #cached-token: 0, token usage: 0.97, #running-req: 677, #queue-req: 271, 
+[2025-10-28 00:56:26] Prefill batch. #new-seq: 1, #new-token: 744, #cached-token: 0, token usage: 0.97, #running-req: 677, #queue-req: 270, 
+[2025-10-28 00:56:26] Prefill batch. #new-seq: 1, #new-token: 2043, #cached-token: 0, token usage: 0.97, #running-req: 677, #queue-req: 269, 
+[2025-10-28 00:56:26] Prefill batch. #new-seq: 10, #new-token: 8192, #cached-token: 0, token usage: 0.96, #running-req: 672, #queue-req: 259, 
+[2025-10-28 00:56:26] Prefill batch. #new-seq: 4, #new-token: 2450, #cached-token: 0, token usage: 0.97, #running-req: 681, #queue-req: 256, 
+[2025-10-28 00:56:27] Prefill batch. #new-seq: 1, #new-token: 1547, #cached-token: 0, token usage: 0.97, #running-req: 683, #queue-req: 255, 
+[2025-10-28 00:56:27] Decode batch. #running-req: 683, #token: 886312, token usage: 0.97, cuda graph: False, gen throughput (token/s): 4406.62, #queue-req: 255, 
+[2025-10-28 00:56:27] Prefill batch. #new-seq: 3, #new-token: 3460, #cached-token: 0, token usage: 0.97, #running-req: 682, #queue-req: 252, 
+[2025-10-28 00:56:27] Prefill batch. #new-seq: 1, #new-token: 81, #cached-token: 0, token usage: 0.97, #running-req: 684, #queue-req: 251, 
+[2025-10-28 00:56:27] Prefill batch. #new-seq: 2, #new-token: 2102, #cached-token: 0, token usage: 0.97, #running-req: 682, #queue-req: 249, 
+[2025-10-28 00:56:28] Prefill batch. #new-seq: 2, #new-token: 3528, #cached-token: 0, token usage: 0.97, #running-req: 682, #queue-req: 247, 
+[2025-10-28 00:56:28] Prefill batch. #new-seq: 1, #new-token: 428, #cached-token: 0, token usage: 0.97, #running-req: 683, #queue-req: 246, 
+[2025-10-28 00:56:28] Prefill batch. #new-seq: 1, #new-token: 1671, #cached-token: 0, token usage: 0.97, #running-req: 682, #queue-req: 245, 
+[2025-10-28 00:56:28] Prefill batch. #new-seq: 1, #new-token: 1430, #cached-token: 0, token usage: 0.97, #running-req: 682, #queue-req: 244, 
+[2025-10-28 00:56:28] Prefill batch. #new-seq: 1, #new-token: 1973, #cached-token: 0, token usage: 0.97, #running-req: 678, #queue-req: 243, 
+[2025-10-28 00:56:29] Prefill batch. #new-seq: 2, #new-token: 2165, #cached-token: 0, token usage: 0.97, #running-req: 678, #queue-req: 241, 
+[2025-10-28 00:56:29] Prefill batch. #new-seq: 1, #new-token: 1999, #cached-token: 0, token usage: 0.97, #running-req: 677, #queue-req: 240, 
+[2025-10-28 00:56:29] Prefill batch. #new-seq: 1, #new-token: 1815, #cached-token: 0, token usage: 0.97, #running-req: 676, #queue-req: 239, 
+[2025-10-28 00:56:29] Prefill batch. #new-seq: 2, #new-token: 3116, #cached-token: 0, token usage: 0.97, #running-req: 671, #queue-req: 237, 
+[2025-10-28 00:56:30] Prefill batch. #new-seq: 1, #new-token: 1105, #cached-token: 0, token usage: 0.97, #running-req: 670, #queue-req: 236, 
+[2025-10-28 00:56:30] Prefill batch. #new-seq: 2, #new-token: 2929, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 234, 
+[2025-10-28 00:56:30] Prefill batch. #new-seq: 1, #new-token: 700, #cached-token: 0, token usage: 0.97, #running-req: 670, #queue-req: 233, 
+[2025-10-28 00:56:30] Prefill batch. #new-seq: 1, #new-token: 1845, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 232, 
+[2025-10-28 00:56:30] Prefill batch. #new-seq: 2, #new-token: 2572, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 230, 
+[2025-10-28 00:56:31] Prefill batch. #new-seq: 1, #new-token: 597, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 229, 
+[2025-10-28 00:56:31] Prefill batch. #new-seq: 4, #new-token: 5985, #cached-token: 0, token usage: 0.96, #running-req: 664, #queue-req: 225, 
+[2025-10-28 00:56:31] Decode batch. #running-req: 664, #token: 884282, token usage: 0.97, cuda graph: False, gen throughput (token/s): 6013.77, #queue-req: 225, 
+[2025-10-28 00:56:32] Prefill batch. #new-seq: 1, #new-token: 2038, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 224, 
+[2025-10-28 00:56:32] Prefill batch. #new-seq: 5, #new-token: 3140, #cached-token: 0, token usage: 0.97, #running-req: 662, #queue-req: 219, 
+[2025-10-28 00:56:32] Prefill batch. #new-seq: 4, #new-token: 3293, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 215, 
+[2025-10-28 00:56:32] Prefill batch. #new-seq: 2, #new-token: 729, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 213, 
+[2025-10-28 00:56:32] Prefill batch. #new-seq: 3, #new-token: 2047, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 210, 
+[2025-10-28 00:56:32] Prefill batch. #new-seq: 4, #new-token: 4042, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 206, 
+[2025-10-28 00:56:33] Prefill batch. #new-seq: 4, #new-token: 5575, #cached-token: 0, token usage: 0.96, #running-req: 668, #queue-req: 202, 
+[2025-10-28 00:56:33] Prefill batch. #new-seq: 5, #new-token: 4216, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 197, 
+[2025-10-28 00:56:33] Prefill batch. #new-seq: 3, #new-token: 2782, #cached-token: 0, token usage: 0.97, #running-req: 670, #queue-req: 194, 
+[2025-10-28 00:56:33] Prefill batch. #new-seq: 1, #new-token: 1540, #cached-token: 0, token usage: 0.97, #running-req: 672, #queue-req: 193, 
+[2025-10-28 00:56:34] Prefill batch. #new-seq: 1, #new-token: 1378, #cached-token: 0, token usage: 0.97, #running-req: 672, #queue-req: 192, 
+[2025-10-28 00:56:34] Prefill batch. #new-seq: 3, #new-token: 2381, #cached-token: 0, token usage: 0.97, #running-req: 672, #queue-req: 189, 
+[2025-10-28 00:56:34] Prefill batch. #new-seq: 1, #new-token: 1436, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 188, 
+[2025-10-28 00:56:35] Prefill batch. #new-seq: 1, #new-token: 373, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 187, 
+[2025-10-28 00:56:35] Prefill batch. #new-seq: 1, #new-token: 1974, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 186, 
+[2025-10-28 00:56:35] Prefill batch. #new-seq: 2, #new-token: 66, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 184, 
+[2025-10-28 00:56:35] Prefill batch. #new-seq: 1, #new-token: 1984, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 183, 
+[2025-10-28 00:56:36] Prefill batch. #new-seq: 2, #new-token: 902, #cached-token: 0, token usage: 0.97, #running-req: 665, #queue-req: 181, 
+[2025-10-28 00:56:36] Prefill batch. #new-seq: 4, #new-token: 4269, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 177, 
+[2025-10-28 00:56:36] Prefill batch. #new-seq: 4, #new-token: 5793, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 173, 
+[2025-10-28 00:56:36] Prefill batch. #new-seq: 5, #new-token: 1470, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 168, 
+[2025-10-28 00:56:37] Decode batch. #running-req: 671, #token: 885333, token usage: 0.97, cuda graph: False, gen throughput (token/s): 5072.93, #queue-req: 168, 
+[2025-10-28 00:56:37] Prefill batch. #new-seq: 2, #new-token: 2052, #cached-token: 0, token usage: 0.97, #running-req: 670, #queue-req: 166, 
+[2025-10-28 00:56:37] Prefill batch. #new-seq: 3, #new-token: 1955, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 163, 
+[2025-10-28 00:56:37] Prefill batch. #new-seq: 2, #new-token: 3033, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 161, 
+[2025-10-28 00:56:37] Prefill batch. #new-seq: 1, #new-token: 717, #cached-token: 0, token usage: 0.97, #running-req: 670, #queue-req: 160, 
+[2025-10-28 00:56:37] Prefill batch. #new-seq: 3, #new-token: 1563, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 157, 
+[2025-10-28 00:56:38] Prefill batch. #new-seq: 3, #new-token: 2691, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 154, 
+[2025-10-28 00:56:38] Prefill batch. #new-seq: 4, #new-token: 3056, #cached-token: 0, token usage: 0.97, #running-req: 670, #queue-req: 150, 
+[2025-10-28 00:56:38] Prefill batch. #new-seq: 2, #new-token: 2494, #cached-token: 0, token usage: 0.97, #running-req: 673, #queue-req: 148, 
+[2025-10-28 00:56:38] Prefill batch. #new-seq: 4, #new-token: 4549, #cached-token: 0, token usage: 0.97, #running-req: 672, #queue-req: 144, 
+[2025-10-28 00:56:39] Prefill batch. #new-seq: 2, #new-token: 1826, #cached-token: 0, token usage: 0.97, #running-req: 671, #queue-req: 142, 
+[2025-10-28 00:56:39] Prefill batch. #new-seq: 1, #new-token: 1552, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 141, 
+[2025-10-28 00:56:40] Prefill batch. #new-seq: 4, #new-token: 2393, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 137, 
+[2025-10-28 00:56:40] Prefill batch. #new-seq: 2, #new-token: 1073, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 135, 
+[2025-10-28 00:56:40] Prefill batch. #new-seq: 1, #new-token: 1135, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 134, 
+[2025-10-28 00:56:40] Prefill batch. #new-seq: 2, #new-token: 2205, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 132, 
+[2025-10-28 00:56:41] Decode batch. #running-req: 667, #token: 884703, token usage: 0.97, cuda graph: False, gen throughput (token/s): 6336.65, #queue-req: 132, 
+[2025-10-28 00:56:41] Prefill batch. #new-seq: 1, #new-token: 2004, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 131, 
+[2025-10-28 00:56:41] Prefill batch. #new-seq: 1, #new-token: 2022, #cached-token: 0, token usage: 0.97, #running-req: 665, #queue-req: 130, 
+[2025-10-28 00:56:41] Prefill batch. #new-seq: 2, #new-token: 1595, #cached-token: 0, token usage: 0.97, #running-req: 665, #queue-req: 128, 
+[2025-10-28 00:56:41] Prefill batch. #new-seq: 1, #new-token: 1242, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 127, 
+[2025-10-28 00:56:42] Prefill batch. #new-seq: 2, #new-token: 1721, #cached-token: 0, token usage: 0.97, #running-req: 665, #queue-req: 125, 
+[2025-10-28 00:56:42] Prefill batch. #new-seq: 2, #new-token: 1186, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 123, 
+[2025-10-28 00:56:42] Prefill batch. #new-seq: 1, #new-token: 1891, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 122, 
+[2025-10-28 00:56:42] Prefill batch. #new-seq: 1, #new-token: 1708, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 121, 
+[2025-10-28 00:56:43] Prefill batch. #new-seq: 2, #new-token: 1977, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 119, 
+[2025-10-28 00:56:43] Prefill batch. #new-seq: 1, #new-token: 1628, #cached-token: 0, token usage: 0.97, #running-req: 658, #queue-req: 118, 
+[2025-10-28 00:56:44] Prefill batch. #new-seq: 1, #new-token: 1870, #cached-token: 0, token usage: 0.97, #running-req: 656, #queue-req: 117, 
+[2025-10-28 00:56:44] Prefill batch. #new-seq: 1, #new-token: 569, #cached-token: 0, token usage: 0.97, #running-req: 656, #queue-req: 116, 
+[2025-10-28 00:56:44] Prefill batch. #new-seq: 8, #new-token: 4279, #cached-token: 0, token usage: 0.97, #running-req: 654, #queue-req: 108, 
+[2025-10-28 00:56:44] Prefill batch. #new-seq: 3, #new-token: 793, #cached-token: 0, token usage: 0.97, #running-req: 661, #queue-req: 105, 
+[2025-10-28 00:56:44] Prefill batch. #new-seq: 4, #new-token: 3801, #cached-token: 0, token usage: 0.97, #running-req: 662, #queue-req: 101, 
+[2025-10-28 00:56:45] Prefill batch. #new-seq: 2, #new-token: 2475, #cached-token: 0, token usage: 0.97, #running-req: 665, #queue-req: 99, 
+[2025-10-28 00:56:45] Prefill batch. #new-seq: 4, #new-token: 4199, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 95, 
+[2025-10-28 00:56:45] Decode batch. #running-req: 668, #token: 882738, token usage: 0.97, cuda graph: False, gen throughput (token/s): 6093.07, #queue-req: 95, 
+[2025-10-28 00:56:45] Prefill batch. #new-seq: 5, #new-token: 3533, #cached-token: 0, token usage: 0.97, #running-req: 665, #queue-req: 90, 
+[2025-10-28 00:56:45] Prefill batch. #new-seq: 2, #new-token: 1036, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 88, 
+[2025-10-28 00:56:45] Prefill batch. #new-seq: 5, #new-token: 4513, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 83, 
+[2025-10-28 00:56:46] Prefill batch. #new-seq: 1, #new-token: 1569, #cached-token: 0, token usage: 0.97, #running-req: 672, #queue-req: 82, 
+[2025-10-28 00:56:46] Prefill batch. #new-seq: 1, #new-token: 1390, #cached-token: 0, token usage: 0.97, #running-req: 671, #queue-req: 81, 
+[2025-10-28 00:56:46] Prefill batch. #new-seq: 1, #new-token: 933, #cached-token: 0, token usage: 0.97, #running-req: 671, #queue-req: 80, 
+[2025-10-28 00:56:46] Prefill batch. #new-seq: 1, #new-token: 162, #cached-token: 0, token usage: 0.97, #running-req: 671, #queue-req: 79, 
+[2025-10-28 00:56:46] Prefill batch. #new-seq: 1, #new-token: 1844, #cached-token: 0, token usage: 0.97, #running-req: 671, #queue-req: 78, 
+[2025-10-28 00:56:47] Prefill batch. #new-seq: 5, #new-token: 5100, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 73, 
+[2025-10-28 00:56:47] Prefill batch. #new-seq: 1, #new-token: 1569, #cached-token: 0, token usage: 0.97, #running-req: 671, #queue-req: 72, 
+[2025-10-28 00:56:47] Prefill batch. #new-seq: 2, #new-token: 2807, #cached-token: 0, token usage: 0.97, #running-req: 670, #queue-req: 70, 
+[2025-10-28 00:56:47] Prefill batch. #new-seq: 2, #new-token: 3558, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 68, 
+[2025-10-28 00:56:48] Prefill batch. #new-seq: 1, #new-token: 653, #cached-token: 0, token usage: 0.97, #running-req: 669, #queue-req: 67, 
+[2025-10-28 00:56:48] Prefill batch. #new-seq: 2, #new-token: 2523, #cached-token: 0, token usage: 0.97, #running-req: 668, #queue-req: 65, 
+[2025-10-28 00:56:48] Prefill batch. #new-seq: 2, #new-token: 3785, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 63, 
+[2025-10-28 00:56:48] Prefill batch. #new-seq: 2, #new-token: 1068, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 61, 
+[2025-10-28 00:56:49] Prefill batch. #new-seq: 1, #new-token: 1634, #cached-token: 0, token usage: 0.97, #running-req: 667, #queue-req: 60, 
+[2025-10-28 00:56:49] Prefill batch. #new-seq: 1, #new-token: 1375, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 59, 
+[2025-10-28 00:56:49] Prefill batch. #new-seq: 4, #new-token: 4317, #cached-token: 0, token usage: 0.97, #running-req: 660, #queue-req: 55, 
+[2025-10-28 00:56:49] Prefill batch. #new-seq: 3, #new-token: 3105, #cached-token: 0, token usage: 0.97, #running-req: 662, #queue-req: 52, 
+[2025-10-28 00:56:50] Prefill batch. #new-seq: 3, #new-token: 3525, #cached-token: 0, token usage: 0.97, #running-req: 663, #queue-req: 49, 
+[2025-10-28 00:56:50] Prefill batch. #new-seq: 2, #new-token: 203, #cached-token: 0, token usage: 0.97, #running-req: 665, #queue-req: 47, 
+[2025-10-28 00:56:50] Prefill batch. #new-seq: 1, #new-token: 937, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 46, 
+[2025-10-28 00:56:50] Decode batch. #running-req: 666, #token: 887200, token usage: 0.97, cuda graph: False, gen throughput (token/s): 5288.30, #queue-req: 46, 
+[2025-10-28 00:56:50] Prefill batch. #new-seq: 1, #new-token: 392, #cached-token: 0, token usage: 0.97, #running-req: 666, #queue-req: 45, 
+[2025-10-28 00:56:50] Prefill batch. #new-seq: 2, #new-token: 2394, #cached-token: 0, token usage: 0.97, #running-req: 665, #queue-req: 43, 
+[2025-10-28 00:56:51] Prefill batch. #new-seq: 3, #new-token: 3461, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 40, 
+[2025-10-28 00:56:51] Prefill batch. #new-seq: 1, #new-token: 1797, #cached-token: 0, token usage: 0.97, #running-req: 664, #queue-req: 39, 
+[2025-10-28 00:56:51] Prefill batch. #new-seq: 3, #new-token: 3211, #cached-token: 0, token usage: 0.97, #running-req: 662, #queue-req: 36, 
+[2025-10-28 00:56:51] Prefill batch. #new-seq: 2, #new-token: 2448, #cached-token: 0, token usage: 0.97, #running-req: 663, #queue-req: 34, 
+[2025-10-28 00:56:52] Prefill batch. #new-seq: 2, #new-token: 3797, #cached-token: 0, token usage: 0.97, #running-req: 659, #queue-req: 32, 
+[2025-10-28 00:56:52] Prefill batch. #new-seq: 2, #new-token: 2817, #cached-token: 0, token usage: 0.97, #running-req: 656, #queue-req: 30, 
+[2025-10-28 00:56:52] Prefill batch. #new-seq: 2, #new-token: 707, #cached-token: 0, token usage: 0.97, #running-req: 656, #queue-req: 28, 
+[2025-10-28 00:56:53] Prefill batch. #new-seq: 1, #new-token: 1881, #cached-token: 0, token usage: 0.97, #running-req: 657, #queue-req: 27, 
+[2025-10-28 00:56:53] Prefill batch. #new-seq: 2, #new-token: 2646, #cached-token: 0, token usage: 0.97, #running-req: 657, #queue-req: 25, 
+[2025-10-28 00:56:53] Prefill batch. #new-seq: 2, #new-token: 1276, #cached-token: 0, token usage: 0.97, #running-req: 654, #queue-req: 23, 
+[2025-10-28 00:56:54] Prefill batch. #new-seq: 2, #new-token: 1951, #cached-token: 0, token usage: 0.97, #running-req: 654, #queue-req: 21, 
+[2025-10-28 00:56:54] Prefill batch. #new-seq: 2, #new-token: 1625, #cached-token: 0, token usage: 0.97, #running-req: 655, #queue-req: 19, 
+[2025-10-28 00:56:54] Prefill batch. #new-seq: 1, #new-token: 1007, #cached-token: 0, token usage: 0.97, #running-req: 654, #queue-req: 18, 
+[2025-10-28 00:56:54] Prefill batch. #new-seq: 1, #new-token: 1366, #cached-token: 0, token usage: 0.97, #running-req: 653, #queue-req: 17, 
+[2025-10-28 00:56:54] Prefill batch. #new-seq: 5, #new-token: 3360, #cached-token: 0, token usage: 0.97, #running-req: 651, #queue-req: 12, 
+[2025-10-28 00:56:55] Prefill batch. #new-seq: 5, #new-token: 6543, #cached-token: 0, token usage: 0.97, #running-req: 649, #queue-req: 7, 
+[2025-10-28 00:56:55] Decode batch. #running-req: 654, #token: 889166, token usage: 0.98, cuda graph: False, gen throughput (token/s): 5563.96, #queue-req: 7, 
+[2025-10-28 00:56:55] Prefill batch. #new-seq: 4, #new-token: 3572, #cached-token: 0, token usage: 0.97, #running-req: 650, #queue-req: 3, 
+[2025-10-28 00:56:55] Prefill batch. #new-seq: 1, #new-token: 1178, #cached-token: 0, token usage: 0.97, #running-req: 652, #queue-req: 2, 
+[2025-10-28 00:56:56] Prefill batch. #new-seq: 2, #new-token: 3536, #cached-token: 0, token usage: 0.97, #running-req: 651, #queue-req: 0, 
+[2025-10-28 00:56:58] Decode batch. #running-req: 612, #token: 844439, token usage: 0.93, cuda graph: False, gen throughput (token/s): 8439.87, #queue-req: 0, 
+[2025-10-28 00:57:01] Decode batch. #running-req: 556, #token: 791243, token usage: 0.87, cuda graph: False, gen throughput (token/s): 9085.47, #queue-req: 0, 
+[2025-10-28 00:57:03] Decode batch. #running-req: 516, #token: 748501, token usage: 0.82, cuda graph: False, gen throughput (token/s): 7362.67, #queue-req: 0, 
+[2025-10-28 00:57:06] Decode batch. #running-req: 468, #token: 689557, token usage: 0.76, cuda graph: False, gen throughput (token/s): 7657.89, #queue-req: 0, 
+[2025-10-28 00:57:08] Decode batch. #running-req: 430, #token: 643913, token usage: 0.71, cuda graph: False, gen throughput (token/s): 7282.81, #queue-req: 0, 
+[2025-10-28 00:57:11] Decode batch. #running-req: 389, #token: 576438, token usage: 0.63, cuda graph: False, gen throughput (token/s): 6980.06, #queue-req: 0, 
+[2025-10-28 00:57:13] Decode batch. #running-req: 350, #token: 523222, token usage: 0.57, cuda graph: False, gen throughput (token/s): 6239.01, #queue-req: 0, 
+[2025-10-28 00:57:16] Decode batch. #running-req: 311, #token: 470739, token usage: 0.52, cuda graph: False, gen throughput (token/s): 5533.56, #queue-req: 0, 
+[2025-10-28 00:57:18] Decode batch. #running-req: 278, #token: 429604, token usage: 0.47, cuda graph: False, gen throughput (token/s): 5119.56, #queue-req: 0, 
+[2025-10-28 00:57:20] Decode batch. #running-req: 243, #token: 384944, token usage: 0.42, cuda graph: True, gen throughput (token/s): 5808.88, #queue-req: 0, 
+[2025-10-28 00:57:21] Decode batch. #running-req: 212, #token: 341421, token usage: 0.37, cuda graph: True, gen throughput (token/s): 8046.06, #queue-req: 0, 
+[2025-10-28 00:57:22] Decode batch. #running-req: 178, #token: 286788, token usage: 0.31, cuda graph: True, gen throughput (token/s): 6741.75, #queue-req: 0, 
+[2025-10-28 00:57:23] Decode batch. #running-req: 154, #token: 251507, token usage: 0.28, cuda graph: True, gen throughput (token/s): 5545.05, #queue-req: 0, 
+[2025-10-28 00:57:24] Decode batch. #running-req: 135, #token: 222473, token usage: 0.24, cuda graph: True, gen throughput (token/s): 4866.48, #queue-req: 0, 
+[2025-10-28 00:57:25] Decode batch. #running-req: 115, #token: 194488, token usage: 0.21, cuda graph: True, gen throughput (token/s): 5583.04, #queue-req: 0, 
+[2025-10-28 00:57:26] Decode batch. #running-req: 90, #token: 161092, token usage: 0.18, cuda graph: True, gen throughput (token/s): 5303.05, #queue-req: 0, 
+[2025-10-28 00:57:27] Decode batch. #running-req: 75, #token: 138868, token usage: 0.15, cuda graph: True, gen throughput (token/s): 4218.17, #queue-req: 0, 
+[2025-10-28 00:57:28] Decode batch. #running-req: 64, #token: 121340, token usage: 0.13, cuda graph: True, gen throughput (token/s): 3439.08, #queue-req: 0, 
+[2025-10-28 00:57:28] Decode batch. #running-req: 44, #token: 78906, token usage: 0.09, cuda graph: True, gen throughput (token/s): 2549.88, #queue-req: 0, 
+[2025-10-28 00:57:29] Decode batch. #running-req: 32, #token: 58980, token usage: 0.06, cuda graph: True, gen throughput (token/s): 1772.92, #queue-req: 0, 
+[2025-10-28 00:57:30] Decode batch. #running-req: 23, #token: 43126, token usage: 0.05, cuda graph: True, gen throughput (token/s): 1260.47, #queue-req: 0, 
+[2025-10-28 00:57:31] Decode batch. #running-req: 12, #token: 21217, token usage: 0.02, cuda graph: True, gen throughput (token/s): 858.50, #queue-req: 0, 
+[2025-10-28 00:57:32] Decode batch. #running-req: 7, #token: 11356, token usage: 0.01, cuda graph: True, gen throughput (token/s): 361.09, #queue-req: 0, 
+[2025-10-28 00:57:33] Decode batch. #running-req: 3, #token: 3253, token usage: 0.00, cuda graph: True, gen throughput (token/s): 209.99, #queue-req: 0, 
+#Input tokens: 2099616
+#Output tokens: 1036382
+#Input tokens: 4096
+#Output tokens: 256
+
+====== Offline Throughput Benchmark Result =======
+Backend:                                 engine    
+Successful requests:                     2048      
+Benchmark duration (s):                  208.70    
+Total input tokens:                      2099616   
+Total generated tokens:                  1036385   
+Last generation throughput (tok/s):      209.99    
+Request throughput (req/s):              9.81      
+Input token throughput (tok/s):          10060.22  
+Output token throughput (tok/s):         4965.79   
+Total token throughput (tok/s):          15026.01  
+==================================================
