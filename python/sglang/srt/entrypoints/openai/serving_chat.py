@@ -437,6 +437,7 @@ class OpenAIServingChat(OpenAIServingBase):
             "ignore_eos": request.ignore_eos,
             "skip_special_tokens": request.skip_special_tokens,
             "logit_bias": request.logit_bias,
+            "is_deterministic": request.is_deterministic,
         }
 
         if request.response_format and request.response_format.type == "json_schema":

@@ -29,47 +29,70 @@ def test_temperature_switching(base_url="http://localhost:30000"):
         print("  ./launch_server.sh deterministic 513  # 512 + 1 for temp-based + ThinkingMachine")
         sys.exit(1)
     
-    # Test cases
-    test_cases = [
-        # {
-        #     "name": "Test 1: Temperature = 0 (should use batch-invariant)",
-        #     "temperature": 0.0,
-        #     "prompt": "What is 2+2?",
-        #     "expected": "batch-invariant"
-        # },
-        {
-            "name": "Test 2: Temperature = 0.8 (should use non-deterministic)",
-            "temperature": 0.8,
-            "prompt": "Tell me a creative story.",
-            "expected": "non-deterministic"
-        },
-        {
-            "name": "Test 3: Temperature = 0 again (should use batch-invariant)",
-            "temperature": 0.0,
-            "prompt": "Calculate 10 + 15.",
-            "expected": "batch-invariant"
-        },
-        {
-            "name": "Test 4: Temperature = 1.0 (should use non-deterministic)",
-            "temperature": 1.0,
-            "prompt": "Write a poem.",
-            "expected": "non-deterministic"
-        },
-        # {
-        #     "name": "Test 5: Temperature = 0 (should use batch-invariant)",
-        #     "temperature": 0.0,
-        #     "prompt": "What is the capital of France?",
-        #     "expected": "batch-invariant"
-        # },
+    # Configuration: which positions should have temperature=0
+    # You can modify this list to control which requests use temperature=0
+    # For example: [0, 10, 20, 30, 40] means requests at positions 0, 10, 20, 30, 40 will use temp=0
+    temp_zero_positions = [0, 10, 20, 30, 40]  # Modify this to control temperature=0 positions
+    
+    num_requests = 50
+    interval = 0.1  # seconds between requests
+    
+    print(f"Configuration:")
+    print(f"  Total requests: {num_requests}")
+    print(f"  Interval: {interval} seconds")
+    print(f"  Temperature=0 positions: {temp_zero_positions}")
+    print(f"  Temperature>0 positions: All other positions")
+    print()
+    
+    # Generate test cases
+    test_cases = []
+    prompts_temp_zero = [
+        "What is 2+2?",
+        "Calculate 10 + 15.",
+        "What is the capital of France?",
+        "What is 7 * 8?",
+        "What is the square root of 16?",
     ]
+    
+    prompts_temp_high = [
+        "Tell me a creative story.",
+        "Write a poem.",
+        "Describe a sunset.",
+        "Invent a new recipe.",
+        "Create a character.",
+    ]
+    
+    for i in range(num_requests):
+        if i in temp_zero_positions:
+            temperature = 0.0
+            prompt = prompts_temp_zero[i % len(prompts_temp_zero)]
+            expected = "batch-invariant"
+        else:
+            temperature = 0.8
+            prompt = prompts_temp_high[i % len(prompts_temp_high)]
+            expected = "non-deterministic"
+        
+        test_cases.append({
+            "name": f"Request {i+1}/{num_requests}: Temperature = {temperature}",
+            "temperature": temperature,
+            "prompt": prompt,
+            "expected": expected
+        })
     
     print("Running test cases...")
     print()
     
-    for i, test in enumerate(test_cases, 1):
+    start_time = time.time()
+    successful_requests = 0
+    batch_invariant_count = 0
+    non_deterministic_count = 0
+    
+    for i, test in enumerate(test_cases):
         print(f"{test['name']}")
         print(f"  Temperature: {test['temperature']}")
         print(f"  Expected mode: {test['expected']}")
+        
+        request_start = time.time()
         
         try:
             response = requests.post(
@@ -88,6 +111,12 @@ def test_temperature_switching(base_url="http://localhost:30000"):
                 content = result['choices'][0]['message']['content']
                 print(f"  Response: {content[:60]}...")
                 print(f"  ✓ Request successful")
+                successful_requests += 1
+                
+                if test['expected'] == "batch-invariant":
+                    batch_invariant_count += 1
+                else:
+                    non_deterministic_count += 1
             else:
                 print(f"  ✗ Error: HTTP {response.status_code}")
                 print(f"  {response.text}")
@@ -95,18 +124,31 @@ def test_temperature_switching(base_url="http://localhost:30000"):
             print(f"  ✗ Error: {e}")
         
         print()
-        time.sleep(0.5)  # Small delay between requests
+        
+        # Wait for the interval, accounting for request time
+        elapsed = time.time() - request_start
+        sleep_time = max(0, interval - elapsed)
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+    
+    total_time = time.time() - start_time
     
     print("=" * 80)
     print("Test completed!")
     print()
-    print("To see the statistics, check the server logs for:")
-    print("  'Temperature-based switching stats: batch_invariant=X, non_deterministic=Y'")
+    print("Summary:")
+    print(f"  Total requests: {num_requests}")
+    print(f"  Successful requests: {successful_requests}")
+    print(f"  Failed requests: {num_requests - successful_requests}")
+    print(f"  Total time: {total_time:.2f} seconds")
+    print(f"  Average time per request: {total_time/num_requests:.3f} seconds")
     print()
-    print("Expected stats after this test:")
-    print("  - batch_invariant: 3")
-    print("  - non_deterministic: 2")
-    print("  - total: 5")
+    print("Expected distribution:")
+    print(f"  - batch_invariant (temp=0): {batch_invariant_count}")
+    print(f"  - non_deterministic (temp>0): {non_deterministic_count}")
+    print()
+    print("To see the actual statistics, check the server logs for:")
+    print("  'Temperature-based switching stats: batch_invariant=X, non_deterministic=Y'")
     print()
     print("The logs will appear every 5 forward passes automatically.")
     print("=" * 80)
@@ -135,7 +177,8 @@ def test_deterministic_consistency(base_url="http://localhost:30000"):
                 json={
                     "model": "default",
                     "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 1.0,
+                    "temperature": 0.0,
+                    "is_deterministic": False,
                     "max_tokens": 50,
                 },
                 timeout=30
@@ -173,5 +216,5 @@ if __name__ == "__main__":
         base_url = "http://localhost:30000"
     
     # Run tests
-    # test_temperature_switching(base_url)
+    #test_temperature_switching(base_url)
     test_deterministic_consistency(base_url)

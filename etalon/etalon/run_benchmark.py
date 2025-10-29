@@ -33,8 +33,9 @@ from etalon.request_generator.utils import generate_random_prompt
 
 logger = init_logger(__name__)
 
-# Global variable for temperature assignment (set via environment)
+# Global variables for temperature and is_deterministic assignment (set via environment)
 _TEMPERATURE_ASSIGNMENTS = None
+_IS_DETERMINISTIC_ASSIGNMENTS = None
 
 def _get_temperature_for_request(request_id: int, default_temp: Optional[float] = None) -> Optional[float]:
     """Get temperature for a specific request ID based on random assignment"""
@@ -55,6 +56,27 @@ def _get_temperature_for_request(request_id: int, default_temp: Optional[float] 
         return _TEMPERATURE_ASSIGNMENTS[str(request_id)]
 
     return default_temp
+
+
+def _get_is_deterministic_for_request(request_id: int, default_is_det: Optional[bool] = None) -> Optional[bool]:
+    """Get is_deterministic for a specific request ID based on random assignment"""
+    global _IS_DETERMINISTIC_ASSIGNMENTS
+    
+    if _IS_DETERMINISTIC_ASSIGNMENTS is None:
+        # Check if is_deterministic map is provided via environment
+        is_det_map_file = os.environ.get('IS_DETERMINISTIC_MAP_FILE')
+        if is_det_map_file and os.path.exists(is_det_map_file):
+            import json
+            with open(is_det_map_file, 'r') as f:
+                _IS_DETERMINISTIC_ASSIGNMENTS = json.load(f)
+            logger.info(f"Loaded is_deterministic assignments from {is_det_map_file}")
+        else:
+            _IS_DETERMINISTIC_ASSIGNMENTS = {}
+    
+    if _IS_DETERMINISTIC_ASSIGNMENTS and str(request_id) in _IS_DETERMINISTIC_ASSIGNMENTS:
+        return _IS_DETERMINISTIC_ASSIGNMENTS[str(request_id)]
+    
+    return default_is_det
 
 
 def get_request_params(
@@ -89,7 +111,13 @@ def get_request_params(
         assigned_temp = _get_temperature_for_request(request_id, default_temp)
         if assigned_temp is not None:
             default_sampling_params["temperature"] = assigned_temp
-
+        
+        # Override is_deterministic if per-request assignment is available
+        default_is_det = default_sampling_params.get("is_deterministic")
+        assigned_is_det = _get_is_deterministic_for_request(request_id, default_is_det)
+        if assigned_is_det is not None:
+            default_sampling_params["is_deterministic"] = assigned_is_det
+    
     request_config = RequestConfig(
         model=client_config.model,
         prompt=prompt,

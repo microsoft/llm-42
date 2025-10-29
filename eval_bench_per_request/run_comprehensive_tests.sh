@@ -350,7 +350,7 @@ run_benchmark() {
         --output-dir "$run_output_dir"
         --qps $QPS
         --trace-file "$TRACE_FILE"
-        # --max-tokens 8192
+        --max-tokens 8192
     )
     
     if [ "$ASSIGNMENT_MODE" = "random" ]; then
