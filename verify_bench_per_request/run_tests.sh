@@ -17,18 +17,20 @@ HOST="0.0.0.0"
 PORT=30000
 TP_SIZE=1
 ATTENTION_BACKEND="flashinfer"
-OUTPUT_DIR="mixed_temp_results"
+OUTPUT_DIR=""  # Will be set based on model, dataset, and percentages
 QPS=1
 MAX_REQUESTS=256
 TIMEOUT=600
 NUM_CLIENTS=1
 CONCURRENT=256
-TRACE_FILE="../etalon/data/processed_traces/arxiv_summarization_filtered_stats_llama2_tokenizer.csv"
+TRACE_TYPE="arxiv"  # Default trace type: arxiv, sharegpt, or lmsys
+TRACE_FILE=""  # Will be set based on TRACE_TYPE or can be overridden
+TRACE_NAME=""  # Will be extracted from TRACE_FILE or set via command line
 MAX_TOKENS=8192
 WARMUP_TIME=30  # Time to wait for server to warmup
 
 # Mixed temperature configuration
-TEMP0_PCT=10  # Default: 10% of requests have temperature=0
+TEMP0_PCTS="10"  # Default: 10% of requests have temperature=0 (comma-separated list)
 ASSIGNMENT_MODE="random"  # Default: random assignment with seed
 SEED=42  # Default seed for random assignment
 
@@ -55,8 +57,20 @@ while [[ $# -gt 0 ]]; do
             PORT="$2"
             shift 2
             ;;
-        --temp0-pct)
-            TEMP0_PCT="$2"
+        --trace-type)
+            TRACE_TYPE="$2"
+            shift 2
+            ;;
+        --trace-file)
+            TRACE_FILE="$2"
+            shift 2
+            ;;
+        --trace-name)
+            TRACE_NAME="$2"
+            shift 2
+            ;;
+        --temp0-pcts)
+            TEMP0_PCTS="$2"
             shift 2
             ;;
         --assignment-mode)
@@ -98,7 +112,14 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --model MODEL             Model path (default: $MODEL)"
             echo "  --port PORT               Server port (default: $PORT)"
-            echo "  --temp0-pct PCT           Percentage of requests with temp=0 (default: $TEMP0_PCT)"
+            echo "  --trace-type TYPE         Predefined trace type: 'arxiv', 'sharegpt', or 'lmsys'"
+            echo "                            (default: $TRACE_TYPE)"
+            echo "  --trace-file FILE         Custom trace file path (overrides --trace-type)"
+            echo "  --trace-name NAME         Name of dataset/trace (default: extracted from trace file)"
+            echo "  --temp0-pcts PCTS         Comma-separated percentages for mode 578 (default: $TEMP0_PCTS)"
+            echo "                            Example: '0,1,5,10'"
+            echo "                            Note: Baseline/66/257 always run at 100% (once)"
+            echo "                                  Mode 578 runs at each specified percentage"
             echo "  --assignment-mode MODE    'random' or 'fixed' (default: $ASSIGNMENT_MODE)"
             echo "  --seed SEED               Random seed for 'random' mode (default: $SEED)"
             echo "  --qps QPS                 Queries per second (default: $QPS)"
@@ -108,11 +129,17 @@ while [[ $# -gt 0 ]]; do
             echo "  --help                    Show this help"
             echo ""
             echo "Examples:"
-            echo "  # 10% random with seed 42:"
-            echo "  $0 --temp0-pct 10 --assignment-mode random --seed 42"
+            echo "  # Test with multiple percentages (runs 3 + 4 = 7 tests):"
+            echo "  $0 --trace-type arxiv --temp0-pcts 0,1,5,10"
+            echo "    → baseline/66/257 @ 100%, mode 578 @ 0/1/5/10"
             echo ""
-            echo "  # 5% fixed (every 20th request):"
-            echo "  $0 --temp0-pct 5 --assignment-mode fixed"
+            echo "  # Include 100% for mode 578 comparison (runs 3 + 5 = 8 tests):"
+            echo "  $0 --trace-type sharegpt --temp0-pcts 0,1,5,10,100"
+            echo "    → baseline/66/257 @ 100%, mode 578 @ 0/1/5/10/100"
+            echo ""
+            echo "  # Only 100% comparison (runs 4 tests):"
+            echo "  $0 --trace-type lmsys --temp0-pcts 100"
+            echo "    → all modes @ 100%"
             exit 0
             ;;
         *)
@@ -132,27 +159,77 @@ else
     exit 1
 fi
 
-# Set output directory based on temp0 percentage and assignment mode
-OUTPUT_DIR="pct_${TEMP0_PCT}_${ASSIGNMENT_MODE}"
+# Set trace file based on trace type (if not explicitly provided)
+if [ -z "$TRACE_FILE" ]; then
+    case $TRACE_TYPE in
+        arxiv)
+            TRACE_FILE="../etalon/data/processed_traces/arxiv_summarization_filtered_stats_llama2_tokenizer.csv"
+            ;;
+        sharegpt)
+            TRACE_FILE="../etalon/data/processed_traces/sharegpt_8k_filtered_stats_llama2_tokenizer.csv"
+            ;;
+        lmsys)
+            TRACE_FILE="../etalon/data/processed_traces/lmsys_chat_1m_conversation_stats_llama2_tokenizer.csv"
+            ;;
+        *)
+            echo "Error: Invalid trace type '$TRACE_TYPE'. Must be 'arxiv', 'sharegpt', or 'lmsys'."
+            exit 1
+            ;;
+    esac
+fi
+
+# Verify trace file exists
+if [ ! -f "$TRACE_FILE" ]; then
+    echo "Error: Trace file not found: $TRACE_FILE"
+    echo "Please ensure the trace file exists or choose a different trace type."
+    exit 1
+fi
+
+# Extract trace name if not provided
+if [ -z "$TRACE_NAME" ]; then
+    # Extract filename without path and extension
+    TRACE_NAME=$(basename "$TRACE_FILE" .csv)
+    # Remove common suffixes like _filtered_stats_llama2_tokenizer
+    TRACE_NAME=$(echo "$TRACE_NAME" | sed 's/_filtered_stats_llama2_tokenizer//' | sed 's/_filtered//')
+fi
+
+# Extract model name from path (e.g., meta-llama/Meta-Llama-3.1-8B-Instruct -> Meta-Llama-3.1-8B-Instruct)
+MODEL_NAME=$(basename "$MODEL")
+# Also create a short name for directory naming (e.g., llama-3.1-8b)
+MODEL_SHORT=$(echo "$MODEL" | sed 's/.*\///' | tr '[:upper:]' '[:lower:]' | sed 's/meta-llama-/llama-/' | sed 's/-instruct//')
+
+# Parse percentages into array
+IFS=',' read -ra PCT_ARRAY <<< "$TEMP0_PCTS"
+
+# Create directory name with percentages
+PCT_STR=$(echo "$TEMP0_PCTS" | tr ',' '_')
+OUTPUT_DIR="${MODEL_SHORT}_${TRACE_NAME}_pct_${PCT_STR}"
 
 echo "================================================"
 echo "Mixed Temperature Deterministic Testing"
 echo "================================================"
 echo "Model: $MODEL"
+echo "Model Name: $MODEL_NAME"
 echo "Port: $PORT"
+echo "Trace Type: $TRACE_TYPE"
+echo "Trace File: $TRACE_FILE"
+echo "Trace Name: $TRACE_NAME"
 echo "Temperature Configuration:"
-echo "  - ${TEMP0_PCT}% of requests with temperature=0"
-echo "  - $((100 - TEMP0_PCT))% of requests with temperature=1"
-echo "  - Assignment mode: $ASSIGNMENT_MODE"
+echo "  - Mode 578 percentages: ${TEMP0_PCTS}%"
+echo "  - Baseline/66/257: Always 100% (all deterministic)"
+echo "  - Assignment mode: ${ASSIGNMENT_MODE}"
 if [ "$ASSIGNMENT_MODE" = "random" ]; then
     echo "  - Random seed: $SEED"
 fi
 echo "Output Directory: $OUTPUT_DIR"
 echo ""
-echo "Test Matrix:"
-for i in "${!MODES[@]}"; do
-    echo "  $((i+1)). ${MODE_DESCRIPTIONS[$i]}"
-done
+echo "Test Strategy:"
+echo "  1. Baseline (Non-deterministic) - 100% deterministic requests"
+echo "  2. Mode 66 (batch-invariant: vllm+cutlass) - 100% deterministic requests"
+echo "  3. Mode 257 (batch-invariant: native+TM) - 100% deterministic requests"
+echo "  4. Mode 578 (temp-based) - ${#PCT_ARRAY[@]} runs with percentages: ${TEMP0_PCTS}%"
+echo ""
+echo "Total tests: 3 + ${#PCT_ARRAY[@]} = $((3 + ${#PCT_ARRAY[@]}))"
 echo "================================================"
 echo ""
 
@@ -245,11 +322,12 @@ launch_server() {
 run_benchmark() {
     local mode=$1
     local mode_name=$2
-    local run_output_dir="${OUTPUT_DIR}/${mode_name}"
+    local temp0_pct=$3
+    local run_output_dir="${OUTPUT_DIR}/pct_${temp0_pct}/${mode_name}"
     
     echo ""
     echo "================================================"
-    echo "Running benchmark: $mode_name"
+    echo "Running benchmark: $mode_name (${temp0_pct}% temp=0)"
     echo "================================================"
     
     # Create output directory
@@ -265,14 +343,14 @@ run_benchmark() {
     # For mode 578, use the mixed temperature benchmark wrapper
     # For baseline, 66, 257: run all with the same mixed temperature distribution for fair comparison
     echo "Using mixed temperature benchmark wrapper"
-    echo "  Temperature 0 percentage: ${TEMP0_PCT}%"
+    echo "  Temperature 0 percentage: ${temp0_pct}%"
     echo "  Assignment mode: ${ASSIGNMENT_MODE}"
     if [ "$ASSIGNMENT_MODE" = "random" ]; then
         echo "  Random seed: ${SEED}"
     fi
     
     local wrapper_args=(
-        --temp0-pct "$TEMP0_PCT"
+        --temp0-pct "$temp0_pct"
         --assignment-mode "$ASSIGNMENT_MODE"
         --model "$MODEL"
         --max-requests $MAX_REQUESTS
@@ -292,13 +370,13 @@ run_benchmark() {
     if $PYTHON_CMD "$(dirname "$0")/run_mixed_temperature_benchmark.py" "${wrapper_args[@]}" \
         2>&1 | tee "${run_output_dir}/benchmark.log"; then
         
-        echo "✓ Benchmark completed: $mode_name"
+        echo "✓ Benchmark completed: $mode_name (${temp0_pct}%)"
         unset OPENAI_API_KEY
         unset OPENAI_API_BASE
         unset WANDB_MODE
         return 0
     else
-        echo "⚠ Benchmark had issues: $mode_name"
+        echo "⚠ Benchmark had issues: $mode_name (${temp0_pct}%)"
         unset OPENAI_API_KEY
         unset OPENAI_API_BASE
         unset WANDB_MODE
@@ -310,9 +388,56 @@ run_benchmark() {
 echo "Starting mixed temperature testing..."
 echo ""
 
-for i in "${!MODES[@]}"; do
-    mode="${MODES[$i]}"
-    mode_desc="${MODE_DESCRIPTIONS[$i]}"
+# Create main output directory
+mkdir -p "$OUTPUT_DIR"
+
+# Save configuration for reference
+cat > "$OUTPUT_DIR/test_config.txt" << EOF
+Test Configuration
+==================
+Model: $MODEL
+Model Name: $MODEL_NAME
+Model Short: $MODEL_SHORT
+Trace Type: $TRACE_TYPE
+Trace File: $TRACE_FILE
+Trace Name: $TRACE_NAME
+Percentages for Mode 578: ${TEMP0_PCTS}
+Assignment Mode: $ASSIGNMENT_MODE
+Seed: $SEED
+Max Requests: $MAX_REQUESTS
+QPS: $QPS
+Timeout: $TIMEOUT
+Warmup Time: $WARMUP_TIME
+
+Test Strategy:
+- Baseline, Mode 66, Mode 257: Run once with 100% deterministic (pct_100/)
+- Mode 578 (temperature-based): Run with varying percentages (${TEMP0_PCTS})
+
+Date: $(date)
+EOF
+
+test_counter=0
+# Baseline, 66, 257 run once (at 100%), mode 578 runs for each percentage
+total_tests=$((3 + ${#PCT_ARRAY[@]}))
+
+echo ""
+echo "###############################################"
+echo "# Running baseline, mode 66, and mode 257 with 100% deterministic"
+echo "###############################################"
+echo ""
+
+# Run baseline, mode 66, mode 257 once with 100% (all deterministic)
+FIXED_MODES=("baseline" "66" "257")
+FIXED_MODE_DESCRIPTIONS=(
+    "Baseline (Non-deterministic)"
+    "Mode 66 (batch-invariant: vllm-rmsnorm + cutlass)"
+    "Mode 257 (batch-invariant: native-rmsnorm + TM)"
+)
+
+for i in "${!FIXED_MODES[@]}"; do
+    mode="${FIXED_MODES[$i]}"
+    mode_desc="${FIXED_MODE_DESCRIPTIONS[$i]}"
+    test_counter=$((test_counter + 1))
     
     # Generate mode name based on mode number
     if [ "$mode" = "baseline" ]; then
@@ -321,8 +446,9 @@ for i in "${!MODES[@]}"; do
         mode_name="det_mode_${mode}"
     fi
     
+    echo ""
     echo "###############################################"
-    echo "# Test $((i+1))/${#MODES[@]}: $mode_name"
+    echo "# Test ${test_counter}/${total_tests}: $mode_name @ 100% (all deterministic)"
     echo "###############################################"
     
     # Launch server
@@ -331,8 +457,38 @@ for i in "${!MODES[@]}"; do
         continue
     fi
     
-    # Run benchmark
-    run_benchmark "$mode" "$mode_name"
+    # Run benchmark with 100% (all requests deterministic)
+    run_benchmark "$mode" "$mode_name" 100
+    
+    echo ""
+done
+
+echo ""
+echo "###############################################"
+echo "# Running mode 578 (temperature-based) with varying percentages"
+echo "###############################################"
+echo ""
+
+# Loop through each percentage for mode 578 only
+for pct in "${PCT_ARRAY[@]}"; do
+    mode="578"
+    mode_desc="Mode 578 (temp-based with mixed temperatures)"
+    mode_name="det_mode_578"
+    test_counter=$((test_counter + 1))
+    
+    echo ""
+    echo "###############################################"
+    echo "# Test ${test_counter}/${total_tests}: $mode_name @ ${pct}% temperature=0"
+    echo "###############################################"
+    
+    # Launch server
+    if ! launch_server "$mode" "$mode_name" "$mode_desc"; then
+        echo "Failed to launch server for $mode_name"
+        continue
+    fi
+    
+    # Run benchmark with specified percentage
+    run_benchmark "$mode" "$mode_name" "$pct"
     
     echo ""
 done
@@ -346,6 +502,20 @@ kill_server
 
 echo ""
 echo "Results saved to: $OUTPUT_DIR"
+echo ""
+echo "Directory structure:"
+echo "  $OUTPUT_DIR/pct_100/"
+echo "    ├── baseline_nondet/     (100% deterministic)"
+echo "    ├── det_mode_66/         (100% deterministic)"
+echo "    └── det_mode_257/        (100% deterministic)"
+for pct in "${PCT_ARRAY[@]}"; do
+    echo "  $OUTPUT_DIR/pct_${pct}/"
+    echo "    └── det_mode_578/      (${pct}% temperature=0)"
+done
+echo ""
+
+echo "Note: Baseline, mode 66, and mode 257 always run with 100% deterministic."
+echo "      Mode 578 (temperature-based) runs with varying percentages: ${TEMP0_PCTS}"
 echo ""
 
 echo "To plot results, run:"

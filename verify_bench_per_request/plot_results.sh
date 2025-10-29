@@ -22,19 +22,25 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Plot mixed temperature benchmark results"
+            echo "Supports both single-percentage (legacy) and multi-percentage formats"
             echo ""
             echo "Options:"
             echo "  --input-dir DIR     Input directory with results (REQUIRED)"
-            echo "                      Example: pct_10_random, pct_5_fixed"
+            echo "                      Examples:"
+            echo "                        Single percentage: pct_10_random, pct_5_fixed"
+            echo "                        Multi percentage: llama-3.1-8b_arxiv_pct_0_1_5_10"
             echo "  --output-dir DIR    Output directory for plots (default: same as input-dir)"
             echo "  --help              Show this help"
             echo ""
             echo "Examples:"
-            echo "  # Plot results from 10% random test:"
+            echo "  # Plot results from 10% random test (legacy format):"
             echo "  $0 --input-dir pct_10_random"
             echo ""
-            echo "  # Plot results from 5% fixed test:"
-            echo "  $0 --input-dir pct_5_fixed"
+            echo "  # Plot results from multi-percentage test (new format):"
+            echo "  $0 --input-dir llama-3.1-8b_arxiv_pct_0_1_5_10"
+            echo ""
+            echo "  # Custom output directory:"
+            echo "  $0 --input-dir llama-3.1-8b_arxiv_pct_0_1_5_10 --output-dir my_plots"
             exit 0
             ;;
         *)
@@ -71,6 +77,16 @@ if [ -n "$OUTPUT_DIR" ]; then
 else
     echo "Output directory: $INPUT_DIR (same as input)"
 fi
+
+# Detect format
+if ls "$INPUT_DIR"/pct_* > /dev/null 2>&1; then
+    echo "Format: Multi-percentage (new)"
+    echo "Found percentage subdirectories:"
+    ls -d "$INPUT_DIR"/pct_* 2>/dev/null | xargs -n1 basename | sort -V
+else
+    echo "Format: Single-percentage (legacy)"
+fi
+
 echo "================================================"
 echo ""
 
