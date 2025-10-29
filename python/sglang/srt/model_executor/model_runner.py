@@ -448,7 +448,7 @@ class ModelRunner:
         # Counters for tracking batch-invariant vs non-deterministic forward passes
         self.num_batch_invariant = 0
         self.num_non_deterministic = 0
-        self._stats_log_interval = 100  # Log stats every 100 forward passes
+        self._stats_log_interval = 500  # Log stats every 500 forward passes
 
         # Init memory pool and attention backends
         self.init_memory_pool(
@@ -2022,6 +2022,17 @@ class ModelRunner:
         #   - If ANY request is greedy (temperature=0), keep batch-invariant enabled
         # Note: SGLang converts temperature=0 to temperature=1.0 and top_k=1 (greedy sampling)
         should_disable_batch_invariant = False
+
+        # print(f"DEBUG: Forward pass -- start: {forward_batch.batch_size=}, "
+        #       f"seq_lens.shape={forward_batch.seq_lens.shape}, "
+        #       f"input_ids.shape={forward_batch.input_ids.shape}", flush=True)
+        
+        # det_indices_shape = forward_batch.sampling_info.deterministic_indices.shape
+        # print(f"Forward pass {self.forward_pass_id}: is_any_deterministic={forward_batch.sampling_info.is_any_deterministic}, "
+        #         f"deterministic_indices.shape={det_indices_shape}, "
+        #         f"deterministic_indices={forward_batch.sampling_info.deterministic_indices}, "
+        #         f"MISMATCH={'!!! BATCH_SIZE MISMATCH !!!' if forward_batch.batch_size != det_indices_shape[0] else 'OK'}", flush=True)
+        # print(f"Sampling info: temperatures={forward_batch.sampling_info.temperatures}, ",flush=True)
         
         if self.enable_temperature_based_switching:
             # Check if ALL requests are non-greedy (all want non-deterministic)
@@ -2030,8 +2041,7 @@ class ModelRunner:
                 # We want to disable batch_invariant when is_any_deterministic is False (all are non-greedy)
                 is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
                 should_disable_batch_invariant = not is_any_deterministic
-                # print(f"Forward pass {self.forward_pass_id}: is_any_deterministic={is_any_deterministic}, "
-                #       f"should_disable_batch_invariant={should_disable_batch_invariant}", flush=True)
+
             
         
         # Use context manager to temporarily disable batch_invariant when needed

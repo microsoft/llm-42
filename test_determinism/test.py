@@ -43,6 +43,7 @@ class BenchArgs:
     return_logprob: bool = False
     stream: bool = False
     profile: bool = False
+    is_deterministic: bool = False
     profile_steps: int = 3
     profile_by_stage: bool = False
     test_mode: str = "single"
@@ -82,6 +83,7 @@ class BenchArgs:
             ],
         )
         parser.add_argument("--profile", action="store_true")
+        parser.add_argument("--is-deterministic", action="store_true")
         parser.add_argument(
             "--profile-steps", type=int, default=BenchArgs.profile_steps
         )
@@ -121,6 +123,7 @@ def send_single(
                 ),
                 "frequency_penalty": args.frequency_penalty,
                 "presence_penalty": args.presence_penalty,
+                "is_deterministic": args.is_deterministic,
             },
             "return_logprob": args.return_logprob,
             "stream": args.stream,
@@ -139,6 +142,7 @@ def send_single(
                 ),
                 "frequency_penalty": args.frequency_penalty,
                 "presence_penalty": args.presence_penalty,
+                "is_deterministic": args.is_deterministic,
             },
             "return_logprob": args.return_logprob,
             "stream": args.stream,
@@ -203,6 +207,7 @@ def send_prefix(
             "max_new_tokens": args.max_new_tokens,
             "frequency_penalty": args.frequency_penalty,
             "presence_penalty": args.presence_penalty,
+            "is_deterministic": args.is_deterministic,
         },
         "return_logprob": args.return_logprob,
         "stream": args.stream,

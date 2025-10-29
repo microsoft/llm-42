@@ -56,6 +56,7 @@ class SamplingParams:
         stream_interval: Optional[int] = None,
         logit_bias: Optional[Dict[str, float]] = None,
         sampling_seed: int = 42,
+        is_deterministic: bool = False,
     ) -> None:
         self.max_new_tokens = max_new_tokens
         self.stop_strs = stop
@@ -84,16 +85,13 @@ class SamplingParams:
         self.stream_interval = stream_interval
         self.logit_bias = logit_bias
         self.sampling_seed = sampling_seed
-        self.is_deterministic = bool
+        self.is_deterministic = is_deterministic
 
         # Process some special cases
         if 0 <= self.temperature < _SAMPLING_EPS:
             # top_k = 1 means greedy sampling
             self.temperature = 1.0
             self.top_k = 1
-            self.is_deterministic = True
-        else:
-            self.is_deterministic = False
         if self.top_k == -1:
             self.top_k = TOP_K_ALL  # whole vocabulary
 

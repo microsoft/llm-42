@@ -75,9 +75,18 @@ def main():
     print("=" * 60)
     print(f"Mixed Temperature Benchmark")
     print("=" * 60)
+    print(f"Assignment mode: {args.assignment_mode.upper()}")
+    if args.assignment_mode == 'random':
+        print(f"  Random seed: {args.seed}")
     print(f"Total requests: {args.max_requests}")
-    print(f"  - {num_temp0_requests} random requests with temperature=0 ({temp0_pct}%)")
-    print(f"  - {num_temp1_requests} random requests with temperature=1 ({temp1_pct}%)")
+    print(f"  - {num_temp0_requests} requests with temperature=0 ({temp0_pct}%)")
+    print(f"    → is_deterministic=True automatically set for these requests")
+    print(f"  - {num_temp1_requests} requests with temperature=1 ({temp1_pct}%)")
+    print(f"    → is_deterministic=False automatically set for these requests")
+    if args.assignment_mode == 'fixed':
+        print(f"  - Every ~{int(100/temp0_pct) if temp0_pct > 0 else 'N'}th request gets temp=0 (evenly distributed)")
+    else:
+        print(f"  - Random {num_temp0_requests} requests get temp=0 (reproducible with seed={args.seed})")
     print(f"  - Poisson arrival pattern maintained")
     print("=" * 60)
     
