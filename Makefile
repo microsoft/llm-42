@@ -53,7 +53,7 @@ conda:
 	export LD_LIBRARY_PATH=$CUDA_HOME/lib:$LD_LIBRARY_PATH
 
 
-MODEL = meta-llama/Meta-Llama-3-8B 
+MODEL ?= meta-llama/Meta-Llama-3-8B 
 BACKEND ?= flashinfer
 TOKENS = 8192
 BATCH ?= 2048
@@ -168,7 +168,7 @@ extract_test_deterministic_perf:
 #	python3 -m sglang.bench_offline_throughput --model-path ${MODEL} --num-prompts 256 --attention-backend flashinfer --dataset-name random --random-input 8192 --random-output 8192 --enable-deterministic-inference | grep -A11 "Offline Throughput Benchmark Result"
 
 # Plotted experiments
-INTRO_OUT = output/intro/
+INTRO_OUT ?= output/intro/
 FIGURES = figures/
 figure_1_sgl:
 	mkdir -p ${INTRO_OUT};
@@ -192,10 +192,10 @@ figure_1_vllm:
 	mkdir -p ${INTRO_OUT};
 	$(MAKE) run_offline_vllm INPUT_TOKEN=1024 OUTPUT_TOKEN=256 OUTPUT=${INTRO_OUT} POST=vllm_nondet;
 	$(MAKE) run_offline_vllm INPUT_TOKEN=1024 OUTPUT_TOKEN=256 OUTPUT=${INTRO_OUT} POST=vllm_det PRE_ENVS="VLLM_BATCH_INVARIANT=1";
-	VLLM_BATCH_INVARIANT=1 vllm bench throughput --dataset-name=random --input-len=1024 --output-len=256 --num-prompts=${BATCH} \
-		--model=${MODEL} > ${INTRO_OUT}b${BATCH}_in${INPUT_TOKEN}_out${OUTPUT_TOKEN}_vllmnondet.txt 2>&1
-	VLLM_BATCH_INVARIANT=1 vllm bench throughput --dataset-name=random --input-len=1024 --output-len=256 --num-prompts=${BATCH} \
-		--model=${MODEL} > ${INTRO_OUT}b${BATCH}_in${INPUT_TOKEN}_out${OUTPUT_TOKEN}_vllmdet.txt 2>&1
+	VLLM_BATCH_INVARIANT=0 VLLM_ATTENTION_BACKEND=FLEX_ATTENTION vllm bench throughput --dataset-name=random --input-len=1024 --output-len=256 --num-prompts=${BATCH} \
+		--model=${MODEL} --enforce_eager > ${INTRO_OUT}b${BATCH}_in${INPUT_TOKEN}_out${OUTPUT_TOKEN}_vllmnondet.txt 2>&1
+	VLLM_BATCH_INVARIANT=1 VLLM_ATTENTION_BACKEND=FLEX_ATTENTION vllm bench throughput --dataset-name=random --input-len=1024 --output-len=256 --num-prompts=${BATCH} \
+		--model=${MODEL} --enforce_eager > ${INTRO_OUT}b${BATCH}_in${INPUT_TOKEN}_out${OUTPUT_TOKEN}_vllmdet.txt 2>&1
 
 figure_prefill:
 	mkdir -p output/figure_3/
@@ -217,3 +217,15 @@ figure_rmsnorm:
 
 plot_rmsnorm:
 	python batch_invariant/scripts/plot_rmsnorm.py output/figure_rmsnorm/figure_rmsnorm_results.txt
+
+figure_eval:
+	cd verify_bench_per_request; \
+	sh test_all_traces_llama.sh;
+
+figure_eval_offline:
+	mkdir -p output/eval_offline/;
+	$(MAKE) figure_1_sgl MODEL=Qwen/Qwen3-8B-Base INTRO_OUT=output/eval_offline/
+
+plot_eval_offline:
+	mkdir -p ${FIGURES}
+	python3 batch_invariant/scripts/plot_introfig.py output/eval_offline/ -o ${FIGURES}/figure_eval_offline.png --title "Qwen3-8B-Base, H200"
