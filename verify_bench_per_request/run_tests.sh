@@ -486,7 +486,7 @@ for pct in "${PCT_ARRAY[@]}"; do
     echo "###############################################"
     
     # Launch server
-    if ! launch_server "$mode" "$mode_name" "$mode_desc"; then
+    if ! launch_server "$mode" "${mode_name}_${pct}" "$mode_desc"; then
         echo "Failed to launch server for $mode_name"
         continue
     fi
