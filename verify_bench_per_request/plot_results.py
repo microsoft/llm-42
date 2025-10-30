@@ -249,8 +249,8 @@ def plot_cdf_comparison(raw_data: Dict[str, Dict], output_dir: Path):
                            linestyle=line_styles.get(mode, '-'),
                            linewidth=2.5)
 
-        ax.set_xlabel(xlabel, fontweight='bold', fontsize=12)
-        ax.set_ylabel('CDF', fontweight='bold', fontsize=12)
+        ax.set_xlabel(xlabel, fontweight='bold', fontsize=14)
+        ax.set_ylabel('CDF', fontweight='bold', fontsize=14)
         ax.set_title(f'Mixed Temperature Test - {metric_name} CDF', fontweight='bold', fontsize=14)
         ax.grid(True, alpha=0.3)
         ax.legend(loc='lower right', fontsize=10)
@@ -498,7 +498,7 @@ def plot_unified_cdf_comparison(raw_data: Dict[str, Dict], output_dir: Path):
     ]
 
     for metric_key, metric_name, xlabel in metrics:
-        fig, ax = plt.subplots(figsize=(8, 4))
+        fig, ax = plt.subplots(figsize=(8, 5))
 
         # Plot each configuration
         for config in sorted_configs:
@@ -514,15 +514,15 @@ def plot_unified_cdf_comparison(raw_data: Dict[str, Dict], output_dir: Path):
                            linestyle=config_styles[config],
                            linewidth=1.5 if '@100%' in config else 2.5)
 
-        ax.set_xlabel(xlabel, fontweight='bold', fontsize=16)
-        ax.set_ylabel('CDF', fontweight='bold', fontsize=16)
+        ax.set_xlabel(xlabel, fontweight='bold', fontsize=18)
+        ax.set_ylabel('CDF', fontweight='bold', fontsize=18)
         #ax.set_title(f'Unified Comparison - {metric_name} CDF', fontweight='bold', fontsize=14)
         ax.grid(True, alpha=0.3)
         ax.legend(loc='lower right', fontsize=14, ncol=1)
         ax.set_ylim([0, 1.05])
 
         # set tick font sizes for x and y axes
-        ax.tick_params(axis='both', which='major', labelsize=12)
+        ax.tick_params(axis='both', which='major', labelsize=14)
 
         plt.tight_layout()
 
