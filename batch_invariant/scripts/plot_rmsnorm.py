@@ -97,9 +97,9 @@ def plot_one(results, batch_sizes, hidden_size, lines, titles=None, output_dir="
     x_positions = np.arange(len(batch_sizes))
 
     # Plot raw execution times and speedups
-    for (name, _), color, marker in zip(results.items(), colors, markers):
-        if hidden_size in results[name]['times'] and name in lines:
-            times = np.array(results[name]['times'][hidden_size])
+    for name, color, marker in zip(lines, colors, markers):
+        if hidden_size in results[name]['times']:
+            times = np.array(results[name]['times'][hidden_size][:len(batch_sizes)])
 
             if titles:
                 name = titles[lines.index(name)]
@@ -188,7 +188,7 @@ plot_one(results, sorted(batch_sizes), 8192,
 
 # 'SGLang (Batch-invariant)',
 #'SGLang-Native',
-plot_one(results, sorted(batch_sizes), 8192,
-         ['SGLang-Native', 'vLLM-Dynamic', 'Triton-BatchInv'],
-         titles=['Torch (Batch-invariant)', 'vLLM (Non-deterministic)', 'Triton (Batch-invariant)'],
+plot_one(results, sorted([batch_size for batch_size in batch_sizes if batch_size < 8192]), 8192,
+         ['SGLang-Native', 'Triton-BatchInv', 'vLLM-Dynamic'],
+         titles=['Python (Batch-invariant)', 'Triton (Batch-invariant)', 'vLLM (Non-deterministic)'],
          output_dir="figures/", file_name="rmsnorm_impl.png")
