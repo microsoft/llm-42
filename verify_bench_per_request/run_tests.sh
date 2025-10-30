@@ -69,6 +69,10 @@ while [[ $# -gt 0 ]]; do
             TRACE_NAME="$2"
             shift 2
             ;;
+        --tp)
+            TP_SIZE="$2"
+            shift 2
+            ;;
         --temp0-pcts)
             TEMP0_PCTS="$2"
             shift 2

@@ -6,7 +6,7 @@
 set -e
 
 # Array of trace types
-TRACES=("arxiv" "sharegpt" "lmsys")
+TRACES=("arxiv" "sharegpt")
 TEMP0_PCTS="0,1,5,10,50,100"
 MAX_REQUESTS=512
 QPS=1
@@ -19,7 +19,7 @@ echo "Percentages: $TEMP0_PCTS"
 echo "Max requests: $MAX_REQUESTS"
 echo "QPS: $QPS"
 echo ""
-echo "This will run 3 traces x (6 percentages + 3 modes) = 27 total tests"
+echo "This will run w traces x (6 percentages + 3 modes) = 18 total tests"
 echo "================================================"
 echo ""
 
@@ -38,7 +38,8 @@ for trace in "${TRACES[@]}"; do
         --max-requests $MAX_REQUESTS \
         --qps $QPS \
         --warmup-time $WARMUP_TIME \
-        --model "meta-llama/Meta-Llama-3-8B-Instruct"
+        --model "Qwen/Qwen3-30B-A3B-Instruct-2507" \
+        --tp 2
     
     echo ""
     echo "✓ Completed tests for $trace"
@@ -55,13 +56,13 @@ for trace in "${TRACES[@]}"; do
     # The actual directory name will depend on the trace file name
     case $trace in
         arxiv)
-            echo "  - llama-3-8b_arxiv_summarization_pct_${TEMP0_PCTS//,/_}/"
+            echo "  - qwen-3-32b_arxiv_summarization_pct_${TEMP0_PCTS//,/_}/"
             ;;
         sharegpt)
-            echo "  - llama-3-8b_sharegpt_8k_pct_${TEMP0_PCTS//,/_}/"
+            echo "  - qwen-3-32b_sharegpt_8k_pct_${TEMP0_PCTS//,/_}/"
             ;;
         lmsys)
-            echo "  - llama-3-8b_lmsys_chat_1m_conversation_pct_${TEMP0_PCTS//,/_}/"
+            echo "  - qwen-3-32b_lmsys_chat_1m_conversation_pct_${TEMP0_PCTS//,/_}/"
             ;;
     esac
 done
