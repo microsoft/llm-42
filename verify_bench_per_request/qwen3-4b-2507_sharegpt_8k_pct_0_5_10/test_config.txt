@@ -1,0 +1,21 @@
+Test Configuration
+==================
+Model: Qwen/Qwen3-4B-Instruct-2507
+Model Name: Qwen3-4B-Instruct-2507
+Model Short: qwen3-4b-2507
+Trace Type: sharegpt
+Trace File: ../etalon/data/processed_traces/sharegpt_8k_filtered_stats_llama2_tokenizer.csv
+Trace Name: sharegpt_8k
+Percentages for Mode 578: 0,5,10
+Assignment Mode: random
+Seed: 42
+Max Requests: 256
+QPS: 1
+Timeout: 600
+Warmup Time: 30
+
+Test Strategy:
+- Baseline, Mode 66, Mode 257: Run once with 100% deterministic (pct_100/)
+- Mode 578 (temperature-based): Run with varying percentages (0,5,10)
+
+Date: Thu Oct 30 06:20:04 PM UTC 2025
