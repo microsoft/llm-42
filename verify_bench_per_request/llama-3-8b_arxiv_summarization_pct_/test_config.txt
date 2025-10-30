@@ -1,0 +1,21 @@
+Test Configuration
+==================
+Model: meta-llama/Meta-Llama-3-8B-Instruct
+Model Name: Meta-Llama-3-8B-Instruct
+Model Short: llama-3-8b
+Trace Type: arxiv
+Trace File: ../etalon/data/processed_traces/arxiv_summarization_filtered_stats_llama2_tokenizer.csv
+Trace Name: arxiv_summarization
+Percentages for Mode 578: 
+Assignment Mode: random
+Seed: 42
+Max Requests: 512
+QPS: 1
+Timeout: 600
+Warmup Time: 30
+
+Test Strategy:
+- Baseline, Mode 66, Mode 257: Run once with 100% deterministic (pct_100/)
+- Mode 578 (temperature-based): Run with varying percentages ()
+
+Date: Thu Oct 30 04:05:09 AM UTC 2025

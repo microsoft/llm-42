@@ -12,17 +12,17 @@
 set -e
 
 # Default configuration
-MODEL="meta-llama/Meta-Llama-3.1-8B-Instruct"
+MODEL="meta-llama/Meta-Llama-3-8B-Instruct"
 HOST="0.0.0.0"
 PORT=30000
 TP_SIZE=1
 ATTENTION_BACKEND="flashinfer"
 OUTPUT_DIR=""  # Will be set based on model, dataset, and percentages
 QPS=1
-MAX_REQUESTS=256
+MAX_REQUESTS=512
 TIMEOUT=600
 NUM_CLIENTS=1
-CONCURRENT=256
+CONCURRENT=512
 TRACE_TYPE="arxiv"  # Default trace type: arxiv, sharegpt, or lmsys
 TRACE_FILE=""  # Will be set based on TRACE_TYPE or can be overridden
 TRACE_NAME=""  # Will be extracted from TRACE_FILE or set via command line
@@ -38,10 +38,10 @@ SEED=42  # Default seed for random assignment
 # Mode 66 = batch-invariant:: vllm-rmsnorm + cutlass matmul
 # Mode 257 = batch-invariant:: native-rmsnorm + thinking-machine matmul
 # Mode 578 = temperature-based switching + cutlass matmul + vllm-rmsnorm
-MODES=("baseline" "66" "257" "578")
+MODES=("baseline" "257" "578")
 MODE_DESCRIPTIONS=(
     "Baseline (Non-deterministic)"
-    "Mode 66 (batch-invariant: vllm-rmsnorm + cutlass)"
+    #"Mode 66 (batch-invariant: vllm-rmsnorm + cutlass)"
     "Mode 257 (batch-invariant: native-rmsnorm + TM)"
     "Mode 578 (temp-based with mixed temperatures)"
 )

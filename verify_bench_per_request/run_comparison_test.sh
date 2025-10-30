@@ -8,17 +8,17 @@
 set -e
 
 # Default configuration
-MODEL="meta-llama/Meta-Llama-3.1-8B-Instruct"
+MODEL="meta-llama/Meta-Llama-3-8B-Instruct"
 HOST="0.0.0.0"
 PORT=30000
 TP_SIZE=1
 ATTENTION_BACKEND="flashinfer"
 OUTPUT_DIR="fix_comparison_results"
 QPS=1.0
-MAX_REQUESTS=256
+MAX_REQUESTS=512
 TIMEOUT=600
 NUM_CLIENTS=1
-CONCURRENT=256
+CONCURRENT=512
 TRACE_FILE="../etalon/data/processed_traces/arxiv_summarization_filtered_stats_llama2_tokenizer.csv"
 MAX_TOKENS=8192
 WARMUP_TIME=30  # Time to wait for server to warmup
