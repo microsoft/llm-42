@@ -253,9 +253,11 @@ class TpModelWorker:
             )
 
         if self.pp_group.is_last_rank:
+            print(f"TP Worker {self.tp_rank} running forward and sampling for req {model_worker_batch}", flush=True)
             logits_output, can_run_cuda_graph = self.model_runner.forward(
                 forward_batch, pp_proxy_tensors=pp_proxy_tensors
             )
+            print(f"TP Worker {self.tp_rank} completed forward for req {model_worker_batch}", flush=True)
             if launch_done is not None:
                 launch_done.set()
 

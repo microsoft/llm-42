@@ -114,6 +114,10 @@ class ForwardMode(IntEnum):
     def is_target_det_verify(self):
         return self == ForwardMode.TARGET_DET_VERIFY
 
+    def is_any_verify(self):
+        """Check if this is any verification mode (TARGET_VERIFY or TARGET_DET_VERIFY)."""
+        return self == ForwardMode.TARGET_VERIFY or self == ForwardMode.TARGET_DET_VERIFY
+
     def is_draft_extend(self):
         return self == ForwardMode.DRAFT_EXTEND
 

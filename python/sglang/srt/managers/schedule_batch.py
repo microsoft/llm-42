@@ -628,6 +628,11 @@ class Req:
         # This is used to compute the average acceptance length per request.
         self.spec_verify_ct = 0
 
+        # For deterministic verification
+        self.is_deterministic: bool = sampling_params.is_deterministic
+        self.det_verified: bool = False
+        self.det_mismatch: bool = False
+
         # For metrics
         self.metrics_collector = metrics_collector
         self.time_stats: TimeStats = TimeStats(disagg_mode=disagg_mode)

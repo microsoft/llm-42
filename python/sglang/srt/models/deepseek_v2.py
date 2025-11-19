@@ -243,7 +243,7 @@ class AttentionBackendRegistry:
 def handle_attention_ascend(attn, forward_batch):
     if (
         forward_batch.forward_mode.is_extend()
-        and not forward_batch.forward_mode.is_target_verify()
+        and not forward_batch.forward_mode.is_any_verify()
         and not forward_batch.forward_mode.is_draft_extend()
     ):
         return AttnForwardMethod.MHA
@@ -262,7 +262,7 @@ def _get_sum_extend_prefix_lens(forward_batch):
 def _is_extend_without_speculative(forward_batch):
     return (
         forward_batch.forward_mode.is_extend()
-        and not forward_batch.forward_mode.is_target_verify()
+        and not forward_batch.forward_mode.is_any_verify()
         and not forward_batch.forward_mode.is_draft_extend()
     )
 
@@ -1204,7 +1204,7 @@ class DeepseekV2AttentionMLA(nn.Module):
         if forward_batch.forward_mode.is_decode_or_idle():
             attention_backend = global_server_args_dict["decode_attention_backend"]
         elif (
-            forward_batch.forward_mode.is_target_verify()
+            forward_batch.forward_mode.is_any_verify()
             or forward_batch.forward_mode.is_draft_extend()
         ):
             # Use the specified backend for speculative operations (both verify and draft extend)
@@ -1410,7 +1410,7 @@ class DeepseekV2AttentionMLA(nn.Module):
             self.current_attention_backend == "trtllm_mla"
             and (
                 forward_batch.forward_mode.is_decode_or_idle()
-                or forward_batch.forward_mode.is_target_verify()
+                or forward_batch.forward_mode.is_any_verify()
             )
             and forward_batch.attn_backend.data_type == torch.float8_e4m3fn
         )

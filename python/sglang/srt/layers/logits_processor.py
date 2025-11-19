@@ -132,7 +132,7 @@ class LogitsMetadata:
         if (
             forward_batch.forward_mode.is_extend()
             and forward_batch.return_logprob
-            and not forward_batch.forward_mode.is_target_verify()
+            and not forward_batch.forward_mode.is_any_verify()
         ):
             extend_return_top_logprob = any(
                 x > 0 for x in forward_batch.top_logprobs_nums
@@ -260,7 +260,7 @@ class LogitsProcessor(nn.Module):
         # Get the last hidden states and last logits for the next token prediction
         if (
             logits_metadata.forward_mode.is_decode_or_idle()
-            or logits_metadata.forward_mode.is_target_verify()
+            or logits_metadata.forward_mode.is_any_verify()
         ):
             pruned_states = hidden_states
             if aux_hidden_states is not None:

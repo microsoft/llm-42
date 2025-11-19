@@ -449,6 +449,15 @@ class Scheduler(
         else:
             self.model_worker = self.draft_worker
 
+        # Wrap with deterministic verification worker if enabled
+        if server_args.enable_deterministic_inference:
+            from sglang.srt.detinfer.det_verify_worker import (
+                DeterministicVerificationWorker,
+            )
+
+            self.model_worker = DeterministicVerificationWorker(self.model_worker)
+            logger.info("Deterministic verification worker enabled")
+
         # Get token and memory info from the model worker
         (
             self.max_total_num_tokens,
@@ -940,7 +949,7 @@ class Scheduler(
         while True:
             recv_reqs = self.recv_requests()
             self.process_input_requests(recv_reqs)
-
+            logger.info(f"Scheduler.event_loop_normal received requests {[req.rid for req in recv_reqs]}")
             batch = self.get_next_batch_to_run()
             self.cur_batch = batch
 
@@ -1736,6 +1745,7 @@ class Scheduler(
         )
 
     def get_next_batch_to_run(self) -> Optional[ScheduleBatch]:
+        # logger.info("Getting next batch to run")
         # Merge the prefill batch into the running batch
         chunked_req_to_exclude = set()
         if self.chunked_req:
@@ -2038,7 +2048,12 @@ class Scheduler(
     ) -> Union[GenerationBatchResult, EmbeddingBatchResult]:
         """Run a batch."""
         self.forward_ct += 1
-
+        logger.info(
+            f"Scheduler.run_batch forward_ct={self.forward_ct}, "
+            f"batch_size={batch.batch_size()}, "
+            f"forward_mode={batch.forward_mode}, "
+            f"reqs={[req.rid for req in batch.reqs]}"
+        )
         # Whether to run the profiler
         self._profile_batch_predicate(batch)
         if self.forward_sleep_time is not None:
@@ -2047,7 +2062,7 @@ class Scheduler(
 
         # Run forward
         if self.is_generation:
-
+            logger.info(f"Scheduler.run_batch running forward for batch with reqs {[req.rid for req in batch.reqs]}")
             batch_or_worker_batch = batch
 
             if self.spec_algorithm.is_none():
