@@ -44,7 +44,7 @@ echo "  --model-path $MODEL_PATH \\"
 echo "  --host $HOST \\"
 echo "  --port $PORT \\"
 echo "  --tp $TP_SIZE \\"
-echo "  --enable-deterministic-inference 578"
+echo "  --enable-deterministic-inference 1"
 echo ""
 
 $PYTHON_CMD -m sglang.launch_server \
@@ -52,6 +52,7 @@ $PYTHON_CMD -m sglang.launch_server \
     --host "$HOST" \
     --port "$PORT" \
     --tp "$TP_SIZE" \
-    --enable-deterministic-inference 578 \
+    --enable-deterministic-inference 1 \
     --attention-backend $ATTENTION_BACKEND \
-    --disable-radix-cache 
+    --disable-radix-cache \
+    --disable-cuda-graph

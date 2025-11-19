@@ -877,6 +877,13 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                     else:
                         msg = f"Finish: obj={dataclass_to_string_truncated(obj, max_length, skip_names=skip_names)}, out={dataclass_to_string_truncated(out, max_length, skip_names=out_skip_names)}"
                     logger.info(msg)
+                
+                # Print token IDs and text on request finish
+                logger.info(f"Request finished: rid={obj.rid}")
+                if "output_ids" in out:
+                    logger.info(f"  Token IDs: {out['output_ids']}")
+                if "text" in out:
+                    logger.info(f"  Text: {out['text']}")
 
                 # Check if this was an abort/error created by scheduler
                 if isinstance(out["meta_info"].get("finish_reason"), dict):

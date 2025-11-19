@@ -574,6 +574,9 @@ class SchedulerOutputProcessorMixin:
             if self.model_config.is_multimodal_gen and req.to_abort:
                 continue
 
+            # Check if request is deterministic
+            is_deterministic = req.sampling_params.is_deterministic
+            
             if req.finished():
                 if req.finished_output:
                     # With the overlap schedule, a request will try to output twice and hit this line twice
@@ -582,7 +585,10 @@ class SchedulerOutputProcessorMixin:
                 req.finished_output = True
                 should_output = True
             else:
-                if req.stream:
+                # For deterministic requests, skip streaming until finished
+                if is_deterministic:
+                    should_output = False
+                elif req.stream:
                     stream_interval = (
                         req.sampling_params.stream_interval or self.stream_interval
                     )
