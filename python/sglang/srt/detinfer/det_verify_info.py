@@ -105,37 +105,106 @@ class DetVerifyInfo:
         # Set forward mode
         verify_batch.forward_mode = ForwardMode.TARGET_DET_VERIFY
         
-        # Prepare input_ids: full sequence for each request
+        # Prepare input_ids: only output tokens to verify
+        # The input tokens are already in KV cache, we only need to verify outputs
         input_ids = []
         req_pool_indices = []
-        extend_seq_lens = []
-        extend_prefix_lens = []
+        output_lens = []
+        prefix_lens_list = []
         
         for req in reqs_to_verify:
-            # Full sequence: original input + generated output
-            full_seq = req.origin_input_ids + req.output_ids
-            input_ids.extend(full_seq)
+            # For verification, we need to include the last input token + all output tokens
+            # This way we get logits that predict each output token
+            # Example: input_ids=[last_input_token, out0, out1, ...] → logits predict [out0, out1, out2, ...]
+            if not req.output_ids:
+                continue  # Skip if no output tokens to verify
+            
+            # Prepend the last input token before the output tokens
+            last_input_token = req.origin_input_ids[-1] if req.origin_input_ids else req.input_ids[-1]
+            verification_input = [last_input_token] + req.output_ids
+            input_ids.extend(verification_input)
             
             # Use existing req_pool_idx
             req_pool_indices.append(req.req_pool_idx)
             
-            # Extend lens: prefix is input, extend is output
-            extend_prefix_lens.append(len(req.origin_input_ids))
-            extend_seq_lens.append(len(req.output_ids))
+            # Track lengths: we input (1 last_input + N outputs) tokens
+            # But we only want to verify the N output tokens
+            output_lens.append(len(req.output_ids))
+            # Prefix length is now one less because we're including the last input token in our batch
+            prefix_lens_list.append(len(req.origin_input_ids) - 1)
         
-        # Set batch attributes
-        verify_batch.input_ids = torch.tensor(input_ids, dtype=torch.int32)
-        verify_batch.req_pool_indices = torch.tensor(req_pool_indices, dtype=torch.int32)
-        verify_batch.seq_lens = self.seq_lens.clone()
-        verify_batch.extend_seq_lens = torch.tensor(extend_seq_lens, dtype=torch.int32)
-        verify_batch.extend_prefix_lens = torch.tensor(extend_prefix_lens, dtype=torch.int32)
-        verify_batch.extend_num_tokens = len(input_ids)
+        # Set batch attributes - ensure all tensors are on the correct device
+        device = original_batch.device if hasattr(original_batch, 'device') else 'cuda'
+        verify_batch.input_ids = torch.tensor(input_ids, dtype=torch.int32, device=device)
+        verify_batch.req_pool_indices = torch.tensor(req_pool_indices, dtype=torch.int32, device=device)
+        
+        # Use extend_lens and prefix_lens which are used by get_model_worker_batch()
+        # extend_lens should be the number of tokens we're extending: 1 (last input) + N (outputs)
+        extend_lens_with_last_input = [length + 1 for length in output_lens]
+        verify_batch.extend_lens = extend_lens_with_last_input
+        verify_batch.prefix_lens = prefix_lens_list
+        
+        # seq_lens should be the total sequence length (prefix + 1 last_input + output tokens being verified)
+        # FlashInfer uses this to determine where in the KV cache to access
+        prefix_lens = torch.tensor(prefix_lens_list, dtype=torch.int32, device=device)
+        extend_lens_tensor = torch.tensor(extend_lens_with_last_input, dtype=torch.int32, device=device)
+        total_seq_lens = prefix_lens + extend_lens_tensor
+        verify_batch.seq_lens = total_seq_lens
+        verify_batch.seq_lens_cpu = total_seq_lens.cpu()
+        # For verification, we start sampling from position 1 (skip the last input token)
+        # This gives us logits for all N output positions
+        verify_batch.extend_logprob_start_lens = [1] * len(reqs_to_verify)
+        
+        verify_batch.extend_num_tokens = len(input_ids)  # Total tokens including last input tokens
+        verify_batch.seq_lens_sum = total_seq_lens.sum().item()
+        verify_batch.orig_seq_lens = total_seq_lens.clone()
         
         # Copy other necessary attributes from original batch
         verify_batch.req_to_token_pool = original_batch.req_to_token_pool
         verify_batch.token_to_kv_pool_allocator = original_batch.token_to_kv_pool_allocator
         verify_batch.tree_cache = original_batch.tree_cache
         verify_batch.model_config = original_batch.model_config
+        verify_batch.sampling_info = original_batch.sampling_info
+        verify_batch.device = device
+        
+        # Allocate cache locations for the verification - similar to Eagle
+        page_size = verify_batch.token_to_kv_pool_allocator.page_size
+        
+        if page_size == 1:
+            verify_batch.out_cache_loc = verify_batch.alloc_token_slots(len(input_ids))
+        else:
+            from sglang.srt.managers.schedule_batch import get_last_loc, assign_req_to_token_pool, next_power_of_2
+            
+            output_lens_tensor = torch.tensor(output_lens, dtype=torch.int32, device=device)
+            end_offset = prefix_lens + output_lens_tensor
+            end_offset_cpu = prefix_lens.cpu() + output_lens_tensor.cpu()
+            
+            last_loc = get_last_loc(
+                verify_batch.req_to_token_pool.req_to_token,
+                verify_batch.req_pool_indices,
+                prefix_lens,
+            )
+            
+            verify_batch.out_cache_loc = verify_batch.alloc_paged_token_slots_extend(
+                prefix_lens,
+                prefix_lens.cpu(),
+                end_offset,
+                end_offset_cpu,
+                last_loc,
+                len(input_ids),
+            )
+            
+            # Update mapping
+            bs = verify_batch.batch_size()
+            assign_req_to_token_pool[(bs,)](
+                verify_batch.req_pool_indices,
+                verify_batch.req_to_token_pool.req_to_token,
+                prefix_lens,
+                end_offset,
+                verify_batch.out_cache_loc,
+                verify_batch.req_to_token_pool.req_to_token.shape[1],
+                next_power_of_2(bs),
+            )
         
         return verify_batch
 

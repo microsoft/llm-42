@@ -337,6 +337,25 @@ class FlashInferAttnBackend(AttentionBackend):
             self.forward_metadata = PrefillMetadata(
                 self.prefill_wrappers_verify, False, False
             )
+        elif forward_batch.forward_mode.is_target_det_verify():
+            # Handle TARGET_DET_VERIFY similar to TARGET_VERIFY
+            # This mode is used for deterministic verification - re-running output tokens
+            # to verify determinism. The input tokens are already in KV cache.
+            # We need to pass prefix_lens (the length of input tokens already in cache)
+            self.indices_updater_prefill.update(
+                forward_batch.req_pool_indices,
+                forward_batch.seq_lens,
+                forward_batch.seq_lens_cpu,
+                forward_batch.seq_lens_sum,
+                prefix_lens=forward_batch.extend_prefix_lens,
+                prefill_wrappers=self.prefill_wrappers_verify,
+                use_ragged=False,
+                encoder_lens=forward_batch.encoder_lens,
+                spec_info=forward_batch.spec_info,
+            )
+            self.forward_metadata = PrefillMetadata(
+                self.prefill_wrappers_verify, False, False
+            )
         else:
             prefix_lens = forward_batch.extend_prefix_lens
             current_prefill_split_tile_size = None
@@ -537,6 +556,10 @@ class FlashInferAttnBackend(AttentionBackend):
             )
             self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
             self.forward_metadata = PrefillMetadata(prefill_wrappers, False, False)
+        elif forward_mode.is_target_det_verify():
+            # TARGET_DET_VERIFY is not expected to use CUDA graphs in initial implementation
+            # It should follow the non-CUDA-graph path
+            raise ValueError(f"CUDA graph capture not supported for TARGET_DET_VERIFY mode")
         elif forward_mode.is_draft_extend():
             prefill_wrappers = []
             for i in range(self.num_wrappers):
@@ -618,6 +641,9 @@ class FlashInferAttnBackend(AttentionBackend):
                 encoder_lens=encoder_lens[:bs] if encoder_lens is not None else None,
                 spec_info=spec_info,
             )
+        elif forward_mode.is_target_det_verify():
+            # TARGET_DET_VERIFY is not expected to use CUDA graphs in replay
+            raise ValueError(f"CUDA graph replay not supported for TARGET_DET_VERIFY mode")
         elif forward_mode.is_draft_extend():
             self.indices_updater_prefill.update(
                 req_pool_indices[:bs],

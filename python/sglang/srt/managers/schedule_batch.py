@@ -1878,6 +1878,7 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
             extend_input_logprob_token_ids=self.extend_input_logprob_token_ids,
             launch_done=self.launch_done,
             is_prefill_only=self.is_prefill_only,
+            reqs=self.reqs,
         )
 
     def copy(self):
@@ -2022,6 +2023,9 @@ class ModelWorkerBatch:
 
     # Whether this batch is prefill-only (no token generation needed)
     is_prefill_only: bool = False
+    
+    # Request objects (for verification and debugging)
+    reqs: Optional[List[Req]] = None
 
 
 @triton.jit

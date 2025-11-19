@@ -55,4 +55,5 @@ $PYTHON_CMD -m sglang.launch_server \
     --enable-deterministic-inference 1 \
     --attention-backend $ATTENTION_BACKEND \
     --disable-radix-cache \
+    --disable-overlap-schedule \
     --disable-cuda-graph

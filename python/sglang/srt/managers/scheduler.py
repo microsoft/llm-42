@@ -949,11 +949,11 @@ class Scheduler(
         while True:
             recv_reqs = self.recv_requests()
             self.process_input_requests(recv_reqs)
-            logger.info(f"Scheduler.event_loop_normal received requests {[req.rid for req in recv_reqs]}")
             batch = self.get_next_batch_to_run()
             self.cur_batch = batch
 
             if batch:
+                logger.info(f"Scheduler.event_loop_normal received requests {batch=}")
                 result = self.run_batch(batch)
                 self.process_batch_result(batch, result)
             else:
@@ -2065,7 +2065,13 @@ class Scheduler(
             logger.info(f"Scheduler.run_batch running forward for batch with reqs {[req.rid for req in batch.reqs]}")
             batch_or_worker_batch = batch
 
-            if self.spec_algorithm.is_none():
+            # If deterministic verification is enabled, we need to pass ScheduleBatch to the worker
+            # because DeterministicVerificationWorker expects it.
+            should_convert_to_worker_batch = self.spec_algorithm.is_none()
+            if self.server_args.enable_deterministic_inference:
+                should_convert_to_worker_batch = False
+
+            if should_convert_to_worker_batch:
                 # FIXME(lsyin): remove this if and finally unify the abstraction
                 batch_or_worker_batch = batch.get_model_worker_batch()
 
