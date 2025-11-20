@@ -634,6 +634,7 @@ class Req:
         self.det_verified: bool = False
         self.det_mismatch: bool = False
         self.det_verified_tokens: int = 0  # Number of tokens that have been verified
+        self.force_deterministic_mode: bool = False  # Force deterministic mode after mismatch
         
         if self.is_deterministic:
             logger.info(
@@ -1635,6 +1636,11 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
         self.forward_mode = ForwardMode.DECODE
         bs = len(self.reqs)
 
+        logger.info("Preparing for decode")
+        logger.info(f"Decoding batch size: {bs}")
+        logger.info(f"Decoding batch reqs tensor: {self.reqs}")
+        logger.info(f"Decoding batch input_ids tensor: {self.output_ids}")
+
         if (
             self.spec_algorithm.is_eagle()
             or self.spec_algorithm.is_standalone()
@@ -1645,6 +1651,7 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
             return
 
         if self.sampling_info.penalizer_orchestrator.is_required:
+            logger.info("penalizer_orchestrator cumulate output tokens")
             if self.enable_overlap:
                 # TODO: this can be slow, optimize this.
                 delayed_output_ids = torch.tensor(
@@ -1666,7 +1673,8 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
                 self.sampling_info.penalizer_orchestrator.cumulate_output_tokens(
                     self.output_ids.to(torch.int64)
                 )
-
+        logger.info(f"Decoding batch size: {bs}")
+        logger.info(f"Decoding batch input_ids tensor: {self.output_ids}")
         # Update fields
         self.input_ids = self.output_ids
         self.output_ids = None

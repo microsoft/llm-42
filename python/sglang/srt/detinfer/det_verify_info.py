@@ -117,6 +117,11 @@ class DetVerifyInfo:
         
         for req in reqs_to_verify:
             # Get only unverified tokens
+            logger.info(f"[DET_VERIFY] Preparing req {req.rid} for verification")
+            logger.info(f"[DET_VERIFY] origin_input_ids: {req.origin_input_ids}")
+            logger.info(f"[DET_VERIFY] output_ids: {req.output_ids}")
+            logger.info(f"[DET_VERIFY] det_verified_tokens: {req.det_verified_tokens}")
+            logger.info(f"[DET_VERIFY] unverified_tokens: {req.output_ids[req.det_verified_tokens:]}")
             unverified_tokens = req.output_ids[req.det_verified_tokens:]
             
             if not unverified_tokens:
@@ -183,21 +188,82 @@ class DetVerifyInfo:
         out_cache_locs = []
         
         for i, req in enumerate(reqs_to_verify):
+            # Calculate the actual current position in the sequence
+            # This is the total length including input and ALL generated outputs so far
+            current_seq_len = len(req.origin_input_ids) + len(req.output_ids)
+            
+            logger.info(
+                f"[DET_VERIFY] Processing req {req.rid}: "
+                f"origin_input_ids_len={len(req.origin_input_ids)}, "
+                f"output_ids_len={len(req.output_ids)}, "
+                f"det_verified_tokens={req.det_verified_tokens}, "
+                f"current_seq_len={current_seq_len}"
+            )
+            
             # For the context token (last verified/input token), get its existing cache location
+            # Make sure we don't access beyond what's been written to req_to_token_pool
             context_idx = len(req.origin_input_ids) + req.det_verified_tokens - 1
+            
+            # Ensure context_idx is within bounds of what's been allocated
+            if context_idx >= current_seq_len:
+                logger.error(
+                    f"ERROR: context_idx {context_idx} >= current_seq_len {current_seq_len} "
+                    f"for req {req.rid}. This indicates a logic error."
+                )
+                raise RuntimeError(
+                    f"Attempting to access unallocated cache position {context_idx} "
+                    f"when only {current_seq_len} positions have been allocated"
+                )
+            
+            logger.info(
+                f"[DET_VERIFY] Reading context_cache_loc from req_to_token_pool at "
+                f"[{req.req_pool_idx}, {context_idx}]"
+            )
+            
             context_cache_loc = verify_batch.req_to_token_pool.req_to_token[
                 req.req_pool_idx, context_idx
             ]
-            out_cache_locs.append(context_cache_loc)
+            
+            logger.info(f"[DET_VERIFY] context_cache_loc = {context_cache_loc.item()}")
+            
+            out_cache_locs.append(context_cache_loc.item())
             
             # For unverified output tokens, get their existing cache locations
             # These will be OVERWRITTEN during verification (in-place update)
             start_idx = len(req.origin_input_ids) + req.det_verified_tokens
             end_idx = len(req.origin_input_ids) + len(req.output_ids)
+            
+            # Ensure we're not trying to access beyond allocated positions
+            if end_idx > current_seq_len:
+                logger.error(
+                    f"ERROR: Trying to access cache positions {start_idx}:{end_idx} "
+                    f"but only {current_seq_len} have been allocated for req {req.rid}"
+                )
+                raise RuntimeError(
+                    f"Attempting to access unallocated cache positions [{start_idx}:{end_idx}] "
+                    f"when only {current_seq_len} positions have been allocated"
+                )
+            
+            logger.info(
+                f"[DET_VERIFY] Reading output_cache_locs from req_to_token_pool at "
+                f"[{req.req_pool_idx}, {start_idx}:{end_idx}]"
+            )
+            
             output_cache_locs = verify_batch.req_to_token_pool.req_to_token[
                 req.req_pool_idx, start_idx:end_idx
             ]
+            
+            logger.info(f"[DET_VERIFY] output_cache_locs = {output_cache_locs.tolist()}")
+            
             out_cache_locs.extend(output_cache_locs.tolist())
+            
+            # Note: We do NOT allocate an extra cache location here.
+            # During extend forward pass, we generate K/V for exactly the tokens we input:
+            # [last_verified_token] + unverified_tokens
+            # If verification succeeds and we continue generation, the scheduler will
+            # allocate new cache for future tokens as needed.
+        
+        logger.info(f"[DET_VERIFY] Final out_cache_locs = {out_cache_locs}")
         
         # Set out_cache_loc to point to existing cache locations
         verify_batch.out_cache_loc = torch.tensor(
@@ -219,17 +285,43 @@ class DetVerifyInfo:
     ):
         """
         Compare original outputs with re-generated outputs.
+        On mismatch: ROLLBACK and ACCEPT the verified token predicted at mismatch position.
+        
+        KEY INSIGHT: During verification, we feed [last_verified, unverified0, unverified1, ...]
+        - If unverified_i matches its prediction → it's CORRECT, its KV is correct
+        - The logits AFTER processing unverified_i predict what token_(i+1) SHOULD be
+        - These logits were computed with CORRECT KV context (from correct unverified_i)
+        
+        Example: tokens [x0, x1, x2, x3, x4, x5, x6] generate predictions [y1, y2, y3, y4, y5, y6, y7]
+        If x1==y1, x2==y2, x3==y3, x4==y4, but x5!=y5 (mismatch at position 5):
+        
+        - Process x0 → predict y1, x1==y1 ✓ → x1 is correct! KV[0] from embedding(x0) is correct
+        - Process x1 → predict y2, x2==y2 ✓ → x2 is correct! KV[1] from embedding(x1) is correct
+        - Process x2 → predict y3, x3==y3 ✓ → x3 is correct! KV[2] from embedding(x2) is correct
+        - Process x3 → predict y4, x4==y4 ✓ → x4 is correct! KV[3] from embedding(x3) is correct
+        - Process x4 → predict y5, x5!=y5 ✗ → MISMATCH! But:
+          * x4 was correct, so KV[4] from embedding(x4) is correct!
+          * Logits after x4 predict y5 with CORRECT KV context
+          * We CAN accept y5! ✓
+        - Process x5 (wrong) → KV[5] from embedding(x5_WRONG) is wrong ✗
+        
+        Result: Accept [x0, x1, x2, x3, x4, y5], discard [x6, x7]
         
         Args:
             reqs: Requests that were verified
-            verified_token_ids: Token IDs from verification run
+            verified_token_ids: Token IDs from verification run (argmax predictions)
             logits_output: Logits from verification run
+            
+        Returns:
+            List of (mismatch_position, tokens_rolled_back, tokens_accepted) tuples
+            None for each request that passed verification
         """
         # Convert to list for comparison
         if isinstance(verified_token_ids, torch.Tensor):
             verified_token_ids = verified_token_ids.tolist()
         
         original_ids = self.original_outputs.tolist()
+        rollback_info = []
         
         # Compare per-request
         offset = 0
@@ -238,22 +330,103 @@ class DetVerifyInfo:
             orig_output = original_ids[offset : offset + output_len]
             verify_output = verified_token_ids[offset : offset + output_len]
             
+            # Check if there's an extra token generated (bonus token!)
+            # The verification generates N+1 logits for N tokens input
+            # So we have one extra prediction beyond the unverified tokens
+            extra_token_idx = offset + output_len
+            has_extra_token = extra_token_idx < len(verified_token_ids)
+            
             if orig_output == verify_output:
-                # Verification passed
+                # Verification passed - all tokens matched!
                 req.det_verified = True
                 req.det_mismatch = False
+                
+                # Accept the extra token generated by verification (if available)
+                # if has_extra_token:
+                #     extra_token = verified_token_ids[extra_token_idx]
+                #     req.output_ids.append(extra_token)
+                #     # Signal that we accepted an extra token (no rollback, but 1 token accepted)
+                #     # Format: (position, tokens_rolled_back, tokens_accepted)
+                #     rollback_info.append((output_len, 0, 1))
+                #     logger.info(
+                #         f"Request {req.rid}: Deterministic verification PASSED! "
+                #         f"All {output_len} tokens matched. "
+                #         f"BONUS: Accepted 1 extra generated token: {extra_token}"
+                #     )
+                # else:
+                #     rollback_info.append(None)
+                #     logger.info(
+                #         f"Request {req.rid}: Deterministic verification PASSED! "
+                #         f"All {output_len} tokens matched."
+                #     )
+                rollback_info.append(None)
                 logger.info(f"[DET_DEBUG] Request {req.rid}: Setting det_verified=True after verification PASSED")
-                logger.info(f"Request {req.rid}: Deterministic verification PASSED")
             else:
-                # Mismatch detected
+                # Mismatch detected - ROLLBACK ALL incorrect tokens
                 req.det_verified = True
                 req.det_mismatch = True
-                logger.info(f"[DET_DEBUG] Request {req.rid}: Setting det_verified=True after verification FAILED")
-                logger.error(
-                    f"Request {req.rid}: Deterministic verification FAILED\n"
-                    f"  Original:  {orig_output}\n"
-                    f"  Verified:  {verify_output}\n"
-                    f"  Mismatch at positions: {[j for j in range(min(len(orig_output), len(verify_output))) if orig_output[j] != verify_output[j]]}"
+                
+                # Find FIRST mismatch position
+                mismatch_pos = next(
+                    (j for j in range(min(len(orig_output), len(verify_output))) 
+                     if orig_output[j] != verify_output[j]),
+                    min(len(orig_output), len(verify_output))
                 )
+                
+                logger.error(
+                    f"Request {req.rid}: Deterministic verification FAILED at position {mismatch_pos}\n"
+                    f"  Original tokens:  {orig_output}\n"
+                    f"  Verified tokens:  {verify_output}\n"
+                    f"  Divergence at position {mismatch_pos}: "
+                    f"original={orig_output[mismatch_pos] if mismatch_pos < len(orig_output) else 'N/A'}, "
+                    f"verified={verify_output[mismatch_pos] if mismatch_pos < len(verify_output) else 'N/A'}"
+                )
+                
+                # ROLLBACK: Remove tokens from mismatch position onwards
+                # Tokens BEFORE mismatch are verified correct (argmax matched)
+                # Token AT mismatch: The PREVIOUS token was correct!
+                #   - Previous token (mismatch_pos - 1) matched, so its KV is correct
+                #   - Logits AFTER processing previous token predict what mismatch_pos SHOULD be
+                #   - These logits were computed with CORRECT KV context!
+                #   - So we CAN accept the verified token at mismatch position!
+                # Tokens AFTER mismatch: Their KV was computed from wrong token at mismatch
+                tokens_to_rollback = len(orig_output) - mismatch_pos
+                
+                if tokens_to_rollback > 0:
+                    # Truncate to mismatch position (removes wrong tokens from mismatch onwards)
+                    req.output_ids = req.output_ids[:-tokens_to_rollback]
+                    
+                    # ACCEPT the verified token at mismatch position!
+                    # It was predicted with correct KV context from the previous correct token
+                    if mismatch_pos < len(verify_output):
+                        verified_token_at_mismatch = verify_output[mismatch_pos]
+                        req.output_ids.append(verified_token_at_mismatch)
+                        tokens_accepted = 1
+                    else:
+                        tokens_accepted = 0
+                    
+                    rollback_info.append((mismatch_pos, tokens_to_rollback, tokens_accepted))
+                    
+                    logger.info(
+                        f"Request {req.rid}: ROLLBACK complete\n"
+                        f"  - Mismatch at position {mismatch_pos}\n"
+                        f"  - Rolled back {tokens_to_rollback} tokens (from position {mismatch_pos} onwards)\n"
+                        f"  - Kept {mismatch_pos} verified correct tokens (positions 0-{mismatch_pos-1})\n"
+                        f"  - ACCEPTED {tokens_accepted} verified token at mismatch: {verified_token_at_mismatch if tokens_accepted else 'N/A'}\n"
+                        f"  - (Previous token was correct, so mismatch prediction has correct KV context!)\n"
+                        f"  - New output_ids length: {len(req.output_ids)}\n"
+                        f"  - KV cache up to position {len(req.origin_input_ids) + mismatch_pos + tokens_accepted - 1} is CORRECT\n"
+                        f"  - KV cache positions {len(req.origin_input_ids) + mismatch_pos + tokens_accepted}+ need to be freed\n"
+                        f"  - Will regenerate from position {mismatch_pos + tokens_accepted} in DETERMINISTIC mode"
+                    )
+                else:
+                    # Edge case: no tokens to rollback
+                    rollback_info.append((mismatch_pos, 0, 0))
+                
+                # Mark for future deterministic generation
+                req.force_deterministic_mode = True
+                logger.info(f"[DET_DEBUG] Request {req.rid}: Setting det_verified=True after verification FAILED")
             
             offset += output_len
+        
+        return rollback_info

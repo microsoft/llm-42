@@ -1805,6 +1805,9 @@ class Scheduler(
             # Run decode
             if not self.running_batch.is_empty():
                 self.running_batch = self.update_running_batch(self.running_batch)
+                logger.info(
+                    f"Running decode batch with {self.running_batch.batch_size()} requests."
+                )
                 ret = self.running_batch if not self.running_batch.is_empty() else None
             else:
                 ret = None
@@ -2068,15 +2071,12 @@ class Scheduler(
         # Run forward
         if self.is_generation:
             logger.info(f"Scheduler.run_batch running forward for batch with reqs {[req.rid for req in batch.reqs]}")
+            logger.info(f"Scheduler.run_batch batch.forward_mode={batch.forward_mode}")
+            logger.info(f"Scheduler.run_batch batch input_ids: {[req.origin_input_ids for req in batch.reqs]}")
+            logger.info(f"Scheduler.run_batch batch input_ids tensor: {batch.input_ids}")
             batch_or_worker_batch = batch
 
-            # If deterministic verification is enabled, we need to pass ScheduleBatch to the worker
-            # because DeterministicVerificationWorker expects it.
-            should_convert_to_worker_batch = self.spec_algorithm.is_none()
-            if self.server_args.enable_deterministic_inference:
-                should_convert_to_worker_batch = False
-
-            if should_convert_to_worker_batch:
+            if self.spec_algorithm.is_none():
                 # FIXME(lsyin): remove this if and finally unify the abstraction
                 batch_or_worker_batch = batch.get_model_worker_batch()
 
