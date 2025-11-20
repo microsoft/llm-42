@@ -450,13 +450,18 @@ class Scheduler(
             self.model_worker = self.draft_worker
 
         # Wrap with deterministic verification worker if enabled
-        if server_args.enable_deterministic_inference:
+        if server_args.enable_det_infer:
             from sglang.srt.detinfer.det_verify_worker import (
                 DeterministicVerificationWorker,
             )
 
-            self.model_worker = DeterministicVerificationWorker(self.model_worker)
-            logger.info("Deterministic verification worker enabled")
+            self.model_worker = DeterministicVerificationWorker(
+                self.model_worker,
+                det_step_size=server_args.det_step_size
+            )
+            logger.info(
+                f"Deterministic verification worker enabled with det_step_size={server_args.det_step_size}"
+            )
 
         # Get token and memory info from the model worker
         (

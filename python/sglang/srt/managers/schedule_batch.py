@@ -112,6 +112,7 @@ GLOBAL_SERVER_ARGS_KEYS = [
     "enable_custom_logit_processor",
     "disaggregation_mode",
     "enable_deterministic_inference",
+    "enable_det_infer",
 ]
 
 # Put some global args for easy access
@@ -632,6 +633,13 @@ class Req:
         self.is_deterministic: bool = sampling_params.is_deterministic
         self.det_verified: bool = False
         self.det_mismatch: bool = False
+        self.det_verified_tokens: int = 0  # Number of tokens that have been verified
+        
+        if self.is_deterministic:
+            logger.info(
+                f"[DET_DEBUG] Request {self.rid} initialized with is_deterministic=True, "
+                f"det_verified={self.det_verified}"
+            )
 
         # For metrics
         self.metrics_collector = metrics_collector

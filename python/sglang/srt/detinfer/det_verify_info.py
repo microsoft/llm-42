@@ -48,26 +48,29 @@ class DetVerifyInfo:
         self.output_lens = output_lens
 
     @classmethod
-    def from_requests(cls, reqs: List[Req]) -> DetVerifyInfo:
+    def from_requests(cls, reqs: List[Req], start_idx: int = 0) -> DetVerifyInfo:
         """
         Create DetVerifyInfo from a list of finished deterministic requests.
         
         Args:
             reqs: List of requests to verify
+            start_idx: Index from which to start verifying tokens (for incremental verification)
             
         Returns:
             DetVerifyInfo instance
         """
-        # Collect original outputs
+        # Collect original outputs (only unverified portion)
         original_outputs = []
         seq_lens = []
         output_lens = []
         
         for req in reqs:
-            # Store the original generated output
-            original_outputs.extend(req.output_ids)
-            output_lens.append(len(req.output_ids))
-            # Full sequence length (input + output)
+            # For incremental verification, only include unverified tokens
+            # Get only the unverified tokens
+            unverified_output_ids = req.output_ids[req.det_verified_tokens:]
+            original_outputs.extend(unverified_output_ids)
+            output_lens.append(len(unverified_output_ids))
+            # Full sequence length (input + all outputs including verified)
             seq_lens.append(len(req.origin_input_ids) + len(req.output_ids))
         
         return cls(
@@ -105,33 +108,41 @@ class DetVerifyInfo:
         # Set forward mode
         verify_batch.forward_mode = ForwardMode.TARGET_DET_VERIFY
         
-        # Prepare input_ids: only output tokens to verify
-        # The input tokens are already in KV cache, we only need to verify outputs
+        # Prepare input_ids: only unverified output tokens
+        # The input tokens and verified tokens are already in KV cache, we only need to verify new outputs
         input_ids = []
         req_pool_indices = []
         output_lens = []
         prefix_lens_list = []
         
         for req in reqs_to_verify:
-            # For verification, we need to include the last input token + all output tokens
-            # This way we get logits that predict each output token
-            # Example: input_ids=[last_input_token, out0, out1, ...] → logits predict [out0, out1, out2, ...]
-            if not req.output_ids:
-                continue  # Skip if no output tokens to verify
+            # Get only unverified tokens
+            unverified_tokens = req.output_ids[req.det_verified_tokens:]
             
-            # Prepend the last input token before the output tokens
-            last_input_token = req.origin_input_ids[-1] if req.origin_input_ids else req.input_ids[-1]
-            verification_input = [last_input_token] + req.output_ids
+            if not unverified_tokens:
+                continue  # Skip if no unverified tokens
+            
+            # For verification, we need to include the last verified token (or last input token if nothing verified yet)
+            # This way we get logits that predict each unverified token
+            # Example: input_ids=[last_verified_token, unverified0, unverified1, ...] → logits predict [unverified0, unverified1, unverified2, ...]
+            if req.det_verified_tokens > 0:
+                # Use last verified output token
+                last_verified_token = req.output_ids[req.det_verified_tokens - 1]
+            else:
+                # No tokens verified yet, use last input token
+                last_verified_token = req.origin_input_ids[-1] if req.origin_input_ids else req.input_ids[-1]
+            
+            verification_input = [last_verified_token] + unverified_tokens
             input_ids.extend(verification_input)
             
             # Use existing req_pool_idx
             req_pool_indices.append(req.req_pool_idx)
             
-            # Track lengths: we input (1 last_input + N outputs) tokens
-            # But we only want to verify the N output tokens
-            output_lens.append(len(req.output_ids))
-            # Prefix length is now one less because we're including the last input token in our batch
-            prefix_lens_list.append(len(req.origin_input_ids) - 1)
+            # Track lengths: we input (1 last_verified + N unverified) tokens
+            # But we only want to verify the N unverified tokens
+            output_lens.append(len(unverified_tokens))
+            # Prefix length includes: all inputs + verified outputs (if any)
+            prefix_lens_list.append(len(req.origin_input_ids) + req.det_verified_tokens - 1)
         
         # Set batch attributes - ensure all tensors are on the correct device
         device = original_batch.device if hasattr(original_batch, 'device') else 'cuda'
@@ -239,11 +250,13 @@ class DetVerifyInfo:
                 # Verification passed
                 req.det_verified = True
                 req.det_mismatch = False
+                logger.info(f"[DET_DEBUG] Request {req.rid}: Setting det_verified=True after verification PASSED")
                 logger.info(f"Request {req.rid}: Deterministic verification PASSED")
             else:
                 # Mismatch detected
                 req.det_verified = True
                 req.det_mismatch = True
+                logger.info(f"[DET_DEBUG] Request {req.rid}: Setting det_verified=True after verification FAILED")
                 logger.error(
                     f"Request {req.rid}: Deterministic verification FAILED\n"
                     f"  Original:  {orig_output}\n"

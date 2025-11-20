@@ -301,6 +301,13 @@ class SchedulerOutputProcessorMixin:
 
         self.set_next_batch_sampling_info_done(batch)
         self.stream_output(batch.reqs, batch.return_logprob)
+        
+        # Check and verify deterministic requests after output processing
+        logger.info(f"[DET_DEBUG] enable_det_infer={self.server_args.enable_det_infer}")
+        if self.server_args.enable_det_infer:
+            logger.info("[DET_DEBUG] Calling check_and_verify_deterministic_requests")
+            self.model_worker.check_and_verify_deterministic_requests(batch)
+        
         self.token_to_kv_pool_allocator.free_group_end()
 
         self.forward_ct_decode = (self.forward_ct_decode + 1) % (1 << 30)
@@ -585,9 +592,22 @@ class SchedulerOutputProcessorMixin:
                 req.finished_output = True
                 should_output = True
             else:
-                # For deterministic requests, skip streaming until finished
+                # For deterministic requests, check if we have verified tokens to stream
                 if is_deterministic:
-                    should_output = False
+                    # Can stream up to verified tokens
+                    has_verified_tokens = req.det_verified_tokens > req.send_token_offset
+                    
+                    if has_verified_tokens and req.stream:
+                        stream_interval = (
+                            req.sampling_params.stream_interval or self.stream_interval
+                        )
+                        should_output = (
+                            req.det_verified_tokens % stream_interval == 0
+                            if stream_interval > 1
+                            else True
+                        )
+                    else:
+                        should_output = False
                 elif req.stream:
                     stream_interval = (
                         req.sampling_params.stream_interval or self.stream_interval
@@ -624,8 +644,16 @@ class SchedulerOutputProcessorMixin:
 
                 req.send_decode_id_offset = len(decode_ids)
                 read_offsets.append(read_offset)
-                output_ids.append(req.output_ids[send_token_offset:])
-                req.send_token_offset = len(req.output_ids)
+                
+                # For deterministic requests, only send verified tokens
+                if is_deterministic and not req.finished():
+                    max_tokens_to_send = min(len(req.output_ids), req.det_verified_tokens)
+                    output_ids.append(req.output_ids[send_token_offset:max_tokens_to_send])
+                    req.send_token_offset = max_tokens_to_send
+                else:
+                    output_ids.append(req.output_ids[send_token_offset:])
+                    req.send_token_offset = len(req.output_ids)
+                    
                 skip_special_tokens.append(req.sampling_params.skip_special_tokens)
                 spaces_between_special_tokens.append(
                     req.sampling_params.spaces_between_special_tokens

@@ -412,6 +412,8 @@ class ServerArgs:
     scheduler_recv_interval: int = 1
     numa_node: Optional[List[int]] = None
     enable_deterministic_inference: int = 0
+    enable_det_infer: int = 0  # Alias for enable_deterministic_inference
+    det_step_size: Optional[int] = None
 
     # Dynamic batch tokenizer
     enable_dynamic_batch_tokenizer: bool = False
@@ -1202,7 +1204,16 @@ class ServerArgs:
             )
 
     def _handle_deterministic_inference(self):
+        # Enable deterministic inference flags
+        # enable_det_infer -- needs to be handled differently
+        # (FIXME: Add enable det_infer setup)
+        """Handle settings related to deterministic inference."""
         if self.enable_deterministic_inference:
+            # Keep both flags in sync - use the max value to preserve bitmask
+            max_val = max(self.enable_deterministic_inference, self.enable_det_infer)
+            self.enable_deterministic_inference = max_val
+            self.enable_det_infer = max_val
+            
             # Check sampling backend
             self.sampling_backend = "pytorch"
             logger.warning(
@@ -2759,6 +2770,18 @@ class ServerArgs:
             type=int,
             default=ServerArgs.enable_deterministic_inference,
             help="Enable deterministic inference mode with batch invariant ops (1=existing, 2=custom kernel, 3=25%% split, 4=50%% split).",
+        )
+        parser.add_argument(
+            "--enable-det-infer",
+            type=int,
+            default=ServerArgs.enable_det_infer,
+            help="Alias for --enable-deterministic-inference.",
+        )
+        parser.add_argument(
+            "--det-step-size",
+            type=int,
+            default=ServerArgs.det_step_size,
+            help="Number of tokens to generate before verification (for incremental verification). If not set, verify only at the end.",
         )
 
         # Deprecated arguments
