@@ -178,6 +178,20 @@ class DetVerifyInfo:
         verify_batch.sampling_info = original_batch.sampling_info
         verify_batch.device = device
         
+        # Store original KV cache locations for unverified tokens (to be replaced)
+        original_cache_locs = []
+        for req in reqs_to_verify:
+            # Get KV cache locations for unverified output tokens
+            start_idx = len(req.origin_input_ids) + req.det_verified_tokens
+            end_idx = len(req.origin_input_ids) + len(req.output_ids)
+            original_cache_loc = verify_batch.req_to_token_pool.req_to_token[
+                req.req_pool_idx, start_idx:end_idx
+            ].clone()
+            original_cache_locs.append(original_cache_loc)
+        
+        # Store for later use
+        self.original_cache_locs = original_cache_locs
+        
         # Allocate cache locations for the verification - similar to Eagle
         page_size = verify_batch.token_to_kv_pool_allocator.page_size
         
@@ -265,3 +279,7 @@ class DetVerifyInfo:
                 )
             
             offset += output_len
+    
+    def get_original_cache_locs(self):
+        """Return original KV cache locations that should be replaced."""
+        return self.original_cache_locs if hasattr(self, 'original_cache_locs') else None
