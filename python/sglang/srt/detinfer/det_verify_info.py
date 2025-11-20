@@ -178,58 +178,36 @@ class DetVerifyInfo:
         verify_batch.sampling_info = original_batch.sampling_info
         verify_batch.device = device
         
-        # Store original KV cache locations for unverified tokens (to be replaced)
-        original_cache_locs = []
-        for req in reqs_to_verify:
-            # Get KV cache locations for unverified output tokens
+        # Instead of allocating new cache, reuse original KV cache locations
+        # Build out_cache_loc by extracting existing locations from req_to_token_pool
+        out_cache_locs = []
+        
+        for i, req in enumerate(reqs_to_verify):
+            # For the context token (last verified/input token), get its existing cache location
+            context_idx = len(req.origin_input_ids) + req.det_verified_tokens - 1
+            context_cache_loc = verify_batch.req_to_token_pool.req_to_token[
+                req.req_pool_idx, context_idx
+            ]
+            out_cache_locs.append(context_cache_loc)
+            
+            # For unverified output tokens, get their existing cache locations
+            # These will be OVERWRITTEN during verification (in-place update)
             start_idx = len(req.origin_input_ids) + req.det_verified_tokens
             end_idx = len(req.origin_input_ids) + len(req.output_ids)
-            original_cache_loc = verify_batch.req_to_token_pool.req_to_token[
+            output_cache_locs = verify_batch.req_to_token_pool.req_to_token[
                 req.req_pool_idx, start_idx:end_idx
-            ].clone()
-            original_cache_locs.append(original_cache_loc)
+            ]
+            out_cache_locs.extend(output_cache_locs.tolist())
         
-        # Store for later use
-        self.original_cache_locs = original_cache_locs
+        # Set out_cache_loc to point to existing cache locations
+        verify_batch.out_cache_loc = torch.tensor(
+            out_cache_locs, dtype=torch.int32, device=device
+        )
         
-        # Allocate cache locations for the verification - similar to Eagle
-        page_size = verify_batch.token_to_kv_pool_allocator.page_size
-        
-        if page_size == 1:
-            verify_batch.out_cache_loc = verify_batch.alloc_token_slots(len(input_ids))
-        else:
-            from sglang.srt.managers.schedule_batch import get_last_loc, assign_req_to_token_pool, next_power_of_2
-            
-            output_lens_tensor = torch.tensor(output_lens, dtype=torch.int32, device=device)
-            end_offset = prefix_lens + output_lens_tensor
-            end_offset_cpu = prefix_lens.cpu() + output_lens_tensor.cpu()
-            
-            last_loc = get_last_loc(
-                verify_batch.req_to_token_pool.req_to_token,
-                verify_batch.req_pool_indices,
-                prefix_lens,
-            )
-            
-            verify_batch.out_cache_loc = verify_batch.alloc_paged_token_slots_extend(
-                prefix_lens,
-                prefix_lens.cpu(),
-                end_offset,
-                end_offset_cpu,
-                last_loc,
-                len(input_ids),
-            )
-            
-            # Update mapping
-            bs = verify_batch.batch_size()
-            assign_req_to_token_pool[(bs,)](
-                verify_batch.req_pool_indices,
-                verify_batch.req_to_token_pool.req_to_token,
-                prefix_lens,
-                end_offset,
-                verify_batch.out_cache_loc,
-                verify_batch.req_to_token_pool.req_to_token.shape[1],
-                next_power_of_2(bs),
-            )
+        logger.info(
+            f"Reusing {len(out_cache_locs)} existing KV cache locations for in-place verification "
+            f"(no temporary allocation needed)"
+        )
         
         return verify_batch
 
@@ -279,7 +257,3 @@ class DetVerifyInfo:
                 )
             
             offset += output_len
-    
-    def get_original_cache_locs(self):
-        """Return original KV cache locations that should be replaced."""
-        return self.original_cache_locs if hasattr(self, 'original_cache_locs') else None

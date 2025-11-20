@@ -222,48 +222,12 @@ class DeterministicVerificationWorker:
             # Compare outputs
             det_verify_info.verify_and_compare(reqs, verified_token_ids, verify_output.logits_output)
             
-            # Update KV cache: replace original with verified cache
-            original_cache_locs = det_verify_info.get_original_cache_locs()
-            if verify_batch.out_cache_loc is not None and original_cache_locs is not None:
-                logger.info(f"Replacing original KV cache with verified KV cache for {len(reqs)} requests")
-                
-                # Get the KV cache object
-                kv_cache = verify_batch.token_to_kv_pool_allocator.get_kvcache()
-                
-                # For each request, copy verified KV cache to original locations
-                verify_offset = 0
-                for i, req in enumerate(reqs):
-                    output_len = det_verify_info.output_lens[i]
-                    
-                    # Source: newly computed verification cache locations
-                    # Skip first token (it's the last verified/input token used for context)
-                    src_cache_loc = verify_batch.out_cache_loc[verify_offset + 1 : verify_offset + 1 + output_len]
-                    
-                    # Target: original cache locations for unverified tokens
-                    tgt_cache_loc = original_cache_locs[i]
-                    
-                    if len(src_cache_loc) != len(tgt_cache_loc):
-                        logger.error(
-                            f"Request {req.rid}: Cache location length mismatch! "
-                            f"src={len(src_cache_loc)}, tgt={len(tgt_cache_loc)}"
-                        )
-                    else:
-                        # Copy KV cache from verification locations to original locations
-                        kv_cache.move_kv_cache(tgt_cache_loc, src_cache_loc)
-                        logger.info(
-                            f"Request {req.rid}: Copied {len(src_cache_loc)} KV cache slots "
-                            f"from verification to original locations"
-                        )
-                    
-                    verify_offset += 1 + output_len  # +1 for the context token
-                
-                # Free the verification cache (source has been copied)
-                verify_batch.token_to_kv_pool_allocator.free(verify_batch.out_cache_loc)
-                logger.info("Freed temporary verification KV cache after copying")
-            elif verify_batch.out_cache_loc is not None:
-                # Fallback: just free verification cache if we can't replace
-                verify_batch.token_to_kv_pool_allocator.free(verify_batch.out_cache_loc)
-                logger.warning("Could not replace original KV cache (no original locations stored)")
+            # Note: KV cache has been updated IN-PLACE during forward pass
+            # No need to copy or free - verification wrote directly to original locations
+            logger.info(
+                f"Verification complete for {len(reqs)} requests. "
+                f"KV cache updated in-place (no copy needed)."
+            )
             
             # Update det_verified_tokens counter for incremental verification
             # At this point, output_ids has the new token appended (we did it above)
