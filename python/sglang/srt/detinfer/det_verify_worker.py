@@ -72,15 +72,8 @@ class DeterministicVerificationWorker:
         Returns:
             ForwardBatchOutput object
         """
-        # Convert to ModelWorkerBatch and run normal forward pass
-        if hasattr(batch, "get_model_worker_batch"):
-            model_worker_batch = batch.get_model_worker_batch()
-        else:
-            model_worker_batch = batch
 
-        output = self.target_worker.forward_batch_generation(model_worker_batch, skip_sample=skip_sample)
-        
-        return output
+        return self.target_worker.forward_batch_generation(batch, skip_sample=skip_sample)
 
     def check_and_verify_deterministic_requests(
         self, 
