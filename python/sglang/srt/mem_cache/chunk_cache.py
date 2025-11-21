@@ -46,13 +46,72 @@ class ChunkCache(BasePrefixCache):
         )
 
     def cache_finished_req(self, req: Req, insert: bool = True):
-        kv_indices = self.req_to_token_pool.req_to_token[
-            req.req_pool_idx,
-            # For decode server: if req.output_ids is empty, we want to free all req.origin_input_ids
-            : len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0),
-        ]
-        self.req_to_token_pool.free(req.req_pool_idx)
-        self.token_to_kv_pool_allocator.free(kv_indices)
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # For deterministic requests with verification:
+        # We need to free KV cache for all tokens that were actually generated.
+        # With proper rollback handling, req_to_token_pool should only contain
+        # valid cache locations up to the current sequence length.
+        
+        current_seq_len = len(req.origin_input_ids) + len(req.output_ids)
+        
+        if hasattr(req, 'is_deterministic') and req.is_deterministic:
+            # For deterministic requests, we free cache for all tokens up to current_seq_len
+            # Verification may have written to some of these positions, but they should all
+            # be contiguous from 0 to current_seq_len-1 (excluding the last output token's KV
+            # which is never computed).
+            
+            # Free input + (outputs - 1) since the last output token's KV is never computed
+            num_tokens_to_free = len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0)
+            
+            logger.info(
+                f"[CACHE_FREE] Deterministic request {req.rid}: "
+                f"current_seq_len={current_seq_len}, "
+                f"input_len={len(req.origin_input_ids)}, "
+                f"output_len={len(req.output_ids)}, "
+                f"freeing {num_tokens_to_free} tokens"
+            )
+            
+            # Read the cache locations for tokens that have KV cache
+            if num_tokens_to_free > 0:
+                kv_indices = self.req_to_token_pool.req_to_token[
+                    req.req_pool_idx,
+                    :num_tokens_to_free,
+                ]
+                
+                logger.info(
+                    f"[CACHE_FREE] Freeing {num_tokens_to_free} tokens for deterministic request {req.rid}: "
+                    f"kv_indices={kv_indices.tolist()[:10]}..." if num_tokens_to_free > 10 
+                    else f"kv_indices={kv_indices.tolist()}"
+                )
+            else:
+                kv_indices = None
+        else:
+            # For non-deterministic requests, use the standard logic
+            # Free input + (outputs - 1) since the last output token's KV is never computed
+            num_tokens_to_free = len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0)
+            
+            if num_tokens_to_free > 0:
+                kv_indices = self.req_to_token_pool.req_to_token[
+                    req.req_pool_idx,
+                    :num_tokens_to_free,
+                ]
+                logger.info(
+                    f"[CACHE_FREE] Freeing {num_tokens_to_free} tokens for request {req.rid}: "
+                    f"kv_indices={kv_indices.tolist()[:10]}..." if num_tokens_to_free > 10 
+                    else f"kv_indices={kv_indices.tolist()}"
+                )
+            else:
+                kv_indices = None
+        
+        if num_tokens_to_free > 0 and kv_indices is not None:
+            self.req_to_token_pool.free(req.req_pool_idx)
+            self.token_to_kv_pool_allocator.free(kv_indices)
+        else:
+            # Just free the req slot if no KV cache to free
+            logger.info(f"[CACHE_FREE] No KV cache to free for request {req.rid}")
+            self.req_to_token_pool.free(req.req_pool_idx)
 
     def cache_unfinished_req(self, req: Req, chunked=False):
         kv_indices = self.req_to_token_pool.req_to_token[

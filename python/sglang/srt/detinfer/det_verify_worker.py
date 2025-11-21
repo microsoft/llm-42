@@ -202,7 +202,7 @@ class DeterministicVerificationWorker:
             logger.info(f"[DET_DEBUG] verified_token_ids: {verified_token_ids}")
             
             # Compare outputs and handle rollback
-            rollback_info = det_verify_info.verify_and_compare(reqs, verified_token_ids, verify_output.logits_output)
+            rollback_info = det_verify_info.verify_and_compare(reqs, verified_token_ids)
             
             # Handle KV cache for rolled-back tokens
             # rollback_info is a list where each element is either:
@@ -236,32 +236,65 @@ class DeterministicVerificationWorker:
                         f"(after rollback of {tokens_rolled_back} tokens and acceptance of {tokens_accepted} corrected token)"
                     )
             
+            # Clean up verification batch resources
+            # Since we manually set out_cache_loc to reuse existing locations,
+            # we need to ensure no state is tracked as "newly allocated"
+            # The verification batch should not affect the allocator's free list
+            
+            # Clear verification batch references to help with cleanup
+            verify_batch.out_cache_loc = None
+            verify_batch.input_ids = None
+            verify_model_worker_batch = None
+            verify_output = None
+            verified_token_ids = None
+            
             # Update statistics
             self.stats["total_verified"] += len(reqs)
             mismatches = sum(1 for req in reqs if req.det_mismatch)
             self.stats["total_mismatches"] += mismatches
             
-            # Update batch.output_ids to reflect the modified req.output_ids after verification
-            # This is crucial because prepare_for_decode() uses batch.output_ids, not req.output_ids
+            # Update batch.output_ids AND seq_lens to reflect the modified req.output_ids after verification
+            # This is crucial because prepare_for_decode() uses batch.output_ids and seq_lens
             if hasattr(original_batch, 'output_ids') and original_batch.output_ids is not None:
                 # Rebuild output_ids tensor from the updated req.output_ids lists
                 # Each request contributes its last generated token
                 updated_output_ids = []
+                updated_seq_lens = []
                 for req in original_batch.reqs:
                     if len(req.output_ids) > 0:
                         updated_output_ids.append(req.output_ids[-1])
                     else:
                         # Fallback to last input token if no outputs yet
                         updated_output_ids.append(req.origin_input_ids[-1] if req.origin_input_ids else 0)
+                    # Update seq_lens to match actual sequence length after rollback
+                    updated_seq_lens.append(len(req.origin_input_ids) + len(req.output_ids))
                 
-                # Update the batch tensor
+                # Update the batch tensors
                 original_batch.output_ids = torch.tensor(
                     updated_output_ids, 
                     dtype=torch.int64, 
                     device=original_batch.device
                 )
+                
+                # CRITICAL: Update seq_lens to reflect rolled-back state
+                # Otherwise prepare_for_decode() will use stale seq_lens and allocate wrong cache locations
+                original_batch.seq_lens = torch.tensor(
+                    updated_seq_lens,
+                    dtype=torch.int32,
+                    device=original_batch.device
+                )
+                original_batch.seq_lens_cpu = torch.tensor(
+                    updated_seq_lens,
+                    dtype=torch.int32
+                )
+                original_batch.orig_seq_lens = original_batch.seq_lens.clone()
+                original_batch.seq_lens_sum = sum(updated_seq_lens)
+                
                 logger.info(
-                    f"Updated batch.output_ids tensor after verification: {original_batch.output_ids}"
+                    f"Updated batch state after verification: "
+                    f"output_ids={original_batch.output_ids}, "
+                    f"seq_lens={original_batch.seq_lens}, "
+                    f"seq_lens_sum={original_batch.seq_lens_sum}"
                 )
         except Exception as e:
             logger.error(f"Error during verification: {e}")
@@ -280,32 +313,21 @@ class DeterministicVerificationWorker:
         det_verify_info,
     ):
         """
-        Handle KV cache cleanup for rolled-back tokens.
+        Handle KV cache state after rollback.
         
-        FINAL CORRECT UNDERSTANDING:
-        During verification, we feed [last_verified, unverified0, unverified1, ...]
-        - If unverified_i matches its prediction → it's CORRECT, KV from embedding(unverified_i) is correct
-        - Logits AFTER processing unverified_i predict what unverified_(i+1) SHOULD be
-        - These logits are computed with attention to correct KV[0...i]
+        CRITICAL: We MUST free the KV cache for rolled-back tokens!
+        Unlike ngram/EAGLE which allocate new cache for drafts, detinfer reuses
+        existing cache locations. When we rollback:
+        - The rolled-back tokens are removed from req.output_ids
+        - BUT their cache locations remain marked as allocated in req_to_token_pool
+        - This causes a memory leak - those locations are never freed!
         
-        If mismatch at position 5 (comparing unverified5 vs predicted_token5):
-        - Tokens 0-4: Matched their predictions → CORRECT! KV cache is CORRECT
-        - Token 4 was correct, so KV[4] from embedding(token4_correct) is correct
-        - Logits AFTER processing token4 predict token5 with CORRECT KV context!
-        - Token 5: unverified5 != predicted5 → MISMATCH
-          * But the PREDICTION (predicted5) was computed with correct KV[0-4] context
-          * We CAN accept predicted5! It's the correct deterministic token!
-          * We do NOT store KV for predicted5 yet (we haven't processed it)
-        - Tokens 6-9: Were computed after feeding wrong unverified5 → must discard
+        Solution: Explicitly free the cache locations for rolled-back tokens,
+        just like ngram/EAGLE do in their verify functions.
         
-        We ACCEPT the verified token at mismatch (it was predicted with correct context).
-        We FREE KV cache from (mismatch + 1) onwards (tokens processed after wrong token).
-        
-        Args:
-            original_batch: Original batch context
-            reqs: Requests that were verified
-            rollback_info: List of (mismatch_pos, tokens_rolled_back, tokens_accepted) or None
-            det_verify_info: DetVerifyInfo containing verification metadata
+        IMPORTANT: When tokens_accepted=1, we accept ONE verified token after rollback.
+        That token REUSES the cache location of the first rolled-back token.
+        So we only free (tokens_rolled_back - tokens_accepted) cache locations.
         """
         for i, (req, info) in enumerate(zip(reqs, rollback_info)):
             if info is None:
@@ -314,62 +336,50 @@ class DeterministicVerificationWorker:
             
             mismatch_pos, tokens_rolled_back, tokens_accepted = info
             
-            if tokens_rolled_back == 0 and tokens_accepted == 0:
-                # No tokens to rollback or accept
+            if tokens_rolled_back == 0:
+                # No tokens rolled back
                 continue
             
-            if tokens_rolled_back == 0 and tokens_accepted > 0:
-                # Extra token accepted with no rollback (verification passed with bonus token)
-                # The KV cache was already allocated and written during verification
-                # req_to_token_pool already has the correct cache location
-                logger.info(
-                    f"[KV_ACCEPT] Request {req.rid}: "
-                    f"Accepted {tokens_accepted} extra token(s) from verification. "
-                    f"KV cache already allocated and in place."
-                )
-                continue
+            # FREE the KV cache for rolled-back tokens!
+            # After rollback, req.output_ids has been truncated and possibly had 1 token re-added.
+            # 
+            # Example: Rollback 3 tokens, accept 1 verified token
+            # - Before: output_ids = [t0, t1, t2, t3, t4] (mismatch at pos 2)
+            # - After rollback: output_ids = [t0, t1]
+            # - After accept: output_ids = [t0, t1, t2'] (accepted verified token)
+            # - Tokens to free: OLD t2, t3, t4's cache (but t2' reuses t2's cache)
+            # - So free: t3 and t4's cache = (3 rolled back - 1 accepted) = 2 tokens
             
-            logger.info(
-                f"[KV_ROLLBACK] Request {req.rid}: "
-                f"Mismatch at position {mismatch_pos}, accepted {tokens_accepted} verified token, "
-                f"need to FREE {tokens_rolled_back - tokens_accepted} KV cache slots"
-            )
+            # The accepted token (if any) REUSES the first rolled-back token's cache position
+            # So we only need to free the remaining rolled-back tokens
+            num_tokens_to_actually_free = tokens_rolled_back - tokens_accepted
             
-            # Tokens before mismatch_pos are verified correct - keep their KV cache
-            # Token at mismatch_pos: We ACCEPTED the verified prediction (it had correct KV context)
-            #   - But we haven't PROCESSED it yet, so no KV cache entry for it yet!
-            #   - Next generation will process it and create its KV cache entry
-            # Tokens after mismatch_pos: Were computed with wrong KV - FREE them!
-            
-            # Calculate which cache slots to free
-            # Start freeing from (mismatch_pos + tokens_accepted) onwards
-            # Since we accepted the verified token but haven't processed it yet, no KV for it
-            start_free_idx = len(req.origin_input_ids) + mismatch_pos + tokens_accepted
-            end_free_idx = len(req.origin_input_ids) + mismatch_pos + tokens_rolled_back
-            
-            # Get the cache locations from req_to_token_pool
-            cache_locs_to_free = original_batch.req_to_token_pool.req_to_token[
-                req.req_pool_idx, start_free_idx:end_free_idx
-            ]
-            
-            if len(cache_locs_to_free) > 0:
-                # Free the KV cache slots using the batch's allocator
-                original_batch.token_to_kv_pool_allocator.free(cache_locs_to_free)
-                
+            if num_tokens_to_actually_free <= 0:
                 logger.info(
                     f"[KV_ROLLBACK] Request {req.rid}: "
-                    f"Freed {len(cache_locs_to_free)} KV cache slots (positions {start_free_idx}:{end_free_idx})"
+                    f"Rolled back {tokens_rolled_back} tokens, accepted {tokens_accepted}, "
+                    f"no cache to free (accepted token reuses rolled-back cache)"
                 )
-                
-                # Update req_to_token_pool to mark these slots as invalid (-1)
-                original_batch.req_to_token_pool.req_to_token[
-                    req.req_pool_idx, start_free_idx:end_free_idx
-                ] = -1
+                continue
+            
+            # Calculate positions: Start after the current output_ids (which includes accepted token if any)
+            start_free_pos = len(req.origin_input_ids) + len(req.output_ids)
+            end_free_pos = start_free_pos + num_tokens_to_actually_free
+            
+            # Get the cache locations to free from req_to_token_pool
+            cache_locs_to_free = original_batch.req_to_token_pool.req_to_token[
+                req.req_pool_idx, start_free_pos:end_free_pos
+            ]
+            
+            # Free them from the allocator
+            original_batch.token_to_kv_pool_allocator.free(cache_locs_to_free)
             
             logger.info(
                 f"[KV_ROLLBACK] Request {req.rid}: "
-                f"Rollback complete. Kept {mismatch_pos + tokens_accepted} tokens with correct KV cache, "
-                f"will continue generation from position {mismatch_pos + tokens_accepted} in DETERMINISTIC mode"
+                f"Mismatch at position {mismatch_pos}, "
+                f"rolled back {tokens_rolled_back} tokens, "
+                f"accepted {tokens_accepted} verified token. "
+                f"Freed {num_tokens_to_actually_free} cache locations: {cache_locs_to_free.tolist()}"
             )
 
     def __getattr__(self, name):
