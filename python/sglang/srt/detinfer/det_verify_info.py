@@ -361,6 +361,8 @@ class DetVerifyInfo:
             # Find FIRST mismatch position
             mismatch_pos = self.first_mismatch_position(orig_output, verify_output)
 
+            mismatch_pos = min(6, output_len)  # testing
+
             # mismatch_pos = min(len(orig_output), 3)  # For debugging
             tokens_to_rollback = len(orig_output) - mismatch_pos
             
@@ -385,16 +387,13 @@ class DetVerifyInfo:
                 if mismatch_pos < len(verify_output):
                     verified_token_at_mismatch = verify_output[mismatch_pos]
                     req.output_ids.append(verified_token_at_mismatch)
-                    tokens_accepted = 1
-                else:
-                    tokens_accepted = 0
                 
                 # logger.info(
                 #     f"After adding accepted token at mismatch, req.output_ids: {req.output_ids}, "
                 #     f"finished_reason: {req.finished_reason}"
                 # )
 
-                tokens_to_rollback -= 1  # Since we added one accepted token
+                    tokens_to_rollback -= 1  # Since we added one accepted token
                 
                 rollback_info.append((mismatch_pos, tokens_to_rollback))
             else:
