@@ -141,6 +141,9 @@ class ReqState:
     input_token_ids_logprobs_idx: List = dataclasses.field(default_factory=list)
     output_token_ids_logprobs_val: List = dataclasses.field(default_factory=list)
     output_token_ids_logprobs_idx: List = dataclasses.field(default_factory=list)
+    
+    # Store the tokenized request object to access tokenized input_ids
+    tokenized_obj: Optional[Union[TokenizedGenerateReqInput, TokenizedEmbeddingReqInput]] = None
 
 
 class TokenizerManager(TokenizerCommunicatorMixin):
@@ -813,7 +816,7 @@ class TokenizerManager(TokenizerCommunicatorMixin):
         trace_slice_start("dispatch", obj.rid)
         tokenized_obj.trace_context = trace_get_proc_propagate_context(obj.rid)
         self.send_to_scheduler.send_pyobj(tokenized_obj)
-        state = ReqState([], False, asyncio.Event(), obj, created_time=created_time)
+        state = ReqState([], False, asyncio.Event(), obj, tokenized_obj=tokenized_obj, created_time=created_time)
         self.rid_to_state[obj.rid] = state
         trace_slice_end("dispatch", obj.rid, thread_finish_flag=True)
         return state
@@ -838,7 +841,7 @@ class TokenizerManager(TokenizerCommunicatorMixin):
         for i, tokenized_obj in enumerate(tokenized_objs):
             tmp_obj = obj[i]
             state = ReqState(
-                [], False, asyncio.Event(), tmp_obj, created_time=created_time
+                [], False, asyncio.Event(), tmp_obj, tokenized_obj=tokenized_obj, created_time=created_time
             )
             self.rid_to_state[tmp_obj.rid] = state
 
@@ -880,10 +883,17 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                 
                 # Print token IDs and text on request finish
                 logger.info(f"Request finished: rid={obj.rid}")
+                # Log tokenized input IDs from the tokenized object, not the original request
+                if state.tokenized_obj is not None:
+                    logger.info(f"Prompt Input IDs: {state.tokenized_obj.input_ids}")
+                else:
+                    logger.info(f"Prompt Input IDs: {obj.input_ids}")
+                logger.info(f"Prompt Text: {obj.text}")
                 if "output_ids" in out:
                     logger.info(f"  Token IDs: {out['output_ids']}")
                 if "text" in out:
                     logger.info(f"  Text: {out['text']}")
+
 
                 # Check if this was an abort/error created by scheduler
                 if isinstance(out["meta_info"].get("finish_reason"), dict):

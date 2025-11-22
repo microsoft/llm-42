@@ -388,10 +388,10 @@ class DetVerifyInfo:
                     verified_token_at_mismatch = verify_output[mismatch_pos]
                     req.output_ids.append(verified_token_at_mismatch)
                 
-                # logger.info(
-                #     f"After adding accepted token at mismatch, req.output_ids: {req.output_ids}, "
-                #     f"finished_reason: {req.finished_reason}"
-                # )
+                    logger.info(
+                        f"After adding accepted token at mismatch, req.output_ids: {req.output_ids}, "
+                        f"finished_reason: {req.finished_reason}"
+                    )
 
                     tokens_to_rollback -= 1  # Since we added one accepted token
                 

@@ -2034,7 +2034,12 @@ class ModelRunner:
         #         f"MISMATCH={'!!! BATCH_SIZE MISMATCH !!!' if forward_batch.batch_size != det_indices_shape[0] else 'OK'}", flush=True)
         # print(f"Sampling info: temperatures={forward_batch.sampling_info.temperatures}, ",flush=True)
         
-        if self.enable_temperature_based_switching:
+        # CRITICAL: During verification modes (TARGET_VERIFY or TARGET_DET_VERIFY),
+        # batch-invariant mode MUST always be enabled to ensure deterministic results.
+        # Verification re-runs requests to validate determinism, so batch effects would break correctness.
+        is_verification_mode = forward_batch.forward_mode.is_any_verify()
+        
+        if self.enable_temperature_based_switching and not is_verification_mode:
             # Check if ALL requests are non-greedy (all want non-deterministic)
             if forward_batch.sampling_info is not None:
                 # is_any_deterministic checks for greedy sampling (top_k==1, which is what temp=0 converts to)
