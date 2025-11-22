@@ -89,7 +89,7 @@ class DeterministicVerificationWorker:
         Args:
             batch: Current ScheduleBatch or ModelWorkerBatch after output processing
         """
-        logger.info(f"[DET_DEBUG] check_and_verify_deterministic_requests called with {len(batch.reqs) if batch.reqs else 0} requests")
+        # logger.info(f"[DET_DEBUG] check_and_verify_deterministic_requests called with {len(batch.reqs) if batch.reqs else 0} requests")
         
         if batch.reqs is None:
             logger.info("[DET_DEBUG] batch.reqs is None, returning")
@@ -98,12 +98,12 @@ class DeterministicVerificationWorker:
         reqs_to_verify = []
         
         for req in batch.reqs:
-            logger.info(
-                f"[DET_DEBUG] Checking req {req.rid}: is_deterministic={req.is_deterministic}, "
-                f"det_verified={req.det_verified}, finished={req.finished()}, "
-                f"finished_reason={req.finished_reason}, "
-                f"output_ids_len={len(req.output_ids)}, det_verified_tokens={req.det_verified_tokens}"
-            )
+            # logger.info(
+            #     f"[DET_DEBUG] Checking req {req.rid}: is_deterministic={req.is_deterministic}, "
+            #     f"det_verified={req.det_verified}, finished={req.finished()}, "
+            #     f"finished_reason={req.finished_reason}, "
+            #     f"output_ids_len={len(req.output_ids)}, det_verified_tokens={req.det_verified_tokens}"
+            # )
             
             if not req.is_deterministic:
                 logger.info(f"[DET_DEBUG] req {req.rid} is NOT deterministic, skipping")
@@ -111,7 +111,7 @@ class DeterministicVerificationWorker:
             
             # At this point, tokens are already appended and check_finished() was called
             # Check if request is finished
-            if req.finished():
+            if req.finished_output is not None or req.finished_reason is not None:
                 # For finished requests, check if there are unverified tokens
                 unverified_tokens = len(req.output_ids) - req.det_verified_tokens
                 if unverified_tokens > 0:
@@ -127,26 +127,27 @@ class DeterministicVerificationWorker:
                     )
                 continue
             else:
-                logger.info(f"[DET_DEBUG] req {req.rid} is NOT finished yet")
+                # logger.info(f"[DET_DEBUG] req {req.rid} is NOT finished yet")
+                pass
             
             # Check for incremental verification at det_step_size boundary
             if self.det_step_size is not None:
                 total_tokens = len(req.output_ids)
                 unverified_tokens = total_tokens - req.det_verified_tokens
                 
-                logger.info(
-                    f"[DET_DEBUG] rid={req.rid}, output_ids_len={total_tokens}, "
-                    f"verified={req.det_verified_tokens}, unverified={unverified_tokens}, "
-                    f"det_step_size={self.det_step_size}"
-                )
+                # logger.info(
+                #     f"[DET_DEBUG] rid={req.rid}, output_ids_len={total_tokens}, "
+                #     f"verified={req.det_verified_tokens}, unverified={unverified_tokens}, "
+                #     f"det_step_size={self.det_step_size}"
+                # )
                 
                 if unverified_tokens >= self.det_step_size:
                     reqs_to_verify.append(req)
         
         if reqs_to_verify:
-            logger.info(
-                f"Found {len(reqs_to_verify)} deterministic requests to verify"
-            )
+            # logger.info(
+            #     f"Found {len(reqs_to_verify)} deterministic requests to verify"
+            # )
             self._verify_deterministic_requests(batch, reqs_to_verify)
 
 
@@ -196,45 +197,17 @@ class DeterministicVerificationWorker:
                 verify_output.logits_output,
                 verify_model_worker_batch
             )
-            logger.info(f"[DET_DEBUG] verify_model_worker_batch sampling_info: {verify_model_worker_batch.sampling_info}")
-            logger.info(f"[DET_DEBUG] reqs[0].output_ids: {reqs[0].output_ids}")
-            logger.info(f"[DET_DEBUG] verify_output.logits_output: {verify_output.logits_output}")
-            logger.info(f"[DET_DEBUG] verified_token_ids: {verified_token_ids}")
             
             # Compare outputs and handle rollback
             rollback_info = det_verify_info.verify_and_compare(reqs, verified_token_ids)
             
             # Handle KV cache for rolled-back tokens
-            # rollback_info is a list where each element is either:
-            #   None (verification passed, no rollback)
-            #   (mismatch_pos, tokens_rolled_back, tokens_accepted) tuple
-            self._handle_kv_cache_rollback(original_batch, reqs, rollback_info, det_verify_info)
-            
-            # Note: For requests with rollback:
-            # - output_ids has been updated (rolled back + accepted verified tokens)
-            # - KV cache has been partially freed (for rolled-back tokens)
-            # - The verified tokens' KV cache is already in place from verification forward pass
-            # - No need to copy - verification wrote directly to original locations
-            logger.info(
-                f"Verification complete for {len(reqs)} requests. "
-                f"Rollbacks handled, KV cache updated."
-            )
-            
-            # Update det_verified_tokens counter for incremental verification
-            # rollback_info is (mismatch_pos, tokens_rolled_back, tokens_accepted) or None
+            self._handle_kv_cache_rollback(original_batch, reqs, rollback_info)
             for i, (req, info) in enumerate(zip(reqs, rollback_info)):
-                if info is None:
-                    # Verification passed, all tokens verified
-                    req.det_verified_tokens = len(req.output_ids)
-                else:
-                    # Rollback occurred - tokens up to mismatch are verified, plus we accepted the corrected token
-                    mismatch_pos, tokens_rolled_back, tokens_accepted = info
-                    # After rollback + accept, output_ids contains verified tokens + 1 accepted corrected token
-                    req.det_verified_tokens = len(req.output_ids)
-                    logger.info(
-                        f"Request {req.rid}: Updated det_verified_tokens to {req.det_verified_tokens} "
-                        f"(after rollback of {tokens_rolled_back} tokens and acceptance of {tokens_accepted} corrected token)"
-                    )
+                req.det_verified_tokens = len(req.output_ids)
+                # logger.info(
+                #     f"Request {req.rid}: Updated det_verified_tokens={req.det_verified_tokens} after verification"
+                # )
             
             # Clean up verification batch resources
             # Since we manually set out_cache_loc to reuse existing locations,
@@ -247,11 +220,6 @@ class DeterministicVerificationWorker:
             verify_model_worker_batch = None
             verify_output = None
             verified_token_ids = None
-            
-            # Update statistics
-            self.stats["total_verified"] += len(reqs)
-            mismatches = sum(1 for req in reqs if req.det_mismatch)
-            self.stats["total_mismatches"] += mismatches
             
             # Update batch.output_ids AND seq_lens to reflect the modified req.output_ids after verification
             # This is crucial because prepare_for_decode() uses batch.output_ids and seq_lens
@@ -267,7 +235,11 @@ class DeterministicVerificationWorker:
                         # Fallback to last input token if no outputs yet
                         updated_output_ids.append(req.origin_input_ids[-1] if req.origin_input_ids else 0)
                     # Update seq_lens to match actual sequence length after rollback
-                    updated_seq_lens.append(len(req.origin_input_ids) + len(req.output_ids))
+                    # IMPORTANT: seq_lens should be length BEFORE the current token
+                    # because prepare_for_decode() will increment it by 1
+                    # So we use: input_len + output_len - 1
+                    current_total_len = len(req.origin_input_ids) + len(req.output_ids)
+                    updated_seq_lens.append(current_total_len - 1)
                 
                 # Update the batch tensors
                 original_batch.output_ids = torch.tensor(
@@ -300,87 +272,74 @@ class DeterministicVerificationWorker:
             logger.error(f"Error during verification: {e}")
             raise
         
-        logger.info(
-            f"Verification complete. Total verified: {self.stats['total_verified']}, "
-            f"Total mismatches: {self.stats['total_mismatches']}"
-        )
+        # logger.info(
+        #     f"Verification complete. Total verified: {self.stats['total_verified']}, "
+        #     f"Total mismatches: {self.stats['total_mismatches']}"
+        # )
 
     def _handle_kv_cache_rollback(
         self,
         original_batch: Union[ScheduleBatch, ModelWorkerBatch],
         reqs: List[Req],
         rollback_info: List,
-        det_verify_info,
     ):
         """
         Handle KV cache state after rollback.
-        
-        CRITICAL: We MUST free the KV cache for rolled-back tokens!
-        Unlike ngram/EAGLE which allocate new cache for drafts, detinfer reuses
-        existing cache locations. When we rollback:
-        - The rolled-back tokens are removed from req.output_ids
-        - BUT their cache locations remain marked as allocated in req_to_token_pool
-        - This causes a memory leak - those locations are never freed!
-        
-        Solution: Explicitly free the cache locations for rolled-back tokens,
-        just like ngram/EAGLE do in their verify functions.
-        
-        IMPORTANT: When tokens_accepted=1, we accept ONE verified token after rollback.
-        That token REUSES the cache location of the first rolled-back token.
-        So we only free (tokens_rolled_back - tokens_accepted) cache locations.
         """
         for i, (req, info) in enumerate(zip(reqs, rollback_info)):
             if info is None:
                 # No rollback needed for this request
                 continue
             
-            mismatch_pos, tokens_rolled_back, tokens_accepted = info
+            mismatch_pos, tokens_rolled_back = info
             
             if tokens_rolled_back == 0:
                 # No tokens rolled back
                 continue
             
-            # FREE the KV cache for rolled-back tokens!
-            # After rollback, req.output_ids has been truncated and possibly had 1 token re-added.
-            # 
-            # Example: Rollback 3 tokens, accept 1 verified token
-            # - Before: output_ids = [t0, t1, t2, t3, t4] (mismatch at pos 2)
-            # - After rollback: output_ids = [t0, t1]
-            # - After accept: output_ids = [t0, t1, t2'] (accepted verified token)
-            # - Tokens to free: OLD t2, t3, t4's cache (but t2' reuses t2's cache)
-            # - So free: t3 and t4's cache = (3 rolled back - 1 accepted) = 2 tokens
+            # Calculate which KV cache slots need to be freed
+            num_slots_to_free = tokens_rolled_back
             
-            # The accepted token (if any) REUSES the first rolled-back token's cache position
-            # So we only need to free the remaining rolled-back tokens
-            num_tokens_to_actually_free = tokens_rolled_back - tokens_accepted
-            
-            if num_tokens_to_actually_free <= 0:
+            if num_slots_to_free > 0:
+                # Get the KV cache indices for the slots to free
+                # These are AFTER the current output_ids length (which includes accepted token)
+                start_free_pos = len(req.origin_input_ids) + len(req.output_ids) - 1
+                end_free_pos = start_free_pos + num_slots_to_free + 1
+                
+                kv_indices_to_free_raw = original_batch.req_to_token_pool.req_to_token[
+                    req.req_pool_idx, start_free_pos:end_free_pos
+                ]
+                
+                # Filter out zero indices (slot 0 is padding, should never be freed)
+                kv_indices_to_free = kv_indices_to_free_raw[kv_indices_to_free_raw != 0]
+
                 logger.info(
-                    f"[KV_ROLLBACK] Request {req.rid}: "
-                    f"Rolled back {tokens_rolled_back} tokens, accepted {tokens_accepted}, "
-                    f"no cache to free (accepted token reuses rolled-back cache)"
+                    f"original_batch.req_to_token_pool state for req {req.rid}: "
+                    f"kv_indices={original_batch.req_to_token_pool.req_to_token[req.req_pool_idx].tolist()}"
                 )
-                continue
-            
-            # Calculate positions: Start after the current output_ids (which includes accepted token if any)
-            start_free_pos = len(req.origin_input_ids) + len(req.output_ids)
-            end_free_pos = start_free_pos + num_tokens_to_actually_free
-            
-            # Get the cache locations to free from req_to_token_pool
-            cache_locs_to_free = original_batch.req_to_token_pool.req_to_token[
-                req.req_pool_idx, start_free_pos:end_free_pos
-            ]
-            
-            # Free them from the allocator
-            original_batch.token_to_kv_pool_allocator.free(cache_locs_to_free)
-            
-            logger.info(
-                f"[KV_ROLLBACK] Request {req.rid}: "
-                f"Mismatch at position {mismatch_pos}, "
-                f"rolled back {tokens_rolled_back} tokens, "
-                f"accepted {tokens_accepted} verified token. "
-                f"Freed {num_tokens_to_actually_free} cache locations: {cache_locs_to_free.tolist()}"
-            )
+                
+                # logger.info(
+                #     f"[KV_ROLLBACK] Request {req.rid}: "
+                #     f"rolled back {tokens_rolled_back} tokens, "
+                #     f"Current output_ids length: {len(req.output_ids)} "
+                #     f"(input={len(req.origin_input_ids)} + output={len(req.output_ids)}). "
+                #     f"Freeing {len(kv_indices_to_free)} KV cache slots (out of {num_slots_to_free}) "
+                #     f"from positions [{start_free_pos}:{end_free_pos}]: "
+                #     f"{kv_indices_to_free.tolist()}"
+                # )
+                
+                # FREE the KV cache slots for rolled-back tokens (but not the accepted token!)
+                if kv_indices_to_free.numel() > 0:
+                    original_batch.token_to_kv_pool_allocator.free(kv_indices_to_free)
+                else:
+                    # logger.info(f"[KV_ROLLBACK] No valid indices to free for req {req.rid}")
+                    pass
+            else:
+                # logger.info(
+                #     f"[KV_ROLLBACK] Request {req.rid}: "
+                #     f"no slots to free (accepted token reuses all rolled-back cache)"
+                # )
+                pass
 
     def __getattr__(self, name):
         """

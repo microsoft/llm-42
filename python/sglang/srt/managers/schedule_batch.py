@@ -631,17 +631,15 @@ class Req:
 
         # For deterministic verification
         self.is_deterministic: bool = sampling_params.is_deterministic
-        self.det_verified: bool = False
-        self.det_mismatch: bool = False
         self.det_verified_tokens: int = 0  # Number of tokens that have been verified
-        self.force_deterministic_mode: bool = False  # Force deterministic mode after mismatch
+        self.force_deterministic_mode: bool = False 
         
         if self.is_deterministic:
             logger.info(
-                f"[DET_DEBUG] Request {self.rid} initialized with is_deterministic=True, "
-                f"det_verified={self.det_verified}"
+                        f"[DET_DEBUG] Request {self.rid} initialized with is_deterministic=True, "
+                        f"det_verified={self.det_verified_tokens}"
             )
-
+    
         # For metrics
         self.metrics_collector = metrics_collector
         self.time_stats: TimeStats = TimeStats(disagg_mode=disagg_mode)
@@ -1636,10 +1634,10 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
         self.forward_mode = ForwardMode.DECODE
         bs = len(self.reqs)
 
-        logger.info("Preparing for decode")
-        logger.info(f"Decoding batch size: {bs}")
-        logger.info(f"Decoding batch reqs tensor: {self.reqs}")
-        logger.info(f"Decoding batch input_ids tensor: {self.output_ids}")
+        # logger.info("Preparing for decode")
+        # logger.info(f"Decoding batch size: {bs}")
+        # logger.info(f"Decoding batch reqs tensor: {self.reqs}")
+        # logger.info(f"Decoding batch input_ids tensor: {self.output_ids}")
 
         if (
             self.spec_algorithm.is_eagle()
@@ -1673,8 +1671,8 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
                 self.sampling_info.penalizer_orchestrator.cumulate_output_tokens(
                     self.output_ids.to(torch.int64)
                 )
-        logger.info(f"Decoding batch size: {bs}")
-        logger.info(f"Decoding batch input_ids tensor: {self.output_ids}")
+        # logger.info(f"Decoding batch size: {bs}")
+        # logger.info(f"Decoding batch input_ids tensor: {self.output_ids}")
         # Update fields
         self.input_ids = self.output_ids
         self.output_ids = None

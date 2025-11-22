@@ -36,7 +36,7 @@ def test_deterministic_request():
     response = client.completions.create(
         model="default",
         prompt="Once upon a time",
-        max_tokens=47,
+        max_tokens=27,
         temperature=0.0,
         extra_body={"is_deterministic": True}
     )

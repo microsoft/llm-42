@@ -226,7 +226,7 @@ class SchedulerOutputProcessorMixin:
 
         self.token_to_kv_pool_allocator.free_group_begin()
 
-        # Check finish condition
+        # First, append tokens and check finish condition
         # NOTE: the length of reqs and next_token_ids don't match if it is spec decoding.
         # We should ignore using next_token_ids for spec decoding cases.
         for i, (req, next_token_id) in enumerate(zip(batch.reqs, next_token_ids)):
@@ -251,7 +251,32 @@ class SchedulerOutputProcessorMixin:
                 # speculative worker will solve the output_ids in speculative decoding
                 req.output_ids.append(next_token_id)
 
+            # Check if finished, but DON'T cache yet for deterministic requests
             req.check_finished()
+
+        # CRITICAL: Verify deterministic requests BEFORE caching finished requests
+        # This ensures KV cache is still available for verification and rollback
+        if self.server_args.enable_det_infer:
+            # logger.info("[DET_DEBUG] Calling check_and_verify_deterministic_requests")
+            self.model_worker.check_and_verify_deterministic_requests(batch)
+
+        # Now cache finished requests after verification is complete
+        # For deterministic requests, verification might have caused rollback which could change finished state
+        for i, (req, next_token_id) in enumerate(zip(batch.reqs, next_token_ids)):
+            if req.is_retracted:
+                continue
+
+            if self.enable_overlap and req.finished():
+                # Already handled in first loop
+                continue
+
+            # For deterministic requests, re-check finished state after verification
+            # Rollback might have cleared finished_reason, and the accepted corrected token
+            # might itself trigger a new finish condition (e.g., EOS token or stop string)
+            if req.sampling_params.is_deterministic:
+                req.check_finished()
+            
+            # Now check if request is finished and cache it
             if req.finished():
                 if self.server_args.disaggregation_decode_enable_offload_kvcache:
                     # Asynchronously offload KV cache; cache_finished_req will be called after Device->Host transfer completes
@@ -302,11 +327,6 @@ class SchedulerOutputProcessorMixin:
         self.set_next_batch_sampling_info_done(batch)
         self.stream_output(batch.reqs, batch.return_logprob)
         
-        # Check and verify deterministic requests after output processing
-        logger.info(f"[DET_DEBUG] enable_det_infer={self.server_args.enable_det_infer}")
-        if self.server_args.enable_det_infer:
-            logger.info("[DET_DEBUG] Calling check_and_verify_deterministic_requests")
-            self.model_worker.check_and_verify_deterministic_requests(batch)
         
         self.token_to_kv_pool_allocator.free_group_end()
 
@@ -589,6 +609,13 @@ class SchedulerOutputProcessorMixin:
                     # With the overlap schedule, a request will try to output twice and hit this line twice
                     # because of the one additional delayed token. This "continue" prevented the dummy output.
                     continue
+                # For deterministic requests, only mark as finished_output if all tokens are verified
+                if is_deterministic:
+                    all_tokens_verified = req.det_verified_tokens >= len(req.output_ids)
+                    if not all_tokens_verified:
+                        # Request is finished but not all tokens verified yet - don't output
+                        should_output = False
+                        continue
                 req.finished_output = True
                 should_output = True
             else:
@@ -647,10 +674,12 @@ class SchedulerOutputProcessorMixin:
                 
                 # For deterministic requests, only send verified tokens
                 if is_deterministic and not req.finished():
+                    logger.info(f"Not finished streaming output_ids from offset {send_token_offset} for req {req.rid}")
                     max_tokens_to_send = min(len(req.output_ids), req.det_verified_tokens)
                     output_ids.append(req.output_ids[send_token_offset:max_tokens_to_send])
                     req.send_token_offset = max_tokens_to_send
                 else:
+                    logger.info(f"{self.stream_interval=} --- Streaming output_ids from offset {send_token_offset} for req {req.rid}")
                     output_ids.append(req.output_ids[send_token_offset:])
                     req.send_token_offset = len(req.output_ids)
                     
