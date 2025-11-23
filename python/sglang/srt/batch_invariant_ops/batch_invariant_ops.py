@@ -1,6 +1,7 @@
 # Adapted from https://github.com/thinking-machines-lab/batch_invariant_ops/blob/main/batch_invariant_ops/batch_invariant_ops.py
 
 import contextlib
+import logging
 from collections import namedtuple
 from collections.abc import Callable
 from typing import Any, Dict
@@ -11,6 +12,8 @@ import triton.language as tl
 
 from sgl_kernel import bf16_batch_invariant_mm, bf16_batch_invariant_fused_mm
 from torch.profiler import record_function
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "set_batch_invariant_mode",
@@ -643,23 +646,42 @@ def is_batch_invariant_mode_enabled():
     return _batch_invariant_MODE
 
 
-def enable_batch_invariant_mode(mode: int = 1):
+def enable_batch_invariant_mode(mode: int = 1, _suppress_log: bool = False):
     global _batch_invariant_MODE, _batch_invariant_LIB, _mode
-    if _batch_invariant_MODE:
+    # Debug: log the state before checking
+    # logger.debug(f"enable_batch_invariant_mode called: _batch_invariant_MODE={_batch_invariant_MODE}, _mode={_mode}, requested_mode={mode}")
+    
+    # Check if already in desired state (with valid library)
+    # Note: We can't reuse a destroyed Library, so we check if lib exists
+    if _batch_invariant_MODE and _mode == mode and _batch_invariant_LIB is not None:
+        # logger.debug("Early return: mode already enabled with same value")
         return
+    
+    # Log when enabling from disabled state or changing mode (unless suppressed)
+    was_disabled = not _batch_invariant_MODE
+    mode_changed = _batch_invariant_MODE and _mode != mode
+    should_log = (was_disabled or mode_changed) and not _suppress_log
+    
+    # Clean up old library if it exists (can't reuse destroyed Library objects)
+    if _batch_invariant_LIB is not None:
+        _batch_invariant_LIB._destroy()
+        _batch_invariant_LIB = None
 
+    # Create new Library object (required since old one was destroyed or doesn't exist)
     _batch_invariant_MODE = True
     _batch_invariant_LIB = torch.library.Library("aten", "IMPL")
     _mode = mode
     
     if mode == 1:
         # Mode 1: bi_kernel (CUTLASS kernel) + vllm rmsnorm
-        print("Enabling batch invariant mode with bi_kernel (CUTLASS)...", flush=True)
+        if should_log:
+            logger.info("Enabling batch invariant mode with bi_kernel (CUTLASS)")
         _batch_invariant_LIB.impl("aten::mm", mm_bi_kernel, "CUDA")
         _batch_invariant_LIB.impl("aten::addmm", addmm_bi_kernel, "CUDA")
     elif mode == 2:
         # Mode 2: batch_invariant (Triton kernel) + native rmsnorm
-        print("Enabling batch invariant mode with batch_invariant (Triton)...", flush=True)
+        if should_log:
+            logger.info("Enabling batch invariant mode with batch_invariant (Triton)")
         _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
         _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
     elif mode != 0:
@@ -671,30 +693,50 @@ def enable_batch_invariant_mode(mode: int = 1):
     _batch_invariant_LIB.impl("aten::mean.dim", mean_batch_invariant, "CUDA")
 
 def disable_batch_invariant_mode():
-    global _batch_invariant_MODE, _batch_invariant_LIB
+    global _batch_invariant_MODE, _batch_invariant_LIB, _mode
+    # Only log when actually disabling (not already disabled)
+    if _batch_invariant_MODE:
+        logger.debug("Disabling batch invariant mode")
     if _batch_invariant_LIB is not None:
         _batch_invariant_LIB._destroy()
     _batch_invariant_MODE = False
     _batch_invariant_LIB = None
-    # print(f"DEBUG:: Batch invariant mode disabled", flush=True)
+    _mode = 0
 
 
 @contextlib.contextmanager
 def set_batch_invariant_mode(enabled: bool = True, mode: int = 1):
-    global _batch_invariant_MODE, _batch_invariant_LIB
-    old_mode = _batch_invariant_MODE
-    # print(f"DEBUG:: [Context Manager] Setting batch_invariant mode: enabled={enabled}, mode={mode}, was_enabled={_batch_invariant_MODE}", flush=True)
-    if enabled:
-        enable_batch_invariant_mode(mode)
-    else:
-        disable_batch_invariant_mode()
+    global _batch_invariant_MODE, _batch_invariant_LIB, _mode
+    # Save the actual mode value (integer), not just the boolean state
+    old_mode_value = _mode
+    old_was_enabled = _batch_invariant_MODE
+    
+    # Debug logging to understand the repeated calls
+    logger.info(f"set_batch_invariant_mode: enabled={enabled}, mode={mode}, "
+                 f"old_was_enabled={old_was_enabled}, old_mode_value={old_mode_value}")
+    
+    # Only change state if different from current state
+    needs_change = (enabled != old_was_enabled) or (enabled and mode != old_mode_value)
+    
+    logger.info(f"needs_change={needs_change}")
+    
+    if needs_change:
+        if enabled:
+            enable_batch_invariant_mode(mode)
+        else:
+            disable_batch_invariant_mode()
+    
     yield
-    # print(f"DEBUG:: [Context Manager] Restoring batch_invariant mode: restoring_to={old_mode}", flush=True)
-    # Disable current mode first
-    disable_batch_invariant_mode()
-    # Re-enable if it was previously enabled
-    if old_mode:
-        enable_batch_invariant_mode(mode)
+    
+    # Only restore if we actually changed something
+    if needs_change:
+        logger.info(f"Restoring: old_was_enabled={old_was_enabled}, old_mode_value={old_mode_value}")
+        if old_was_enabled and old_mode_value > 0:
+            # Restore to previous mode, suppress logging since we're just restoring
+            enable_batch_invariant_mode(old_mode_value, _suppress_log=True)
+        elif not old_was_enabled:
+            # Was disabled before, disable again
+            disable_batch_invariant_mode()
 
 
 AttentionBlockSize = namedtuple("AttentionBlockSize", ["block_m", "block_n"])

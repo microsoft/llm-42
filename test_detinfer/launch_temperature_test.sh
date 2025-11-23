@@ -29,11 +29,10 @@ $PYTHON_CMD -m sglang.launch_server \
     --host "$HOST" \
     --port "$PORT" \
     --tp "$TP_SIZE" \
-    --enable-deterministic-inference 257 \
     --attention-backend $ATTENTION_BACKEND \
     --disable-radix-cache \
     --disable-chunked-prefix-cache \
-    --det-step-size 10 \
     --disable-overlap-schedule \
     --disable-cuda-graph \
+    --det-step-size 10 \
     --enable-det-infer 1

@@ -222,7 +222,11 @@ class CudaGraphRunner:
         # batch_invariant_mode: True = deterministic, False = non-deterministic
         self.graphs = {}
         self.output_buffers = {}
-        self.enable_dual_graphs = model_runner.enable_selective_determinism
+        # Enable dual graphs for both selective_determinism and det_infer modes
+        # Both need to dynamically switch between deterministic and non-deterministic behavior
+        self.enable_dual_graphs = (
+            model_runner.enable_selective_determinism or model_runner.enable_det_infer_mode
+        )
         self.enable_torch_compile = model_runner.server_args.enable_torch_compile
         self.disable_padding = model_runner.server_args.disable_cuda_graph_padding
         self.is_encoder_decoder = model_runner.model_config.is_encoder_decoder
@@ -442,6 +446,14 @@ class CudaGraphRunner:
         )
 
     def capture(self) -> None:
+        if self.enable_dual_graphs:
+            mode_name = "enable_det_infer" if self.model_runner.enable_det_infer_mode else "enable_selective_determinism"
+            logger.info(
+                f"Dual CUDA graphs enabled ({mode_name}). "
+                "Capturing two graphs per batch size: one deterministic (batch_invariant=True), "
+                "one non-deterministic (batch_invariant=False). This will double CUDA graph memory usage."
+            )
+        
         profile_context = empty_context()
         if self.enable_profile_cuda_graph:
             profile_context = profile(
@@ -807,10 +819,17 @@ class CudaGraphRunner:
         self.use_deterministic = None  # Store for use in replay()
         if self.enable_dual_graphs:
             self.use_deterministic = True  # Default to deterministic
-            if forward_batch.sampling_info is not None:
-                # If ANY request has top_k <= 1 (greedy), use deterministic graph
-                # is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
-                #                torch.any(forward_batch.sampling_info.top_ks <= 1).item()
+            
+            # For enable_det_infer mode, check force_deterministic_mode flag in DECODE
+            if self.model_runner.enable_det_infer_mode:
+                # Check if any request has force_deterministic_mode set
+                has_force_deterministic = any(
+                    getattr(req, 'force_deterministic_mode', False) 
+                    for req in forward_batch.reqs
+                )
+                self.use_deterministic = has_force_deterministic
+            elif forward_batch.sampling_info is not None:
+                # For enable_selective_determinism, use is_any_deterministic
                 self.use_deterministic = forward_batch.sampling_info.is_any_deterministic
         
         # Attention backend
@@ -852,13 +871,17 @@ class CudaGraphRunner:
                 use_deterministic = self.use_deterministic
             else:
                 use_deterministic = True  # Default to deterministic
-                if forward_batch.sampling_info is not None:
-                    # If ANY request has top_k <= 1 (greedy), use deterministic graph
-                    is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
-                    # print(f"CUDA GRAPH:: Forward pass {self.forward_pass_id}: is_any_deterministic={is_any_deterministic}", flush=True)
-                    # is_any_greedy = forward_batch.sampling_info.is_all_greedy or \
-                    #                torch.any(forward_batch.sampling_info.top_ks <= 1).item()
-                    use_deterministic = is_any_deterministic
+                
+                # For enable_det_infer mode, check force_deterministic_mode flag
+                if self.model_runner.enable_det_infer_mode:
+                    has_force_deterministic = any(
+                        getattr(req, 'force_deterministic_mode', False) 
+                        for req in forward_batch.reqs
+                    )
+                    use_deterministic = has_force_deterministic
+                elif forward_batch.sampling_info is not None:
+                    # For enable_selective_determinism, use is_any_deterministic
+                    use_deterministic = forward_batch.sampling_info.is_any_deterministic
             
             graph_key = (self.bs, use_deterministic)
         else:

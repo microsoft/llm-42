@@ -50,7 +50,7 @@ from sglang.srt.utils import get_compiler_backend, is_npu, support_triton
 if TYPE_CHECKING:
     from sglang.srt.layers.attention.base_attn_backend import AttentionBackend
     from sglang.srt.layers.logits_processor import LogitsProcessorOutput
-    from sglang.srt.managers.schedule_batch import ModelWorkerBatch, MultimodalInputs
+    from sglang.srt.managers.schedule_batch import ModelWorkerBatch, MultimodalInputs, Req
     from sglang.srt.mem_cache.memory_pool import KVCache, ReqToTokenPool
     from sglang.srt.model_executor.model_runner import ModelRunner
     from sglang.srt.sampling.sampling_batch_info import SamplingBatchInfo
@@ -274,6 +274,9 @@ class ForwardBatch:
     # Sampling info
     sampling_info: SamplingBatchInfo = None
 
+    # Request objects (for verification and debugging)
+    reqs: Optional[List["Req"]] = None
+
     # Attention backend
     req_to_token_pool: ReqToTokenPool = None
     token_to_kv_pool: KVCache = None
@@ -345,6 +348,7 @@ class ForwardBatch:
             global_forward_mode=batch.global_forward_mode,
             lora_ids=batch.lora_ids,
             sampling_info=batch.sampling_info,
+            reqs=batch.reqs,
             req_to_token_pool=model_runner.req_to_token_pool,
             token_to_kv_pool=model_runner.token_to_kv_pool,
             attn_backend=model_runner.attn_backend,

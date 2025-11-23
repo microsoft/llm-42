@@ -89,14 +89,14 @@ def test_multiple_requests():
     time.sleep(3)
     print("✓ Check server logs for [VERIFICATION_*] messages")
 
-def send_single_request(request_id: int, is_det: bool = True):
+def send_single_request(request_id: int, n: int, is_det: bool = True):
     """Send a single request and return the response."""
     print(f"→ Sending Request {request_id} ({'det' if is_det else 'non-det'})")
     print(f"Prompt: Request {request_id}: Once upon a time")
     try:
         prompt = f"Request {request_id}: Once upon a time"
-        if request_id == 2:
-            prompt = f"Request 2: Once upon a time"
+        # if request_id == 2 or n == 1:
+        #     prompt = f"Request 2: Once upon a time"
         response = client.completions.create(
             model="default",
             prompt=prompt,

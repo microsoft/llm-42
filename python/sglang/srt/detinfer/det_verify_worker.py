@@ -52,6 +52,8 @@ class DeterministicVerificationWorker:
         """
         self.target_worker = target_worker
         self.det_step_size = det_step_size
+        # Track which requests have been logged as non-deterministic to avoid spam
+        self._logged_non_deterministic = set()
         self.stats = {
             "total_verified": 0,
             "total_mismatches": 0,
@@ -106,7 +108,18 @@ class DeterministicVerificationWorker:
             # )
             
             if not req.is_deterministic:
-                logger.info(f"[DET_DEBUG] req {req.rid} is NOT deterministic, skipping")
+                # Only log once per request to avoid spam
+                if req.rid not in self._logged_non_deterministic:
+                    logger.debug(f"[DET_DEBUG] req {req.rid} is NOT deterministic, skipping")
+                    self._logged_non_deterministic.add(req.rid)
+                continue
+            
+            # Skip verification if force_deterministic_mode is True
+            # When this flag is set, batch-invariant mode is forced on, so no verification is needed
+            if getattr(req, 'force_deterministic_mode', False):
+                # Mark all tokens as verified since we're running with forced determinism
+                req.det_verified_tokens = len(req.output_ids)
+                logger.debug(f"[DET_DEBUG] req {req.rid} has force_deterministic_mode=True, skipping verification")
                 continue
             
             # At this point, tokens are already appended and check_finished() was called

@@ -602,7 +602,13 @@ class SchedulerOutputProcessorMixin:
                 continue
 
             # Check if request is deterministic
-            is_deterministic = req.sampling_params.is_deterministic
+            # Only respect is_deterministic flag if server has deterministic modes enabled
+            is_deterministic = (
+                req.sampling_params.is_deterministic and
+                (self.server_args.enable_deterministic_inference or 
+                 self.server_args.enable_det_infer or 
+                 self.server_args.enable_selective_determinism)
+            )
             
             if req.finished():
                 if req.finished_output:

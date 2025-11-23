@@ -424,17 +424,23 @@ class ModelRunner:
         if server_args.enable_deterministic_inference:
             from sglang.srt.batch_invariant_ops import enable_batch_invariant_mode
             # Use the mode specified by enable_deterministic_inference (1 or 2)
+            # This enables batch_invariant GLOBALLY and keeps it enabled always
             enable_batch_invariant_mode(server_args.enable_deterministic_inference)
         elif server_args.enable_det_infer:
-            # For enable_det_infer, we enable batch_invariant mode by default
-            # It will be dynamically disabled for DECODE in normal mode during forward pass
-            from sglang.srt.batch_invariant_ops import enable_batch_invariant_mode
-            # Use the mode specified by enable_det_infer (1 or 2)
-            enable_batch_invariant_mode(server_args.enable_det_infer)
+            # For enable_det_infer, we keep batch_invariant DISABLED by default globally
+            # It will be dynamically enabled only when needed (prefill/verification) via context manager
+            # This avoids the toggle overhead during decode passes
+            logger.info(
+                f"Det infer mode enabled (mode={server_args.enable_det_infer}). "
+                "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
+                "one without (non-deterministic). Decode passes will dynamically select based on "
+                "force_deterministic_mode flag."
+            )
 
         # Store configuration for selective determinism
         # Switches batch_invariant dynamically based on whether ANY request in batch is deterministic
-        # When enabled: If is_any_deterministic=True → keep batch_invariant, False → disable
+        # Global default is DISABLED. Context manager enables it only for deterministic batches.
+        # When enabled: If is_any_deterministic=True → enable batch_invariant, False → keep disabled
         # With dual CUDA graphs: Two sets of graphs are captured (one deterministic, one not)
         # to allow dynamic switching even during decode passes.
         self.enable_selective_determinism = server_args.enable_selective_determinism
@@ -2018,64 +2024,68 @@ class ModelRunner:
             and self.graph_runner.can_run(forward_batch)
         )
 
-        # Selective determinism: dynamic batch-invariant switching based on batch composition
-        # When enable_selective_determinism > 0:
-        #   - Batch-invariant is enabled by default (at initialization)
-        #   - If is_any_deterministic=False (ALL requests are non-deterministic), disable batch_invariant
-        #   - If is_any_deterministic=True (ANY request is deterministic), keep batch_invariant enabled
-        # Note: Deterministic means greedy sampling (top_k==1, converted from temperature=0)
-        should_disable_batch_invariant = False
-
-        # print(f"DEBUG: Forward pass -- start: {forward_batch.batch_size=}, "
-        #       f"seq_lens.shape={forward_batch.seq_lens.shape}, "
-        #       f"input_ids.shape={forward_batch.input_ids.shape}", flush=True)
+        should_enable_batch_invariant = False
         
-        # det_indices_shape = forward_batch.sampling_info.deterministic_indices.shape
-        # print(f"Forward pass {self.forward_pass_id}: is_any_deterministic={forward_batch.sampling_info.is_any_deterministic}, "
-        #         f"deterministic_indices.shape={det_indices_shape}, "
-        #         f"deterministic_indices={forward_batch.sampling_info.deterministic_indices}, "
-        #         f"MISMATCH={'!!! BATCH_SIZE MISMATCH !!!' if forward_batch.batch_size != det_indices_shape[0] else 'OK'}", flush=True)
-        # print(f"Sampling info: temperatures={forward_batch.sampling_info.temperatures}, ",flush=True)
-        
-        # CRITICAL: During verification modes (TARGET_VERIFY or TARGET_DET_VERIFY),
-        # batch-invariant mode MUST always be enabled to ensure deterministic results.
-        # Verification re-runs requests to validate determinism, so batch effects would break correctness.
+        # During verification modes, batch-invariant mode must be enabled for deterministic results
         is_verification_mode = forward_batch.forward_mode.is_any_verify()
         
         # enable_det_infer: Dynamic control based on forward mode
-        # - TARGET_DET_VERIFY or EXTEND: batch_invariant enabled (should_disable = False)
-        # - DECODE in normal mode: batch_invariant disabled (should_disable = True)
-        if self.enable_det_infer_mode and not is_verification_mode:
-            # Disable batch_invariant for DECODE in normal mode only
-            is_decode_normal_mode = forward_batch.forward_mode.is_decode()
-            should_disable_batch_invariant = is_decode_normal_mode
+        # Global default is DISABLED. We enable only when needed:
+        # - TARGET_DET_VERIFY: always enabled (via is_verification_mode)
+        # - EXTEND (prefill): enabled if is_any_deterministic
+        # - DECODE: enabled if any req has force_deterministic_mode
+        if self.enable_det_infer_mode:
+            if is_verification_mode:
+                # Verification mode: always enable
+                should_enable_batch_invariant = True
+            else:
+                is_decode_mode = forward_batch.forward_mode.is_decode()
+                if is_decode_mode:
+                    # DECODE: Enable if any request has force_deterministic_mode flag
+                    has_force_deterministic = any(
+                        getattr(req, 'force_deterministic_mode', False) 
+                        for req in forward_batch.reqs
+                    )
+                    should_enable_batch_invariant = has_force_deterministic
+                else:
+                    # Others (EXTEND, etc.): enable if any request needs determinism
+                    if forward_batch.sampling_info is not None:
+                        is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
+                        should_enable_batch_invariant = is_any_deterministic
+                    else:
+                        # No sampling info, default to disabled
+                        should_enable_batch_invariant = False
         elif self.enable_selective_determinism and not is_verification_mode:
             # Selective determinism: check if ANY request in batch needs deterministic behavior
             if forward_batch.sampling_info is not None:
                 # is_any_deterministic=True means at least one request needs determinism (greedy/top_k==1)
                 # If False (all requests are non-deterministic), we can safely disable batch_invariant
                 is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
-                should_disable_batch_invariant = not is_any_deterministic
+                should_enable_batch_invariant = is_any_deterministic
 
             
         
-        # Use context manager to temporarily disable batch_invariant when needed
+        # Use context manager to temporarily enable batch_invariant when needed
         from sglang.srt.batch_invariant_ops import set_batch_invariant_mode
 
         batch_invariant_context = None
-        if should_disable_batch_invariant:
-            # Temporarily disable batch_invariant for this forward pass
-            batch_invariant_context = set_batch_invariant_mode(enabled=False)
-            batch_invariant_context.__enter__()
-            # Update counter for non-deterministic forward passes
-            if self.enable_selective_determinism:
-                self.num_non_deterministic += 1
-        else:
-            # Batch-invariant is enabled (either statically or not disabled)
-            if self.enable_selective_determinism:
+        if self.enable_det_infer_mode:
+            # For det_infer mode, global default is DISABLED
+            # Only use context manager when we need to enable it
+            if should_enable_batch_invariant:
+                batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
+                batch_invariant_context.__enter__()
+        elif self.enable_selective_determinism:
+            # For selective determinism, global default is also DISABLED
+            # Only use context manager when we need to enable it
+            if should_enable_batch_invariant:
+                batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.selective_determinism_mode)
+                batch_invariant_context.__enter__()
                 self.num_batch_invariant += 1
+            else:
+                # No context manager needed - already disabled by default
+                self.num_non_deterministic += 1
 
-        # Periodic logging of stats
         if self.enable_selective_determinism:
             total = self.num_batch_invariant + self.num_non_deterministic
             if total > 0 and total % self._stats_log_interval == 0:
@@ -2089,7 +2099,7 @@ class ModelRunner:
                     pp_proxy_tensors=pp_proxy_tensors,
                 )
                 return ret, can_run_graph
-            # For MLP sync
+            
             if forward_batch.global_num_tokens_cpu is not None:
                 forward_batch.prepare_mlp_sync_batch(self)
 
@@ -2122,7 +2132,6 @@ class ModelRunner:
             ):
                 forward_batch.post_forward_mlp_sync_batch(ret)
         finally:
-            # Clean up the batch invariant context if we entered it
             if batch_invariant_context is not None:
                 batch_invariant_context.__exit__(None, None, None)
 
