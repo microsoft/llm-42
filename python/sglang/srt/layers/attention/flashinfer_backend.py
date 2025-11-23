@@ -137,22 +137,25 @@ class FlashInferAttnBackend(AttentionBackend):
 
         # Store deterministic inference configuration
         self.deterministic_inference_flag = model_runner.server_args.enable_deterministic_inference
-        self.enable_temperature_based_switching = bool(self.deterministic_inference_flag & 512)
+        self.enable_selective_determinism = model_runner.server_args.enable_selective_determinism
+        self.selective_determinism_mode = model_runner.server_args.enable_selective_determinism
 
-        # Static deterministic mode (bit 128 controls flashinfer determinism)
-        # When bit 128 is NOT set AND bit 512 is NOT set (not using temperature-based switching),
-        # always use deterministic configuration
+        # Static deterministic mode (enable_deterministic_inference)
+        # When enabled and selective_determinism is disabled, always use deterministic configuration
         self.enable_deterministic = (
-            self.deterministic_inference_flag and
-            not (self.deterministic_inference_flag & 128)
+            self.deterministic_inference_flag > 0 and
+            self.enable_selective_determinism == 0
         )
+        
+        # Separate flag for det_infer mode (dynamic batch-invariant control)
+        self.enable_det_infer_mode = model_runner.server_args.enable_det_infer
         # Store original (non-deterministic) settings
         self.original_decode_use_tensor_cores = self.decode_use_tensor_cores
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
 
-        # For temperature-based switching, we DON'T override settings here.
+        # For selective determinism or det_infer mode, we DON'T override settings here.
         # Instead, we apply different settings during CUDA graph capture based on
         # is_batch_invariant_mode_enabled() in init_forward_metadata_capture_cuda_graph.
         # This allows the deterministic graph to use deterministic settings and the
@@ -170,8 +173,9 @@ class FlashInferAttnBackend(AttentionBackend):
             global_config.flashinfer_workspace_size = 2048 * 1024 * 1024
             if self.prefill_split_tile_size < 4096:
                 global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
-        elif self.enable_temperature_based_switching:
-            # Temperature-based switching: settings will be applied during graph capture
+        elif self.enable_selective_determinism:
+            # Selective determinism: settings will be applied during graph capture
+            # Switches batch_invariant based on whether ANY request in batch is deterministic
             # Set default deterministic values that will be used when batch_invariant is enabled
             self.prefill_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -182,7 +186,7 @@ class FlashInferAttnBackend(AttentionBackend):
             # For non-CUDA graph passes, we need to disable kv split when in deterministic mode
             self.disable_cuda_graph_kv_split = True
             global_config.flashinfer_workspace_size = 2048 * 1024 * 1024
-            print("[FlashInferAttnBackend] Temperature-based deterministic inference is enabled.")
+            print(f"[FlashInferAttnBackend] Selective determinism is enabled (mode={self.selective_determinism_mode}).")
 
         '''
         if model_runner.server_args.enable_deterministic_inference & 8:
@@ -286,10 +290,10 @@ class FlashInferAttnBackend(AttentionBackend):
 
     def init_forward_metadata(self, forward_batch: ForwardBatch):
         if forward_batch.forward_mode.is_decode_or_idle():
-            # Dynamic temperature-based switching (bit 512)
+            # Selective determinism or det_infer mode
             # Check if batch-invariant mode is currently enabled
-            enable_deterministic_current = self.enable_deterministic
-            if self.enable_temperature_based_switching:
+            enable_deterministic_current = self.enable_deterministic or self.enable_det_infer_mode
+            if self.enable_selective_determinism or self.enable_det_infer_mode:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 enable_deterministic_current = is_batch_invariant_mode_enabled()
 
@@ -364,13 +368,13 @@ class FlashInferAttnBackend(AttentionBackend):
                 use_ragged = False
                 extend_no_prefix = False
             else:
-                # Dynamic temperature-based switching (bit 512)
+                # Selective determinism or det_infer mode
                 # Check if batch-invariant mode is currently enabled
-                enable_deterministic_current = self.enable_deterministic
-                if self.enable_temperature_based_switching:
+                enable_deterministic_current = self.enable_deterministic or self.enable_det_infer_mode
+                if self.enable_selective_determinism or self.enable_det_infer_mode:
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
-                    # logger.info(f"[FlashInfer Temperature-based] batch_invariant_enabled={enable_deterministic_current}, use_ragged={not enable_deterministic_current}")
+                    # logger.info(f"[FlashInfer Selective-Det] batch_invariant_enabled={enable_deterministic_current}, use_ragged={not enable_deterministic_current}")
                 current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
                 use_ragged = not enable_deterministic_current
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
@@ -468,9 +472,9 @@ class FlashInferAttnBackend(AttentionBackend):
         spec_info: Optional[SpecInput],
     ):
         if forward_mode.is_decode_or_idle():
-            # For temperature-based switching, apply different settings for each graph
+            # For selective determinism or det_infer mode, apply different settings for each graph
             # based on is_batch_invariant_mode_enabled() during capture
-            if self.enable_temperature_based_switching:
+            if self.enable_selective_determinism or self.enable_det_infer_mode:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_deterministic_graph = is_batch_invariant_mode_enabled()
 
@@ -516,7 +520,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 disable_split_kv=disable_split_kv,
             )
             # Store with tuple key (bs, is_deterministic) for dual graphs
-            if self.enable_temperature_based_switching:
+            if self.enable_selective_determinism or self.enable_det_infer_mode:
                 storage_key = (bs, is_deterministic_graph)
             else:
                 storage_key = bs
@@ -607,14 +611,14 @@ class FlashInferAttnBackend(AttentionBackend):
     ):
         if forward_mode.is_decode_or_idle():
             # Determine which wrappers to use based on deterministic mode
-            if self.enable_temperature_based_switching and use_deterministic is not None:
+            if (self.enable_selective_determinism or self.enable_det_infer_mode) and use_deterministic is not None:
                 storage_key = (bs, use_deterministic)
                 # Match the settings used during capture for this graph
                 disable_split_kv = use_deterministic
             else:
                 storage_key = bs
                 # For static deterministic mode, use the same restrictive settings
-                if self.enable_deterministic:
+                if self.enable_deterministic or self.enable_det_infer_mode:
                     disable_split_kv = self.disable_cuda_graph_kv_split
                 else:
                     disable_split_kv = False

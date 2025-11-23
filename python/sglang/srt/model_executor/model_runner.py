@@ -414,35 +414,38 @@ class ModelRunner:
                 )
             self.init_double_sparsity_channel_config(server_args.ds_heavy_channel_type)
 
-        # Enable batch invariant mode
-        # Note: enable_deterministic_inference uses bitwise flags:
-        #   Bits 1, 2, 4: Batch-invariant matmul modes
-        #   Bit 32: Reserved for matmul behavior
-        #   Bit 64: Layernorm behavior (layernorm.py)
-        #   Bit 128: Flashinfer behavior (flashinfer_backend.py)
-        #   Bit 256: vLLM RMSNorm behavior (layernorm.py)
-        #   Bit 512: Temperature-based switching (this file) - NEW
+        
+        # enable_det_infer: Dynamic batch-invariant control based on forward mode
+        # - TARGET_DET_VERIFY: batch_invariant enabled
+        # - EXTEND (prefill): batch_invariant enabled
+        # - DECODE (normal mode): batch_invariant disabled
+        self.enable_det_infer_mode = server_args.enable_det_infer
+        
         if server_args.enable_deterministic_inference:
             from sglang.srt.batch_invariant_ops import enable_batch_invariant_mode
+            # Use the mode specified by enable_deterministic_inference (1 or 2)
+            enable_batch_invariant_mode(server_args.enable_deterministic_inference)
+        elif server_args.enable_det_infer:
+            # For enable_det_infer, we enable batch_invariant mode by default
+            # It will be dynamically disabled for DECODE in normal mode during forward pass
+            from sglang.srt.batch_invariant_ops import enable_batch_invariant_mode
+            # Use the mode specified by enable_det_infer (1 or 2)
+            enable_batch_invariant_mode(server_args.enable_det_infer)
 
-            # Extract matmul mode bits (1, 2, 4) - ignore other bits
-            matmul_mode = server_args.enable_deterministic_inference & 0x7  # 0x7 = bits 1, 2, 4
-            if matmul_mode:
-                enable_batch_invariant_mode(matmul_mode)
-
-        # Store configuration for temperature-based dynamic switching (new feature)
-        # Bit 512 enables dynamic temperature-based control
-        # When enabled: ALL temps > 0 → disable batch_invariant, ANY temp == 0 → keep batch_invariant
+        # Store configuration for selective determinism
+        # Switches batch_invariant dynamically based on whether ANY request in batch is deterministic
+        # When enabled: If is_any_deterministic=True → keep batch_invariant, False → disable
         # With dual CUDA graphs: Two sets of graphs are captured (one deterministic, one not)
         # to allow dynamic switching even during decode passes.
-        self.enable_temperature_based_switching = bool(server_args.enable_deterministic_inference & 512)
+        self.enable_selective_determinism = server_args.enable_selective_determinism
+        self.selective_determinism_mode = server_args.enable_selective_determinism  # 0=disabled, 1=bi_kernel, 2=batch_invariant
 
-        if self.enable_temperature_based_switching:
+        if self.enable_selective_determinism:
             logger.info(
-                "Temperature-based batch-invariant switching enabled (bit 512). "
+                f"Selective determinism enabled (mode={self.selective_determinism_mode}). "
                 "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
                 "one without (non-deterministic). This will double CUDA graph memory usage "
-                "and capture time, but enables full temperature-based switching for all passes."
+                "and capture time, but enables full batch-composition-based switching for all passes."
             )
 
         # Counters for tracking batch-invariant vs non-deterministic forward passes
@@ -2015,12 +2018,12 @@ class ModelRunner:
             and self.graph_runner.can_run(forward_batch)
         )
 
-        # Temperature-based dynamic batch-invariant switching (new feature)
-        # When bit 512 is set:
+        # Selective determinism: dynamic batch-invariant switching based on batch composition
+        # When enable_selective_determinism > 0:
         #   - Batch-invariant is enabled by default (at initialization)
-        #   - If ALL requests are non-greedy (temperature>0), temporarily DISABLE batch-invariant
-        #   - If ANY request is greedy (temperature=0), keep batch-invariant enabled
-        # Note: SGLang converts temperature=0 to temperature=1.0 and top_k=1 (greedy sampling)
+        #   - If is_any_deterministic=False (ALL requests are non-deterministic), disable batch_invariant
+        #   - If is_any_deterministic=True (ANY request is deterministic), keep batch_invariant enabled
+        # Note: Deterministic means greedy sampling (top_k==1, converted from temperature=0)
         should_disable_batch_invariant = False
 
         # print(f"DEBUG: Forward pass -- start: {forward_batch.batch_size=}, "
@@ -2039,11 +2042,18 @@ class ModelRunner:
         # Verification re-runs requests to validate determinism, so batch effects would break correctness.
         is_verification_mode = forward_batch.forward_mode.is_any_verify()
         
-        if self.enable_temperature_based_switching and not is_verification_mode:
-            # Check if ALL requests are non-greedy (all want non-deterministic)
+        # enable_det_infer: Dynamic control based on forward mode
+        # - TARGET_DET_VERIFY or EXTEND: batch_invariant enabled (should_disable = False)
+        # - DECODE in normal mode: batch_invariant disabled (should_disable = True)
+        if self.enable_det_infer_mode and not is_verification_mode:
+            # Disable batch_invariant for DECODE in normal mode only
+            is_decode_normal_mode = forward_batch.forward_mode.is_decode()
+            should_disable_batch_invariant = is_decode_normal_mode
+        elif self.enable_selective_determinism and not is_verification_mode:
+            # Selective determinism: check if ANY request in batch needs deterministic behavior
             if forward_batch.sampling_info is not None:
-                # is_any_deterministic checks for greedy sampling (top_k==1, which is what temp=0 converts to)
-                # We want to disable batch_invariant when is_any_deterministic is False (all are non-greedy)
+                # is_any_deterministic=True means at least one request needs determinism (greedy/top_k==1)
+                # If False (all requests are non-deterministic), we can safely disable batch_invariant
                 is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
                 should_disable_batch_invariant = not is_any_deterministic
 
@@ -2058,15 +2068,15 @@ class ModelRunner:
             batch_invariant_context = set_batch_invariant_mode(enabled=False)
             batch_invariant_context.__enter__()
             # Update counter for non-deterministic forward passes
-            if self.enable_temperature_based_switching:
+            if self.enable_selective_determinism:
                 self.num_non_deterministic += 1
         else:
             # Batch-invariant is enabled (either statically or not disabled)
-            if self.enable_temperature_based_switching:
+            if self.enable_selective_determinism:
                 self.num_batch_invariant += 1
 
         # Periodic logging of stats
-        if self.enable_temperature_based_switching:
+        if self.enable_selective_determinism:
             total = self.num_batch_invariant + self.num_non_deterministic
             if total > 0 and total % self._stats_log_interval == 0:
                 self.log_deterministic_stats()
@@ -2238,10 +2248,10 @@ class ModelRunner:
 
     def log_deterministic_stats(self):
         """Log statistics for batch-invariant vs non-deterministic forward passes."""
-        if self.enable_temperature_based_switching:
+        if self.enable_selective_determinism:
             stats = self.get_deterministic_stats()
             logger.info(
-                f"Temperature-based switching stats: "
+                f"Selective determinism stats: "
                 f"batch_invariant={stats['num_batch_invariant']}, "
                 f"non_deterministic={stats['num_non_deterministic']}, "
                 f"total={stats['total']}"

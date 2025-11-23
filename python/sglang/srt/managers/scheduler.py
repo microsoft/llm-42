@@ -679,7 +679,8 @@ class Scheduler(
 
     def init_deterministic_inference_config(self):
         """Initialize deterministic inference configuration for different attention backends."""
-        if not self.server_args.enable_deterministic_inference:
+        # Check both enable_deterministic_inference and enable_det_infer
+        if not (self.server_args.enable_deterministic_inference or self.server_args.enable_det_infer):
             self.truncation_align_size = None
             return
 

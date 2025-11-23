@@ -222,7 +222,7 @@ class CudaGraphRunner:
         # batch_invariant_mode: True = deterministic, False = non-deterministic
         self.graphs = {}
         self.output_buffers = {}
-        self.enable_dual_graphs = model_runner.enable_temperature_based_switching
+        self.enable_dual_graphs = model_runner.enable_selective_determinism
         self.enable_torch_compile = model_runner.server_args.enable_torch_compile
         self.disable_padding = model_runner.server_args.disable_cuda_graph_padding
         self.is_encoder_decoder = model_runner.model_config.is_encoder_decoder

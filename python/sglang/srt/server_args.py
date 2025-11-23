@@ -411,8 +411,9 @@ class ServerArgs:
     enable_return_hidden_states: bool = False
     scheduler_recv_interval: int = 1
     numa_node: Optional[List[int]] = None
-    enable_deterministic_inference: int = 0
-    enable_det_infer: int = 0  # Alias for enable_deterministic_inference
+    enable_deterministic_inference: int = 0  # Global: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
+    enable_det_infer: int = 0  # Forward-mode-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
+    enable_selective_determinism: int = 0  # Batch-composition-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
     det_step_size: Optional[int] = None
 
     # Dynamic batch tokenizer
@@ -1175,8 +1176,18 @@ class ServerArgs:
         os.environ["SGLANG_DISABLE_OUTLINES_DISK_CACHE"] = (
             "1" if self.disable_outlines_disk_cache else "0"
         )
+        # Set environment variable for deterministic inference
+        # Use enable_deterministic_inference value, or set to 1 if enable_det_infer is set
+        # (enable_det_infer uses the same mode values: 0=disabled, 1=bi_kernel, 2=batch_invariant)
+        det_infer_env_value = self.enable_deterministic_inference
+        if self.enable_det_infer and not self.enable_deterministic_inference:
+            # If only enable_det_infer is set, pass its mode value
+            det_infer_env_value = self.enable_det_infer
         os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = (
-            str(self.enable_deterministic_inference)
+            str(det_infer_env_value)
+        )
+        os.environ["SGLANG_ENABLE_SELECTIVE_DETERMINISM"] = (
+            str(self.enable_selective_determinism)
         )
 
     def _handle_cache_compatibility(self):
@@ -1205,15 +1216,13 @@ class ServerArgs:
 
     def _handle_deterministic_inference(self):
         # Enable deterministic inference flags
-        # enable_det_infer -- needs to be handled differently
-        # (FIXME: Add enable det_infer setup)
+        # All three flags use simple number-based modes:
+        # - enable_deterministic_inference: controls batch-invariant operations globally
+        # - enable_det_infer: controls deterministic verification and forward-mode-based batch-invariant switching
+        # - enable_selective_determinism: batch-composition-based switching
+        # Mode values: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
         """Handle settings related to deterministic inference."""
-        if self.enable_deterministic_inference:
-            # Keep both flags in sync - use the max value to preserve bitmask
-            max_val = max(self.enable_deterministic_inference, self.enable_det_infer)
-            self.enable_deterministic_inference = max_val
-            self.enable_det_infer = max_val
-            
+        if self.enable_deterministic_inference or self.enable_det_infer or self.enable_selective_determinism:
             # Check sampling backend
             self.sampling_backend = "pytorch"
             logger.warning(
@@ -2769,13 +2778,19 @@ class ServerArgs:
             "--enable-deterministic-inference",
             type=int,
             default=ServerArgs.enable_deterministic_inference,
-            help="Enable deterministic inference mode with batch invariant ops (1=existing, 2=custom kernel, 3=25%% split, 4=50%% split).",
+            help="Enable deterministic inference globally (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
         )
         parser.add_argument(
             "--enable-det-infer",
             type=int,
             default=ServerArgs.enable_det_infer,
-            help="Alias for --enable-deterministic-inference.",
+            help="Enable forward-mode-based deterministic switching (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
+        )
+        parser.add_argument(
+            "--enable-selective-determinism",
+            type=int,
+            default=ServerArgs.enable_selective_determinism,
+            help="Enable batch-composition-based deterministic switching (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
         )
         parser.add_argument(
             "--det-step-size",

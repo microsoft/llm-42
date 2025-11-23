@@ -650,34 +650,25 @@ def enable_batch_invariant_mode(mode: int = 1):
 
     _batch_invariant_MODE = True
     _batch_invariant_LIB = torch.library.Library("aten", "IMPL")
-    if mode & 1:
-        # print("Enabling batch invariant mode with existing kernels...", flush=True)
-        _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
-        _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
-    elif mode & 2:
-        # print("Enabling batch invariant mode with CUDA kernels...", flush=True)
+    _mode = mode
+    
+    if mode == 1:
+        # Mode 1: bi_kernel (CUTLASS kernel) + vllm rmsnorm
+        print("Enabling batch invariant mode with bi_kernel (CUTLASS)...", flush=True)
         _batch_invariant_LIB.impl("aten::mm", mm_bi_kernel, "CUDA")
         _batch_invariant_LIB.impl("aten::addmm", addmm_bi_kernel, "CUDA")
-    elif mode & 4:
-        # print("Enabling batch invariant mode with 25% split CUDA kernels...", flush=True)
-        _batch_invariant_LIB.impl(
-            "aten::mm",
-            lambda a, b: mm_bi_fused_kernel(a, b, split_frac=0.25),
-            "CUDA",
-        )
-        _batch_invariant_LIB.impl(
-            "aten::addmm",
-            lambda bias, a, b: addmm_bi_fused_kernel(bias, a, b, split_frac=0.25),
-            "CUDA",
-        )
+    elif mode == 2:
+        # Mode 2: batch_invariant (Triton kernel) + native rmsnorm
+        print("Enabling batch invariant mode with batch_invariant (Triton)...", flush=True)
+        _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
+        _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
     elif mode != 0:
-        raise ValueError(f"Unknown batch invariant mode for matmul: {mode}; Add 1 for ThinkingMachine kernel, 2 for CUTLASS kernel, 4 for 25% split CUTLASS kernel")
+        raise ValueError(f"Unknown batch invariant mode: {mode}. Use 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm")
+    
     _batch_invariant_LIB.impl(
         "aten::_log_softmax", _log_softmax_batch_invariant, "CUDA"
     )
     _batch_invariant_LIB.impl("aten::mean.dim", mean_batch_invariant, "CUDA")
-    # print(f"DEBUG:: Batch invariant mode enabled (mode={mode})", flush=True)
-    # print(f"DEBUG:: Batch invariant mode enabled (mode={mode})", flush=True)
 
 def disable_batch_invariant_mode():
     global _batch_invariant_MODE, _batch_invariant_LIB
@@ -689,12 +680,12 @@ def disable_batch_invariant_mode():
 
 
 @contextlib.contextmanager
-def set_batch_invariant_mode(enabled: bool = True):
+def set_batch_invariant_mode(enabled: bool = True, mode: int = 1):
     global _batch_invariant_MODE, _batch_invariant_LIB
     old_mode = _batch_invariant_MODE
-    # print(f"DEBUG:: [Context Manager] Setting batch_invariant mode: enabled={enabled}, was_enabled={_batch_invariant_MODE}", flush=True)
+    # print(f"DEBUG:: [Context Manager] Setting batch_invariant mode: enabled={enabled}, mode={mode}, was_enabled={_batch_invariant_MODE}", flush=True)
     if enabled:
-        enable_batch_invariant_mode(2)
+        enable_batch_invariant_mode(mode)
     else:
         disable_batch_invariant_mode()
     yield
@@ -703,7 +694,7 @@ def set_batch_invariant_mode(enabled: bool = True):
     disable_batch_invariant_mode()
     # Re-enable if it was previously enabled
     if old_mode:
-        enable_batch_invariant_mode(2)
+        enable_batch_invariant_mode(mode)
 
 
 AttentionBlockSize = namedtuple("AttentionBlockSize", ["block_m", "block_n"])

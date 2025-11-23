@@ -96,27 +96,29 @@ class RMSNorm(CustomOp):
 
         # Store deterministic inference configuration
         self.deterministic = get_int_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE")
-        self.enable_temperature_based_switching = bool(self.deterministic & 512)
-
+        self.enable_selective_determinism = get_int_env_var("SGLANG_ENABLE_SELECTIVE_DETERMINISM")
+        
+        # Mode 1: bi_kernel + vllm_rmsnorm
+        # Mode 2: batch_invariant + native_rmsnorm
+        
         # Check for vLLM fused RMSNorm configuration
         # SGLANG_USE_VLLM_RMSNORM can be: "256", "1024", "dynamic", or empty/unset
         self.vllm_rmsnorm_mode = os.getenv("SGLANG_USE_VLLM_RMSNORM", "").lower()
         if self.vllm_rmsnorm_mode and _is_cuda:
             logger.info(f"Using vLLM fused RMSNorm with mode: {self.vllm_rmsnorm_mode}")
 
-        # Static vLLM RMSNorm mode (bit 256 controls vLLM RMSNorm)
-        # When bit 256 is NOT set AND bit 512 is NOT set, use vLLM RMSNorm implementation
-        if self.deterministic and not (self.deterministic & 256):
+        # Determine RMSNorm implementation based on mode
+        if self.deterministic == 1:
+            # Mode 1: Use vLLM RMSNorm (bi_kernel + vllm_rmsnorm)
             self.vllm_rmsnorm_mode = "256"
-
-        if self.deterministic and not (self.deterministic & 256) and not (self.deterministic & 512):
             self._forward_method = self.forward_vllm
-
-        # Static deterministic mode (bit 64 controls layernorm determinism)
-        # When bit 64 is NOT set AND bit 512 is NOT set (not using temperature-based switching),
-        # always use native deterministic implementation
-        if self.deterministic and not (self.deterministic & 64) and not (self.deterministic & 512):
+        elif self.deterministic == 2:
+            # Mode 2: Use native RMSNorm (batch_invariant + native_rmsnorm)
             self._forward_method = self.forward_native
+        elif self.enable_selective_determinism > 0:
+            # Selective determinism: will switch dynamically based on batch composition
+            # Default to vLLM for non-deterministic, native for deterministic
+            pass
 
         self.triton_rmsnorm_mode = os.getenv("SGLANG_USE_TRITON_RMSNORM", "").lower()
         if self.triton_rmsnorm_mode:
@@ -128,13 +130,13 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         with record_function("rmsnorm"):
-            # Dynamic temperature-based switching (bit 512)
+            # Dynamic selective determinism
             # Check if batch-invariant mode is currently enabled
-            if self.enable_temperature_based_switching:
+            if self.enable_selective_determinism:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_batch_inv_enabled = is_batch_invariant_mode_enabled()
-                # print(f"[RMSNorm Temperature-based] {x.shape}", flush=True)
-                # logger.info(f"[RMSNorm Temperature-based] batch_invariant_enabled={is_batch_inv_enabled}, using {('vllm_rmsnorm' if self.vllm_rmsnorm_mode else 'native') if is_batch_inv_enabled else 'optimized'}")
+                # print(f"[RMSNorm Selective-Det] {x.shape}", flush=True)
+                # logger.info(f"[RMSNorm Selective-Det] batch_invariant_enabled={is_batch_inv_enabled}, using {('vllm_rmsnorm' if self.vllm_rmsnorm_mode else 'native') if is_batch_inv_enabled else 'optimized'}")
                 if is_batch_inv_enabled:
                     # Use deterministic native implementation when batch-invariant is active
                     if self.vllm_rmsnorm_mode:
@@ -158,7 +160,7 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Forward using vLLM fused RMSNorm implementations"""
-        # print(f"[RMSNorm Temperature-based] vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}", flush=True)
+        # print(f"[RMSNorm Selective-Det] vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}", flush=True)
         if residual is not None:
             if self.vllm_rmsnorm_mode == "256":
                 vllm_fused_add_rmsnorm_256(x, residual, self.weight.data, self.variance_epsilon)
@@ -259,7 +261,7 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         with record_function("rmsnorm"):
-            # print(f"[RMSNorm Temperature-based] native", flush=True)
+            # print(f"[RMSNorm Selective-Det] native", flush=True)
             if not x.is_contiguous():
                 x = x.contiguous()
             orig_dtype = x.dtype
@@ -300,11 +302,11 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         with record_function("rmsnorm"):
-            # Dynamic temperature-based switching (bit 512)
-            if self.enable_temperature_based_switching:
+            # Dynamic selective determinism
+            if self.enable_selective_determinism:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_batch_inv_enabled = is_batch_invariant_mode_enabled()
-                logger.info(f"[RMSNorm CPU Temperature-based] batch_invariant_enabled={is_batch_inv_enabled}, using {'native' if is_batch_inv_enabled else 'optimized'}")
+                logger.info(f"[RMSNorm CPU Selective-Det] batch_invariant_enabled={is_batch_inv_enabled}, using {'native' if is_batch_inv_enabled else 'optimized'}")
                 if is_batch_inv_enabled:
                     # Use deterministic native implementation when batch-invariant is active
                     return self.forward_native(x, residual)
