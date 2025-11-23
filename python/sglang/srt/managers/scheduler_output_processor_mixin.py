@@ -610,13 +610,19 @@ class SchedulerOutputProcessorMixin:
                  self.server_args.enable_selective_determinism)
             )
             
+            # Check if we need verification (only for enable_det_infer mode)
+            needs_verification = (
+                req.sampling_params.is_deterministic and
+                self.server_args.enable_det_infer
+            )
+            
             if req.finished():
                 if req.finished_output:
                     # With the overlap schedule, a request will try to output twice and hit this line twice
                     # because of the one additional delayed token. This "continue" prevented the dummy output.
                     continue
-                # For deterministic requests, only mark as finished_output if all tokens are verified
-                if is_deterministic:
+                # For deterministic requests with verification enabled, only mark as finished_output if all tokens are verified
+                if needs_verification:
                     all_tokens_verified = req.det_verified_tokens >= len(req.output_ids)
                     if not all_tokens_verified:
                         # Request is finished but not all tokens verified yet - don't output
@@ -625,8 +631,8 @@ class SchedulerOutputProcessorMixin:
                 req.finished_output = True
                 should_output = True
             else:
-                # For deterministic requests, check if we have verified tokens to stream
-                if is_deterministic:
+                # For deterministic requests with verification, check if we have verified tokens to stream
+                if needs_verification:
                     # Can stream up to verified tokens
                     has_verified_tokens = req.det_verified_tokens > req.send_token_offset
                     
@@ -678,8 +684,8 @@ class SchedulerOutputProcessorMixin:
                 req.send_decode_id_offset = len(decode_ids)
                 read_offsets.append(read_offset)
                 
-                # For deterministic requests, only send verified tokens
-                if is_deterministic and not req.finished():
+                # For deterministic requests with verification, only send verified tokens
+                if needs_verification and not req.finished():
                     logger.info(f"Not finished streaming output_ids from offset {send_token_offset} for req {req.rid}")
                     max_tokens_to_send = min(len(req.output_ids), req.det_verified_tokens)
                     output_ids.append(req.output_ids[send_token_offset:max_tokens_to_send])
