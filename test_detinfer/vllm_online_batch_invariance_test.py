@@ -58,14 +58,15 @@ def _request_completion(
 
 def _extract_tokens_and_logprobs(
     choice: dict[str, Any],
-) -> tuple[list[Any], list[float] | None]:
+) -> tuple[list[Any], list[float] | None, str]:
     tokens: list[Any] = []
     token_logprobs: list[float] | None = None
+    text: str = choice.get("text", "")
     lp = choice.get("logprobs")
     if lp and isinstance(lp, dict):
         tokens = lp.get("token_ids") or lp.get("tokens") or []
         token_logprobs = lp.get("token_logprobs", None)
-    return tokens, token_logprobs
+    return tokens, token_logprobs, text
 
 
 def _compare_bs1_vs_bsn_single_process(
@@ -80,6 +81,7 @@ def _compare_bs1_vs_bsn_single_process(
     # BS=1
     bs1_tokens_per_prompt: list[list[Any]] = []
     bs1_logprobs_per_prompt: list[list[float] | None] = []
+    bs1_texts: list[str] = []
     for i, p in enumerate(prompts, 1):
         print(f"  [{i}/{len(prompts)}] Sending request... ", end="", flush=True)
         resp = _request_completion(base_url, model_name, p, sp_kwargs, verbose=False)
@@ -87,7 +89,7 @@ def _compare_bs1_vs_bsn_single_process(
             print("FAILED")
             raise AssertionError("BS=1 empty/failed response")
         choice = resp["choices"][0]
-        toks, lps = _extract_tokens_and_logprobs(choice)
+        toks, lps, text = _extract_tokens_and_logprobs(choice)
         if lps is None:
             print("FAILED - no logprobs")
             raise AssertionError(
@@ -95,6 +97,7 @@ def _compare_bs1_vs_bsn_single_process(
             )
         bs1_tokens_per_prompt.append(list(toks))
         bs1_logprobs_per_prompt.append(list(lps))
+        bs1_texts.append(text)
         print(f"✓ (tokens: {len(toks)})")
 
     print(f"\n→ Phase 2: Testing BS={len(prompts)} (batched request)")
@@ -103,6 +106,7 @@ def _compare_bs1_vs_bsn_single_process(
     # BS=N
     bsN_tokens_per_prompt: list[list[Any]] = [None] * len(prompts)  # type: ignore[list-item]
     bsN_logprobs_per_prompt: list[list[float] | None] = [None] * len(prompts)
+    bsN_texts: list[str] = [None] * len(prompts)  # type: ignore[list-item]
     resp = _request_completion(base_url, model_name, prompts, sp_kwargs, verbose=True)
     if resp is None or not resp.get("choices"):
         print("FAILED")
@@ -116,33 +120,44 @@ def _compare_bs1_vs_bsn_single_process(
     print(f"✓")
     print(f"  Processing {len(choices)} responses...")
     for idx, choice in enumerate(choices):
-        toks, lps = _extract_tokens_and_logprobs(choice)
+        toks, lps, text = _extract_tokens_and_logprobs(choice)
         if lps is None:
             raise AssertionError(f"BS=N missing logprobs for prompt {idx}")
         bsN_tokens_per_prompt[idx] = list(toks)
         bsN_logprobs_per_prompt[idx] = list(lps)
+        bsN_texts[idx] = text
     print(f"  ✓ All responses processed")
 
     # compare
     print(f"\n→ Phase 3: Comparing BS=1 vs BS={len(prompts)} results")
     print(f"  Comparing {len(prompts)} prompt outputs...")
     
-    for i, (tokens_bs1, tokens_bsN, logprobs_bs1, logprobs_bsN) in enumerate(
+    for i, (tokens_bs1, tokens_bsN, logprobs_bs1, logprobs_bsN, text_bs1, text_bsN) in enumerate(
         zip(
             bs1_tokens_per_prompt,
             bsN_tokens_per_prompt,
             bs1_logprobs_per_prompt,
             bsN_logprobs_per_prompt,
+            bs1_texts,
+            bsN_texts,
         ), 1
     ):
         print(f"  [{i}/{len(prompts)}] Comparing prompt {i}... ", end="", flush=True)
         
         if tokens_bs1 != tokens_bsN:
             print(f"FAILED - tokens differ")
+            print(f"\n  Prompt: {repr(prompts[i-1])}")
+            print(f"  BS=1 output: {repr(text_bs1)}")
+            print(f"  BS=N output: {repr(text_bsN)}")
             raise AssertionError(
                 f"Prompt {i} (sampling): Different tokens sampled. "
                 f"BS=1 tokens: {tokens_bs1} BS=N tokens: {tokens_bsN}"
             )
+        
+        # Print outputs even when they match
+        print(f"✓ (tokens={len(tokens_bs1)})")
+        print(f"    Prompt: {repr(prompts[i-1][:60])}{'...' if len(prompts[i-1]) > 60 else ''}")
+        print(f"    Output: {repr(text_bs1)}")
         if logprobs_bs1 is None or logprobs_bsN is None:
             print(f"FAILED - missing logprobs")
             raise AssertionError(f"Prompt {i}: Missing logprobs in one of the runs")
@@ -165,6 +180,7 @@ def _compare_bs1_vs_bsn_single_process(
                     f"BS=1 tokens: {tokens_bs1} BS=N tokens: {tokens_bsN}"
                 )
         
+        # Already printed above
         print(f"✓ (tokens={len(tokens_bs1)}, logprobs match)")
     
     print(f"  ✓ All {len(prompts)} prompts match perfectly!")
@@ -201,7 +217,7 @@ def test_logprobs_bitwise_batch_invariance_bs1_vs_bsN(
     prompts_all = [_random_prompt(10, 50) for _ in range(n_prompts)]
 
     sp_kwargs: dict[str, Any] = {
-        "temperature": 0.6,
+        "temperature": 0.0,
         "top_p": 1.0,
         "max_tokens": 8,
         "seed": 42,
@@ -214,6 +230,9 @@ def test_logprobs_bitwise_batch_invariance_bs1_vs_bsN(
     print(f"Model: {model_name}")
     print(f"Number of prompts: {n_prompts}")
     print(f"{'='*80}\n")
+    print(f"Prompts:")
+    for i, prompt in enumerate(prompts_all, 1):
+        print(f"  [{i}/{len(prompts_all)}] {prompt}")
 
     _compare_bs1_vs_bsn_single_process(
         prompts=prompts_all,

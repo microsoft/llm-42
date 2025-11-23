@@ -100,8 +100,8 @@ def send_single_request(request_id: int, n: int, is_det: bool = True):
         response = client.completions.create(
             model="default",
             prompt=prompt,
-            max_tokens=20,
-            temperature=0.0,
+            max_tokens=8,
+            temperature=0.6,
             seed=42,
             extra_body={"is_deterministic": is_det}
         )

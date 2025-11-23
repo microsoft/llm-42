@@ -600,15 +600,6 @@ class SchedulerOutputProcessorMixin:
             # Multimodal partial stream chunks break the detokenizer, so drop aborted requests here.
             if self.model_config.is_multimodal_gen and req.to_abort:
                 continue
-
-            # Check if request is deterministic
-            # Only respect is_deterministic flag if server has deterministic modes enabled
-            is_deterministic = (
-                req.sampling_params.is_deterministic and
-                (self.server_args.enable_deterministic_inference or 
-                 self.server_args.enable_det_infer or 
-                 self.server_args.enable_selective_determinism)
-            )
             
             # Check if we need verification (only for enable_det_infer mode)
             needs_verification = (
