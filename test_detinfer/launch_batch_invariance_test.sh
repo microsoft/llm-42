@@ -44,6 +44,7 @@ $PYTHON_CMD -m sglang.launch_server \
     --disable-chunked-prefix-cache \
     --disable-overlap-schedule \
     --disable-cuda-graph \
-    --enable-selective-determinism 1 \
+    --enable-selective-determinism 2 \
+    # --enable-deterministic-inference 1 \
     # --det-step-size 10 \
     # --enable-det-infer 1

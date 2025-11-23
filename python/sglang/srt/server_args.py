@@ -1179,12 +1179,11 @@ class ServerArgs:
         # Set environment variable for deterministic inference
         # Use enable_deterministic_inference value, or set to 1 if enable_det_infer is set
         # (enable_det_infer uses the same mode values: 0=disabled, 1=bi_kernel, 2=batch_invariant)
-        det_infer_env_value = self.enable_deterministic_inference
-        if self.enable_det_infer and not self.enable_deterministic_inference:
-            # If only enable_det_infer is set, pass its mode value
-            det_infer_env_value = self.enable_det_infer
+        os.environ["SGLANG_ENABLE_DET_INFER"] = (
+            str(self.enable_det_infer)
+        )
         os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = (
-            str(det_infer_env_value)
+            str(self.enable_deterministic_inference)
         )
         os.environ["SGLANG_ENABLE_SELECTIVE_DETERMINISM"] = (
             str(self.enable_selective_determinism)
@@ -1222,7 +1221,7 @@ class ServerArgs:
         # - enable_selective_determinism: batch-composition-based switching
         # Mode values: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
         """Handle settings related to deterministic inference."""
-        if self.enable_deterministic_inference or self.enable_det_infer or self.enable_selective_determinism:
+        if self.enable_selective_determinism or self.enable_deterministic_inference or self.enable_det_infer:
             # Check sampling backend
             self.sampling_backend = "pytorch"
             logger.warning(

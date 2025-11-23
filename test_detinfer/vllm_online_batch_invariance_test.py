@@ -217,7 +217,7 @@ def test_logprobs_bitwise_batch_invariance_bs1_vs_bsN(
     prompts_all = [_random_prompt(10, 50) for _ in range(n_prompts)]
 
     sp_kwargs: dict[str, Any] = {
-        "temperature": 0.0,
+        "temperature": 0.6,
         "top_p": 1.0,
         "max_tokens": 8,
         "seed": 42,

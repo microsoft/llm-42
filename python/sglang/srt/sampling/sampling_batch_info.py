@@ -82,7 +82,7 @@ class SamplingBatchInfo:
     @classmethod
     def from_schedule_batch(cls, batch: ScheduleBatch, vocab_size: int):
         global_server_args_dict = cls._get_global_server_args_dict()
-        enable_deterministic = global_server_args_dict["enable_deterministic_inference"]
+        enable_deterministic = global_server_args_dict["enable_deterministic_inference"] > 0 or global_server_args_dict["enable_det_infer"] > 0 or global_server_args_dict["enable_selective_determinism"] > 0
 
         reqs = batch.reqs
         device = batch.device

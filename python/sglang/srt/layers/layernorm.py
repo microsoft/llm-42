@@ -112,12 +112,20 @@ class RMSNorm(CustomOp):
             # Mode 1: Use vLLM RMSNorm (bi_kernel + vllm_rmsnorm)
             self.vllm_rmsnorm_mode = "256"
             self._forward_method = self.forward_vllm
+            logger.info(f"RMSNorm: deterministic==1, setting vllm_rmsnorm_mode=256")
         elif self.deterministic == 2:
             # Mode 2: Use native RMSNorm (batch_invariant + native_rmsnorm)
             self._forward_method = self.forward_native
-        elif self.enable_selective_determinism > 0:
-            # Selective determinism: will switch dynamically based on batch composition
-            # Default to vLLM for non-deterministic, native for deterministic
+            logger.info(f"RMSNorm: deterministic==2, using native")
+        elif self.enable_selective_determinism == 1:
+            # Selective determinism Mode 1: bi_kernel + vllm_rmsnorm
+            # Set vllm_rmsnorm_mode so forward_cuda will use forward_vllm when batch-invariant is enabled
+            self.vllm_rmsnorm_mode = "256"
+            logger.info(f"RMSNorm: enable_selective_determinism==1, setting vllm_rmsnorm_mode=256")
+        elif self.enable_selective_determinism == 2:
+            # Selective determinism Mode 2: batch_invariant + native_rmsnorm
+            # Leave vllm_rmsnorm_mode empty so forward_cuda will use forward_native
+            logger.info(f"RMSNorm: enable_selective_determinism==2, using native")
             pass
 
         self.triton_rmsnorm_mode = os.getenv("SGLANG_USE_TRITON_RMSNORM", "").lower()
@@ -136,7 +144,7 @@ class RMSNorm(CustomOp):
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_batch_inv_enabled = is_batch_invariant_mode_enabled()
                 # print(f"[RMSNorm Selective-Det] {x.shape}", flush=True)
-                # logger.info(f"[RMSNorm Selective-Det] batch_invariant_enabled={is_batch_inv_enabled}, using {('vllm_rmsnorm' if self.vllm_rmsnorm_mode else 'native') if is_batch_inv_enabled else 'optimized'}")
+                logger.info(f"[RMSNorm Selective-Det] batch_invariant_enabled={is_batch_inv_enabled}, vllm_rmsnorm_mode={self.vllm_rmsnorm_mode}, using {'vllm' if (is_batch_inv_enabled and self.vllm_rmsnorm_mode) else ('native' if is_batch_inv_enabled else 'optimized')}")
                 if is_batch_inv_enabled:
                     # Use deterministic native implementation when batch-invariant is active
                     if self.vllm_rmsnorm_mode:
