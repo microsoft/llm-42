@@ -171,6 +171,7 @@ def _compare_bs1_vs_bsn_single_process(
         # Check logprobs match
         mismatch_found = False
         for t, (a, b) in enumerate(zip(logprobs_bs1, logprobs_bsN)):
+            print(f"    Step {t}: logprob BS=1: {a:.6e}, BS=N: {b:.6e}")
             if a != b:
                 diff = abs(a - b)
                 print(f"FAILED - logprob mismatch at step {t}")

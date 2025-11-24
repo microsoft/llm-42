@@ -432,7 +432,7 @@ class DetVerifyInfo:
                 f"output_len={output_len}, orig_len={len(orig_output)}, verify_len={len(verify_output)}"
             )
 
-            mismatch_pos = min(4, output_len)  # testing
+            mismatch_pos = min(6, output_len)  # testing
 
             # mismatch_pos = min(len(orig_output), 3)  # For debugging
             tokens_to_rollback = len(orig_output) - mismatch_pos

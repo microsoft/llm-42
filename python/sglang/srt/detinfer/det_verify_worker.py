@@ -339,10 +339,10 @@ class DeterministicVerificationWorker:
                 # Filter out zero indices (slot 0 is padding, should never be freed)
                 kv_indices_to_free = kv_indices_to_free_raw[kv_indices_to_free_raw != 0]
 
-                logger.info(
-                    f"original_batch.req_to_token_pool state for req {req.rid}: "
-                    f"kv_indices={original_batch.req_to_token_pool.req_to_token[req.req_pool_idx].tolist()}"
-                )
+                # logger.info(
+                #     f"original_batch.req_to_token_pool state for req {req.rid}: "
+                #     f"kv_indices={original_batch.req_to_token_pool.req_to_token[req.req_pool_idx].tolist()}"
+                # )
                 
                 # logger.info(
                 #     f"[KV_ROLLBACK] Request {req.rid}: "
