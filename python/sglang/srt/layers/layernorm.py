@@ -97,7 +97,7 @@ class RMSNorm(CustomOp):
         # Store deterministic inference configuration
         self.deterministic = get_int_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE")
         self.enable_selective_determinism = get_int_env_var("SGLANG_ENABLE_SELECTIVE_DETERMINISM")
-        
+        self.enable_det_infer = get_int_env_var("SGLANG_ENABLE_DET_INFER")
         # Mode 1: bi_kernel + vllm_rmsnorm
         # Mode 2: batch_invariant + native_rmsnorm
         
@@ -117,15 +117,24 @@ class RMSNorm(CustomOp):
             # Mode 2: Use native RMSNorm (batch_invariant + native_rmsnorm)
             self._forward_method = self.forward_native
             logger.info(f"RMSNorm: deterministic==2, using native")
-        elif self.enable_selective_determinism == 1:
+        elif self.enable_selective_determinism == 1 or self.enable_det_infer == 1:
             # Selective determinism Mode 1: bi_kernel + vllm_rmsnorm
             # Set vllm_rmsnorm_mode so forward_cuda will use forward_vllm when batch-invariant is enabled
             self.vllm_rmsnorm_mode = "256"
-            logger.info(f"RMSNorm: enable_selective_determinism==1, setting vllm_rmsnorm_mode=256")
-        elif self.enable_selective_determinism == 2:
+            if self.enable_selective_determinism == 1:
+                logger.info(f"RMSNorm: enable_selective_determinism==1, setting vllm_rmsnorm_mode=256")
+            else:
+                logger.info(f"RMSNorm: enable_det_infer==1, setting vllm_rmsnorm_mode=256")
+        elif self.enable_selective_determinism == 2 or self.enable_det_infer == 2:
             # Selective determinism Mode 2: batch_invariant + native_rmsnorm
             # Leave vllm_rmsnorm_mode empty so forward_cuda will use forward_native
-            logger.info(f"RMSNorm: enable_selective_determinism==2, using native")
+            if self.enable_selective_determinism == 2:
+                logger.info(f"RMSNorm: enable_selective_determinism==2, using native")
+            else:
+                logger.info(f"RMSNorm: enable_det_infer==2, using native")
+        else:
+            # Non-deterministic mode: use optimized RMSNorm
+            logger.info(f"RMSNorm: non-deterministic mode, using optimized RMSNorm always")
             pass
 
         self.triton_rmsnorm_mode = os.getenv("SGLANG_USE_TRITON_RMSNORM", "").lower()
@@ -140,7 +149,7 @@ class RMSNorm(CustomOp):
         with record_function("rmsnorm"):
             # Dynamic selective determinism
             # Check if batch-invariant mode is currently enabled
-            if self.enable_selective_determinism:
+            if self.enable_selective_determinism or self.enable_det_infer:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_batch_inv_enabled = is_batch_invariant_mode_enabled()
                 # print(f"[RMSNorm Selective-Det] {x.shape}", flush=True)

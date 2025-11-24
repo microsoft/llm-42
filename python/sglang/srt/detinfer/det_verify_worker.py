@@ -191,10 +191,11 @@ class DeterministicVerificationWorker:
             
             # Convert to ModelWorkerBatch and run verification forward pass
             verify_model_worker_batch = verify_batch.get_model_worker_batch()
+            logger.info(f"[DET_DEBUG] verify_model_worker_batch prepared with {len(verify_model_worker_batch.reqs) if verify_model_worker_batch.reqs else 0} requests")
             verify_output = self.target_worker.forward_batch_generation(
                 verify_model_worker_batch
             )
-
+            logger.info(f"[DET_DEBUG] verify_model_worker_batch forward pass complete")
             # For TARGET_DET_VERIFY, we need to sample using the SAME method as original generation.
             # We use standard deterministic sampling with the same parameters (temperature, top_k, top_p).
             # The model_runner.sample() method handles this correctly:

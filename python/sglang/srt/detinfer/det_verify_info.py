@@ -407,7 +407,7 @@ class DetVerifyInfo:
             # Find FIRST mismatch position
             mismatch_pos = self.first_mismatch_position(orig_output, verify_output)
 
-            mismatch_pos = min(6, output_len)  # testing
+            # mismatch_pos = min(6, output_len)  # testing
 
             # mismatch_pos = min(len(orig_output), 3)  # For debugging
             tokens_to_rollback = len(orig_output) - mismatch_pos
