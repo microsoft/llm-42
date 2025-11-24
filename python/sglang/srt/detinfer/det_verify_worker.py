@@ -211,8 +211,13 @@ class DeterministicVerificationWorker:
                 verify_model_worker_batch
             )
             
-            # Compare outputs and handle rollback
-            rollback_info = det_verify_info.verify_and_compare(reqs, verified_token_ids)
+            # Extract verified logprobs from the logits_output (available after sampling)
+            verified_logprobs = verify_output.logits_output.next_token_logprobs
+            
+            # Compare outputs and handle rollback, passing verified logprobs
+            rollback_info = det_verify_info.verify_and_compare(
+                reqs, verified_token_ids, verified_logprobs
+            )
             
             # Handle KV cache for rolled-back tokens
             self._handle_kv_cache_rollback(original_batch, reqs, rollback_info)

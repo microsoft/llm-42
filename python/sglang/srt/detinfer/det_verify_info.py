@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 import torch
 
@@ -175,6 +175,12 @@ class DetVerifyInfo:
         verify_batch.seq_lens_sum = total_seq_lens.sum().item()
         verify_batch.orig_seq_lens = total_seq_lens.clone()
         
+        # Enable return_logprob to get logits for all tokens (not just last token per request)
+        # This is critical for multi-token verification where we need to sample all tokens
+        verify_batch.return_logprob = True
+        verify_batch.top_logprobs_nums = [0] * len(reqs_to_verify)  # Don't need top-k logprobs
+        verify_batch.token_ids_logprobs = [[] for _ in reqs_to_verify]  # No specific token logprobs needed
+        
         # Copy other necessary attributes from original batch
         verify_batch.req_to_token_pool = original_batch.req_to_token_pool
         verify_batch.token_to_kv_pool_allocator = original_batch.token_to_kv_pool_allocator
@@ -182,6 +188,36 @@ class DetVerifyInfo:
         verify_batch.model_config = original_batch.model_config
         verify_batch.sampling_info = original_batch.sampling_info
         verify_batch.device = device
+        
+        # CRITICAL FIX for temperature > 0:
+        # Expand sampling_info tensors to match the number of tokens being verified
+        # Original sampling_info has shape (num_requests,) but we need (total_tokens,)
+        # where total_tokens = sum(output_lens)
+        if verify_batch.sampling_info is not None:
+            # Calculate how many tokens each request contributes
+            tokens_per_request = torch.tensor(output_lens, dtype=torch.int32, device=device)
+            
+            # Expand each tensor in sampling_info using repeat_interleave
+            verify_batch.sampling_info.temperatures = torch.repeat_interleave(
+                verify_batch.sampling_info.temperatures, tokens_per_request, dim=0
+            )
+            verify_batch.sampling_info.top_ks = torch.repeat_interleave(
+                verify_batch.sampling_info.top_ks, tokens_per_request, dim=0
+            )
+            verify_batch.sampling_info.top_ps = torch.repeat_interleave(
+                verify_batch.sampling_info.top_ps, tokens_per_request, dim=0
+            )
+            verify_batch.sampling_info.min_ps = torch.repeat_interleave(
+                verify_batch.sampling_info.min_ps, tokens_per_request, dim=0
+            )
+            if verify_batch.sampling_info.sampling_seed is not None:
+                verify_batch.sampling_info.sampling_seed = torch.repeat_interleave(
+                    verify_batch.sampling_info.sampling_seed, tokens_per_request, dim=0
+                )
+            if verify_batch.sampling_info.deterministic_indices is not None:
+                verify_batch.sampling_info.deterministic_indices = torch.repeat_interleave(
+                    verify_batch.sampling_info.deterministic_indices, tokens_per_request, dim=0
+                )
         
         # Instead of allocating new cache, reuse original KV cache locations
         # Build out_cache_loc by extracting existing locations from req_to_token_pool
@@ -331,6 +367,7 @@ class DetVerifyInfo:
         self,
         reqs: List[Req],
         verified_token_ids: torch.Tensor,
+        verified_logprobs: Optional[torch.Tensor] = None,
     ):
         """
         Compare original outputs with re-generated outputs.
@@ -339,6 +376,7 @@ class DetVerifyInfo:
         Args:
             reqs: Requests that were verified
             verified_token_ids: Token IDs from verification run (argmax predictions)
+            verified_logprobs: Log probabilities from verification run (optional)
             
         Returns:
             List of (mismatch_position, tokens_rolled_back, tokens_accepted) tuples
@@ -347,6 +385,14 @@ class DetVerifyInfo:
         # Convert to list for comparison
         if isinstance(verified_token_ids, torch.Tensor):
             verified_token_ids = verified_token_ids.tolist()
+        
+        # Convert logprobs to list if provided
+        verified_logprobs_list = None
+        if verified_logprobs is not None:
+            if isinstance(verified_logprobs, torch.Tensor):
+                verified_logprobs_list = verified_logprobs.tolist()
+            else:
+                verified_logprobs_list = verified_logprobs
         
         original_ids = self.original_outputs.tolist()
         rollback_info = []
@@ -369,6 +415,16 @@ class DetVerifyInfo:
             if tokens_to_rollback > 0:
                 # Truncate to mismatch position (removes wrong tokens from mismatch onwards)
                 req.output_ids = req.output_ids[:-tokens_to_rollback]
+                
+                # Update logprobs with verified values
+                if verified_logprobs_list is not None and hasattr(req, 'output_token_logprobs') and req.output_token_logprobs is not None:
+                    # Truncate existing logprobs to mismatch position
+                    req.output_token_logprobs = req.output_token_logprobs[:-tokens_to_rollback]
+                    
+                    # Append verified logprobs up to mismatch position
+                    verified_logprobs_for_req = verified_logprobs_list[offset : offset + mismatch_pos]
+                    req.output_token_logprobs.extend(verified_logprobs_for_req)
+                
                 # logger.info(
                 #     f"Request {req.rid}: Rolled back {tokens_to_rollback} tokens from position {mismatch_pos} onwards. "
                 #     f" req.output_ids: {req.output_ids}"
@@ -387,6 +443,11 @@ class DetVerifyInfo:
                 if mismatch_pos < len(verify_output):
                     verified_token_at_mismatch = verify_output[mismatch_pos]
                     req.output_ids.append(verified_token_at_mismatch)
+                    
+                    # Also append the logprob for the accepted token
+                    if verified_logprobs_list is not None and hasattr(req, 'output_token_logprobs') and req.output_token_logprobs is not None:
+                        accepted_token_logprob = verified_logprobs_list[offset + mismatch_pos]
+                        req.output_token_logprobs.append(accepted_token_logprob)
                 
                     logger.info(
                         f"After adding accepted token at mismatch, req.output_ids: {req.output_ids}, "
@@ -397,7 +458,19 @@ class DetVerifyInfo:
                 
                 rollback_info.append((mismatch_pos, tokens_to_rollback))
             else:
-                # Edge case: no tokens to rollback
+                # No mismatch - all tokens verified correctly
+                # Update logprobs with verified values for all tokens
+                if verified_logprobs_list is not None and hasattr(req, 'output_token_logprobs') and req.output_token_logprobs is not None:
+                    # Replace the logprobs for the verified portion
+                    verified_logprobs_for_req = verified_logprobs_list[offset : offset + output_len]
+                    # Update the last output_len logprobs with verified values
+                    start_idx = len(req.output_token_logprobs) - output_len
+                    if start_idx >= 0:
+                        req.output_token_logprobs[start_idx:] = verified_logprobs_for_req
+                    else:
+                        # Edge case: if output_token_logprobs is shorter than expected
+                        req.output_token_logprobs = verified_logprobs_for_req[-len(req.output_token_logprobs):]
+                
                 rollback_info.append((mismatch_pos, 0))
             
             # Mark for future deterministic generation
