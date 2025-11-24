@@ -153,7 +153,7 @@ class RMSNorm(CustomOp):
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_batch_inv_enabled = is_batch_invariant_mode_enabled()
                 # print(f"[RMSNorm Selective-Det] {x.shape}", flush=True)
-                logger.info(f"[RMSNorm Selective-Det] batch_invariant_enabled={is_batch_inv_enabled}, vllm_rmsnorm_mode={self.vllm_rmsnorm_mode}, using {'vllm' if (is_batch_inv_enabled and self.vllm_rmsnorm_mode) else ('native' if is_batch_inv_enabled else 'optimized')}")
+                # logger.info(f"[RMSNorm Selective-Det] batch_invariant_enabled={is_batch_inv_enabled}, vllm_rmsnorm_mode={self.vllm_rmsnorm_mode}, using {'vllm' if (is_batch_inv_enabled and self.vllm_rmsnorm_mode) else ('native' if is_batch_inv_enabled else 'optimized')}")
                 if is_batch_inv_enabled:
                     # Use deterministic native implementation when batch-invariant is active
                     if self.vllm_rmsnorm_mode:

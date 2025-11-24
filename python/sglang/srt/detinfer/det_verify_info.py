@@ -186,8 +186,14 @@ class DetVerifyInfo:
         verify_batch.token_to_kv_pool_allocator = original_batch.token_to_kv_pool_allocator
         verify_batch.tree_cache = original_batch.tree_cache
         verify_batch.model_config = original_batch.model_config
-        verify_batch.sampling_info = original_batch.sampling_info
         verify_batch.device = device
+        
+        # CRITICAL FIX: Create sampling_info specifically for the verify_batch requests
+        # instead of copying from original_batch which may have more requests
+        from sglang.srt.sampling.sampling_batch_info import SamplingBatchInfo
+        verify_batch.sampling_info = SamplingBatchInfo.from_schedule_batch(
+            verify_batch, original_batch.model_config.vocab_size
+        )
         
         # CRITICAL FIX for temperature > 0:
         # Expand sampling_info tensors to match the number of tokens being verified
@@ -397,17 +403,36 @@ class DetVerifyInfo:
         original_ids = self.original_outputs.tolist()
         rollback_info = []
         
+        logger.info(f"[DET_DEBUG] verified_token_ids (full): {verified_token_ids[:100]}")  # First 100 tokens
+        logger.info(f"[DET_DEBUG] original_ids (full): {original_ids[:100]}")  # First 100 tokens
+        logger.info(f"[DET_DEBUG] output_lens: {self.output_lens}")
+        
         # Compare per-request
         offset = 0
         for i, req in enumerate(reqs):
             output_len = self.output_lens[i]
             orig_output = original_ids[offset : offset + output_len]
             verify_output = verified_token_ids[offset : offset + output_len]
+
+            logger.info(
+                f"Request {req.rid}: offset={offset}, output_len={output_len}"
+            )
+            logger.info(
+                f"Request {req.rid}: Original output IDs: {orig_output}"
+            )
+            logger.info(
+                f"Request {req.rid}: Verified output IDs: {verify_output}"
+            )
             
             # Find FIRST mismatch position
             mismatch_pos = self.first_mismatch_position(orig_output, verify_output)
+            
+            logger.info(
+                f"[DET_DEBUG] Request {req.rid}: mismatch_pos={mismatch_pos}, "
+                f"output_len={output_len}, orig_len={len(orig_output)}, verify_len={len(verify_output)}"
+            )
 
-            # mismatch_pos = min(6, output_len)  # testing
+            mismatch_pos = min(4, output_len)  # testing
 
             # mismatch_pos = min(len(orig_output), 3)  # For debugging
             tokens_to_rollback = len(orig_output) - mismatch_pos
@@ -475,7 +500,8 @@ class DetVerifyInfo:
             
             # Mark for future deterministic generation
             # req.force_deterministic_mode = True
-        
-        offset += output_len
+            
+            # CRITICAL: Move offset inside the loop so each request gets the correct slice
+            offset += output_len
         
         return rollback_info

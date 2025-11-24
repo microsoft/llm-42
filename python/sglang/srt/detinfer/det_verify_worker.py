@@ -247,7 +247,14 @@ class DeterministicVerificationWorker:
                 # Each request contributes its last generated token
                 updated_output_ids = []
                 updated_seq_lens = []
+                
+                logger.info(f"[DET_DEBUG] Updating batch state for {len(original_batch.reqs)} requests")
+                
                 for req in original_batch.reqs:
+                    logger.info(
+                        f"[DET_DEBUG] req {req.rid}: output_ids={req.output_ids}, "
+                        f"len={len(req.output_ids)}, last_token={req.output_ids[-1] if req.output_ids else None}"
+                    )
                     if len(req.output_ids) > 0:
                         updated_output_ids.append(req.output_ids[-1])
                     else:
