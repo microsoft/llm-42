@@ -133,7 +133,6 @@ class ForwardMode(IntEnum):
         return (
             self == ForwardMode.DECODE
             or self == ForwardMode.TARGET_VERIFY
-            or self == ForwardMode.TARGET_DET_VERIFY
             or self == ForwardMode.IDLE
         )
 
