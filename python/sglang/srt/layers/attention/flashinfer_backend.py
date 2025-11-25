@@ -173,7 +173,7 @@ class FlashInferAttnBackend(AttentionBackend):
             global_config.flashinfer_workspace_size = 2048 * 1024 * 1024
             if self.prefill_split_tile_size < 4096:
                 global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
-            logger.info(f"[FlashInferAttnBackend] Selective determinism is enabled (mode={self.selective_determinism_mode}), using identical settings to deterministic_inference.")
+            # logger.info(f"[FlashInferAttnBackend] Selective determinism is enabled (mode={self.selective_determinism_mode}), using identical settings to deterministic_inference.")
 
         # Allocate buffers
         global global_workspace_buffer
@@ -185,7 +185,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 dtype=torch.uint8,
                 device=model_runner.device,
             )
-            logger.info(f"[FlashInferAttnBackend] Allocated global workspace buffer of size {global_workspace_size}")
+
         self.workspace_buffer = global_workspace_buffer
         max_bs = model_runner.req_to_token_pool.size
         if kv_indptr_buf is None:
@@ -274,7 +274,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 enable_deterministic_current = is_batch_invariant_mode_enabled()
 
             current_decode_split_tile_size = (self.decode_split_tile_size if enable_deterministic_current else None)
-            logger.info(f"[FlashInfer][Decode] enable_deterministic={enable_deterministic_current}, current_decode_split_tile_size={current_decode_split_tile_size}")
+            # logger.info(f"[FlashInfer][Decode] enable_deterministic={enable_deterministic_current}, current_decode_split_tile_size={current_decode_split_tile_size}")
             self.indices_updater_decode.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
@@ -357,7 +357,7 @@ class FlashInferAttnBackend(AttentionBackend):
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
                 current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
                 use_ragged = not enable_deterministic_current
-                logger.info(f"[FlashInfer][Prefill] enable_deterministic={enable_deterministic_current}, use_ragged={use_ragged}, current_prefill_split_tile_size={current_prefill_split_tile_size}")
+                # logger.info(f"[FlashInfer][Prefill] enable_deterministic={enable_deterministic_current}, use_ragged={use_ragged}, current_prefill_split_tile_size={current_prefill_split_tile_size}")
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
 
             self.indices_updater_prefill.update(

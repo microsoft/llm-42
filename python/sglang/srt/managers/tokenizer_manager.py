@@ -706,6 +706,11 @@ class TokenizerManager(TokenizerCommunicatorMixin):
             sampling_kwargs = {**self.preferred_sampling_params, **obj.sampling_params}
         else:
             sampling_kwargs = obj.sampling_params
+        
+        # Always set det_step_size to min_det_step_size for deterministic requests
+        if sampling_kwargs.get('is_deterministic', False) and self.server_args.min_det_step_size is not None:
+            sampling_kwargs['det_step_size'] = self.server_args.min_det_step_size
+        
         sampling_params = SamplingParams(**sampling_kwargs)
         sampling_params.normalize(self.tokenizer)
         sampling_params.verify(self.model_config.vocab_size)
@@ -882,17 +887,17 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                     logger.info(msg)
                 
                 # Print token IDs and text on request finish
-                logger.info(f"Request finished: rid={obj.rid}")
-                # Log tokenized input IDs from the tokenized object, not the original request
-                if state.tokenized_obj is not None:
-                    logger.info(f"Prompt Input IDs: {state.tokenized_obj.input_ids}")
-                else:
-                    logger.info(f"Prompt Input IDs: {obj.input_ids}")
-                logger.info(f"Prompt Text: {obj.text}")
+                # logger.info(f"Request finished: rid={obj.rid}")
+                # # Log tokenized input IDs from the tokenized object, not the original request
+                # if state.tokenized_obj is not None:
+                #     logger.info(f"Prompt Input IDs: {state.tokenized_obj.input_ids}")
+                # else:
+                #     logger.info(f"Prompt Input IDs: {obj.input_ids}")
+                # logger.info(f"Prompt Text: {obj.text}")
                 if "output_ids" in out:
                     logger.info(f"  Token IDs: {out['output_ids']}")
-                if "text" in out:
-                    logger.info(f"  Text: {out['text']}")
+                # if "text" in out:
+                #     logger.info(f"  Text: {out['text']}")
 
 
                 # Check if this was an abort/error created by scheduler

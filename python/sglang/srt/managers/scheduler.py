@@ -456,11 +456,11 @@ class Scheduler(
             )
 
             self.model_worker = DeterministicVerificationWorker(
-                self.model_worker,
-                det_step_size=server_args.det_step_size
+                self.model_worker
             )
             logger.info(
-                f"Deterministic verification worker enabled with det_step_size={server_args.det_step_size}"
+                f"Deterministic verification worker enabled with min_det_step_size={server_args.min_det_step_size}, "
+                f"max_det_step_size={server_args.max_det_step_size}"
             )
 
         # Get token and memory info from the model worker

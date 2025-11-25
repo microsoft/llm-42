@@ -88,54 +88,35 @@ class RMSNorm(CustomOp):
         self.weight = nn.Parameter(torch.ones(hidden_size))
         self.variance_epsilon = eps
         self.hidden_size = hidden_size
-        self.variance_size_override = (
-            None if var_hidden_size == hidden_size else var_hidden_size
-        )
+        self.variance_size_override = None if var_hidden_size == hidden_size else var_hidden_size
+        
         if _use_aiter:
             self._forward_method = self.forward_aiter
 
-        # Store deterministic inference configuration
         self.deterministic = get_int_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE")
         self.enable_selective_determinism = get_int_env_var("SGLANG_ENABLE_SELECTIVE_DETERMINISM")
         self.enable_det_infer = get_int_env_var("SGLANG_ENABLE_DET_INFER")
-        # Mode 1: bi_kernel + vllm_rmsnorm
-        # Mode 2: batch_invariant + native_rmsnorm
         
-        # Check for vLLM fused RMSNorm configuration
-        # SGLANG_USE_VLLM_RMSNORM can be: "256", "1024", "dynamic", or empty/unset
         self.vllm_rmsnorm_mode = os.getenv("SGLANG_USE_VLLM_RMSNORM", "").lower()
         if self.vllm_rmsnorm_mode and _is_cuda:
             logger.info(f"Using vLLM fused RMSNorm with mode: {self.vllm_rmsnorm_mode}")
 
-        # Determine RMSNorm implementation based on mode
         if self.deterministic == 1:
-            # Mode 1: Use vLLM RMSNorm (bi_kernel + vllm_rmsnorm)
             self.vllm_rmsnorm_mode = "256"
             self._forward_method = self.forward_vllm
-            logger.info(f"RMSNorm: deterministic==1, setting vllm_rmsnorm_mode=256")
+            # logger.info("RMSNorm: deterministic==1, setting vllm_rmsnorm_mode=256")
         elif self.deterministic == 2:
-            # Mode 2: Use native RMSNorm (batch_invariant + native_rmsnorm)
             self._forward_method = self.forward_native
-            logger.info(f"RMSNorm: deterministic==2, using native")
+            # logger.info("RMSNorm: deterministic==2, using native")
         elif self.enable_selective_determinism == 1 or self.enable_det_infer == 1:
-            # Selective determinism Mode 1: bi_kernel + vllm_rmsnorm
-            # Set vllm_rmsnorm_mode so forward_cuda will use forward_vllm when batch-invariant is enabled
             self.vllm_rmsnorm_mode = "256"
-            if self.enable_selective_determinism == 1:
-                logger.info(f"RMSNorm: enable_selective_determinism==1, setting vllm_rmsnorm_mode=256")
-            else:
-                logger.info(f"RMSNorm: enable_det_infer==1, setting vllm_rmsnorm_mode=256")
-        elif self.enable_selective_determinism == 2 or self.enable_det_infer == 2:
-            # Selective determinism Mode 2: batch_invariant + native_rmsnorm
-            # Leave vllm_rmsnorm_mode empty so forward_cuda will use forward_native
-            if self.enable_selective_determinism == 2:
-                logger.info(f"RMSNorm: enable_selective_determinism==2, using native")
-            else:
-                logger.info(f"RMSNorm: enable_det_infer==2, using native")
-        else:
-            # Non-deterministic mode: use optimized RMSNorm
-            logger.info(f"RMSNorm: non-deterministic mode, using optimized RMSNorm always")
-            pass
+        #     mode_name = "enable_selective_determinism" if self.enable_selective_determinism == 1 else "enable_det_infer"
+        #     # logger.info(f"RMSNorm: {mode_name}==1, setting vllm_rmsnorm_mode=256")
+        # elif self.enable_selective_determinism == 2 or self.enable_det_infer == 2:
+        #     mode_name = "enable_selective_determinism" if self.enable_selective_determinism == 2 else "enable_det_infer"
+        #     # logger.info(f"RMSNorm: {mode_name}==2, using native")
+        # else:
+        #     # logger.info("RMSNorm: non-deterministic mode, using optimized RMSNorm always")
 
         self.triton_rmsnorm_mode = os.getenv("SGLANG_USE_TRITON_RMSNORM", "").lower()
         if self.triton_rmsnorm_mode:
@@ -147,27 +128,19 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         with record_function("rmsnorm"):
-            # Dynamic selective determinism
-            # Check if batch-invariant mode is currently enabled
             if self.enable_selective_determinism or self.enable_det_infer:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
-                is_batch_inv_enabled = is_batch_invariant_mode_enabled()
-                # print(f"[RMSNorm Selective-Det] {x.shape}", flush=True)
-                # logger.info(f"[RMSNorm Selective-Det] batch_invariant_enabled={is_batch_inv_enabled}, vllm_rmsnorm_mode={self.vllm_rmsnorm_mode}, using {'vllm' if (is_batch_inv_enabled and self.vllm_rmsnorm_mode) else ('native' if is_batch_inv_enabled else 'optimized')}")
-                if is_batch_inv_enabled:
-                    # Use deterministic native implementation when batch-invariant is active
-                    if self.vllm_rmsnorm_mode:
-                        return self.forward_vllm(x, residual)
-                    else:
-                        return self.forward_native(x, residual)
+                
+                if is_batch_invariant_mode_enabled():
+                    return self.forward_vllm(x, residual) if self.vllm_rmsnorm_mode else self.forward_native(x, residual)
 
             if self.variance_size_override is not None:
                 return self.forward_native(x, residual)
 
-
             if residual is not None:
                 fused_add_rmsnorm(x, residual, self.weight.data, self.variance_epsilon)
                 return x, residual
+            
             out = rmsnorm(x, self.weight.data, self.variance_epsilon)
         return out
 
@@ -177,24 +150,22 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Forward using vLLM fused RMSNorm implementations"""
-        # print(f"[RMSNorm Selective-Det] vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}", flush=True)
         if residual is not None:
-            if self.vllm_rmsnorm_mode == "256":
-                vllm_fused_add_rmsnorm_256(x, residual, self.weight.data, self.variance_epsilon)
-            elif self.vllm_rmsnorm_mode == "1024":
-                vllm_fused_add_rmsnorm_1024(x, residual, self.weight.data, self.variance_epsilon)
-            elif self.vllm_rmsnorm_mode == "dynamic":
-                vllm_fused_add_rmsnorm_dynamic(x, residual, self.weight.data, self.variance_epsilon)
-            elif self.vllm_rmsnorm_mode == "128":
-                vllm_fused_add_rmsnorm_fixed(x, residual, self.weight.data, 128, self.variance_epsilon)
-            elif self.vllm_rmsnorm_mode == "512":
-                vllm_fused_add_rmsnorm_fixed(x, residual, self.weight.data, 512, self.variance_epsilon)
-            else:
-                raise ValueError(f"Invalid vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}. Valid options: '256', '1024', 'dynamic'")
+            mode_map = {
+                "256": lambda: vllm_fused_add_rmsnorm_256(x, residual, self.weight.data, self.variance_epsilon),
+                "1024": lambda: vllm_fused_add_rmsnorm_1024(x, residual, self.weight.data, self.variance_epsilon),
+                "dynamic": lambda: vllm_fused_add_rmsnorm_dynamic(x, residual, self.weight.data, self.variance_epsilon),
+                "128": lambda: vllm_fused_add_rmsnorm_fixed(x, residual, self.weight.data, 128, self.variance_epsilon),
+                "512": lambda: vllm_fused_add_rmsnorm_fixed(x, residual, self.weight.data, 512, self.variance_epsilon),
+            }
+            
+            if self.vllm_rmsnorm_mode not in mode_map:
+                raise ValueError(f"Invalid vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}. Valid options: {list(mode_map.keys())}")
+            
+            mode_map[self.vllm_rmsnorm_mode]()
             return x, residual
-        else:
-            out = vllm_rmsnorm(x, self.weight.data, self.variance_epsilon)
-            return out
+        
+        return vllm_rmsnorm(x, self.weight.data, self.variance_epsilon)
 
     def forward_triton_invariant(
         self,

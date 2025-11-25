@@ -633,6 +633,7 @@ class Req:
         # For deterministic verification
         self.is_deterministic: bool = sampling_params.is_deterministic
         self.det_verified_tokens: int = 0  # Number of tokens that have been verified
+        self.det_step_size: int = sampling_params.det_step_size  # Current verification step size
         self.force_deterministic_mode: bool = False 
         
         if self.is_deterministic:

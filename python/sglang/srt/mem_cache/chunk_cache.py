@@ -46,14 +46,14 @@ class ChunkCache(BasePrefixCache):
         )
 
     def cache_finished_req(self, req: Req, insert: bool = True):
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(
-            f"Free For request {req.rid}: "
-            f"input_ids len={len(req.origin_input_ids)}, "
-            f"output_ids len={len(req.output_ids)}"
-            f"Total tokens to free: {len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0)}"
-        )
+        # import logging
+        # logger = logging.getLogger(__name__)
+        # logger.info(
+        #     f"Free For request {req.rid}: "
+        #     f"input_ids len={len(req.origin_input_ids)}, "
+        #     f"output_ids len={len(req.output_ids)}"
+        #     f"Total tokens to free: {len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0)}"
+        # )
         kv_indices = self.req_to_token_pool.req_to_token[
             req.req_pool_idx,
             # For decode server: if req.output_ids is empty, we want to free all req.origin_input_ids

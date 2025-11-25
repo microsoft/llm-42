@@ -414,7 +414,8 @@ class ServerArgs:
     enable_deterministic_inference: int = 0  # Global: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
     enable_det_infer: int = 0  # Forward-mode-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
     enable_selective_determinism: int = 0  # Batch-composition-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
-    det_step_size: Optional[int] = None
+    min_det_step_size: Optional[int] = None
+    max_det_step_size: Optional[int] = None
 
     # Dynamic batch tokenizer
     enable_dynamic_batch_tokenizer: bool = False
@@ -2792,10 +2793,16 @@ class ServerArgs:
             help="Enable batch-composition-based deterministic switching (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
         )
         parser.add_argument(
-            "--det-step-size",
+            "--min-det-step-size",
             type=int,
-            default=ServerArgs.det_step_size,
-            help="Number of tokens to generate before verification (for incremental verification). If not set, verify only at the end.",
+            default=ServerArgs.min_det_step_size,
+            help="Minimum number of tokens before verification (initial value for each request). If not set, verify only at the end.",
+        )
+        parser.add_argument(
+            "--max-det-step-size",
+            type=int,
+            default=ServerArgs.max_det_step_size,
+            help="Maximum number of tokens before verification. Requests can adaptively adjust between min and max.",
         )
 
         # Deprecated arguments

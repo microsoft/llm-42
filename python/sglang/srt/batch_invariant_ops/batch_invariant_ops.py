@@ -674,14 +674,14 @@ def enable_batch_invariant_mode(mode: int = 1, _suppress_log: bool = False):
     
     if mode == 1:
         # Mode 1: bi_kernel (CUTLASS kernel) + vllm rmsnorm
-        if should_log:
-            logger.info("Enabling batch invariant mode with bi_kernel (CUTLASS)")
+        # if should_log:
+        #     logger.info("Enabling batch invariant mode with bi_kernel (CUTLASS)")
         _batch_invariant_LIB.impl("aten::mm", mm_bi_kernel, "CUDA")
         _batch_invariant_LIB.impl("aten::addmm", addmm_bi_kernel, "CUDA")
     elif mode == 2:
         # Mode 2: batch_invariant (Triton kernel) + native rmsnorm
-        if should_log:
-            logger.info("Enabling batch invariant mode with batch_invariant (Triton)")
+        # if should_log:
+        #     logger.info("Enabling batch invariant mode with batch_invariant (Triton)")
         _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
         _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
     elif mode != 0:
@@ -712,13 +712,13 @@ def set_batch_invariant_mode(enabled: bool = True, mode: int = 1):
     old_was_enabled = _batch_invariant_MODE
     
     # Debug logging to understand the repeated calls
-    logger.info(f"set_batch_invariant_mode: enabled={enabled}, mode={mode}, "
-                 f"old_was_enabled={old_was_enabled}, old_mode_value={old_mode_value}")
+    # logger.info(f"set_batch_invariant_mode: enabled={enabled}, mode={mode}, "
+    #              f"old_was_enabled={old_was_enabled}, old_mode_value={old_mode_value}")
     
     # Only change state if different from current state
     needs_change = (enabled != old_was_enabled) or (enabled and mode != old_mode_value)
     
-    logger.info(f"needs_change={needs_change}")
+    # logger.info(f"needs_change={needs_change}")
     
     if needs_change:
         if enabled:
@@ -730,7 +730,7 @@ def set_batch_invariant_mode(enabled: bool = True, mode: int = 1):
     
     # Only restore if we actually changed something
     if needs_change:
-        logger.info(f"Restoring: old_was_enabled={old_was_enabled}, old_mode_value={old_mode_value}")
+        # logger.info(f"Restoring: old_was_enabled={old_was_enabled}, old_mode_value={old_mode_value}")
         if old_was_enabled and old_mode_value > 0:
             # Restore to previous mode, suppress logging since we're just restoring
             enable_batch_invariant_mode(old_mode_value, _suppress_log=True)
