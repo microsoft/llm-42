@@ -114,9 +114,53 @@ class OpenAIServingCompletion(OpenAIServingBase):
 
         return adapted_request, request
 
-    def _build_sampling_params(self, request: CompletionRequest) -> Dict[str, Any]:
+    def _build_sampling_params(self, request: CompletionRequest) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """Build sampling parameters for the request"""
-        # Start with common parameters
+        # Check if we need per-prompt sampling params
+        is_batch = isinstance(request.prompt, list) and (
+            isinstance(request.prompt[0], str) or isinstance(request.prompt[0], list)
+        )
+        is_deterministic_list = isinstance(request.is_deterministic, list)
+        
+        # If is_deterministic is a list, create per-prompt sampling params
+        if is_batch and is_deterministic_list:
+            batch_size = len(request.prompt)
+            if len(request.is_deterministic) != batch_size:
+                raise ValueError(
+                    f"is_deterministic list length ({len(request.is_deterministic)}) "
+                    f"must match prompt batch size ({batch_size})"
+                )
+            
+            # Create list of sampling params, one per prompt
+            sampling_params_list = []
+            for i in range(batch_size):
+                params = {
+                    "temperature": request.temperature,
+                    "max_new_tokens": request.max_tokens,
+                    "min_new_tokens": request.min_tokens,
+                    "stop": request.stop,
+                    "stop_token_ids": request.stop_token_ids,
+                    "top_p": request.top_p,
+                    "top_k": request.top_k,
+                    "min_p": request.min_p,
+                    "presence_penalty": request.presence_penalty,
+                    "frequency_penalty": request.frequency_penalty,
+                    "repetition_penalty": request.repetition_penalty,
+                    "regex": request.regex,
+                    "json_schema": request.json_schema,
+                    "ebnf": request.ebnf,
+                    "n": request.n,
+                    "no_stop_trim": request.no_stop_trim,
+                    "ignore_eos": request.ignore_eos,
+                    "skip_special_tokens": request.skip_special_tokens,
+                    "logit_bias": request.logit_bias,
+                    "is_deterministic": request.is_deterministic[i],
+                }
+                sampling_params_list.append(params)
+            return sampling_params_list
+        
+        # Single sampling params for all prompts
+        is_det_value = request.is_deterministic[0] if is_deterministic_list else request.is_deterministic
         sampling_params = {
             "temperature": request.temperature,
             "max_new_tokens": request.max_tokens,
@@ -137,7 +181,7 @@ class OpenAIServingCompletion(OpenAIServingBase):
             "ignore_eos": request.ignore_eos,
             "skip_special_tokens": request.skip_special_tokens,
             "logit_bias": request.logit_bias,
-            "is_deterministic": request.is_deterministic,
+            "is_deterministic": is_det_value,
         }
 
         # Handle response_format constraints

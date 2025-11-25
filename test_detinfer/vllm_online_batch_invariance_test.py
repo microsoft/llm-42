@@ -5,7 +5,7 @@ HTTP-based batch invariance test: send requests to a running
 SGLang server and compare BS=1 vs BS=N results (tokens and per-step logprobs).
 
 Environment variables:
-  - SGLANG_TEST_MODEL: served model name (e.g., Qwen/Qwen3-1.7B / DeepSeek-R1)
+  - SGLANG_TEST_MODEL: served model name (e.g., meta-llama/Meta-Llama-3.1-8B-Instruct)
   - SGLANG_TP_SIZE: tensor parallelism size (e.g., 4)
 
 """
