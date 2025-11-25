@@ -471,9 +471,9 @@ class FlashInferAttnBackend(AttentionBackend):
                 fixed_split_size=None,
                 disable_split_kv=disable_split_kv,
             )
-            # Store with tuple key (bs, is_deterministic) for dual graphs (det_infer mode only)
-            # For selective_determinism, use simple key since batch_invariant is globally enabled
-            if self.enable_det_infer_mode:
+            # Store with tuple key (bs, is_deterministic) for dual graphs
+            # Both det_infer and selective_determinism modes use dual graphs
+            if self.enable_det_infer_mode > 0 or self.enable_selective_determinism > 0:
                 storage_key = (bs, is_deterministic_graph)
             else:
                 storage_key = bs
@@ -564,7 +564,7 @@ class FlashInferAttnBackend(AttentionBackend):
     ):
         if forward_mode.is_decode_or_idle():
             # Determine which wrappers to use based on deterministic mode
-            # Only det_infer mode uses tuple keys for dual graphs
+            # Both det_infer and selective_determinism modes use tuple keys for dual graphs
             if (self.enable_det_infer_mode > 0 or self.enable_selective_determinism > 0) and use_deterministic is not None:
                 storage_key = (bs, use_deterministic)
                 # Match the settings used during capture for this graph
