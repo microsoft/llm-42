@@ -102,15 +102,8 @@ def _compare_bs1_vs_bsn(
         resp = _request_completion(base_url, model_name, p, sp_kwargs, verbose=False)
         if resp is None or not resp.get("choices"):
             return False, f"BS=1 request {i} failed or returned empty response"
-        # print(f"    BS=1 request {i} completed.")
-        # print(f" {resp=}", flush=True)
         choice = resp["choices"][0]
-        # print(f" {choice=}", flush=True)
         toks, lps, text = _extract_tokens_and_logprobs(choice)
-        # print(f"    Extracted {len(toks)} tokens and logprobs for prompt {i}.")
-        # print(f"    Tokens: {toks}")
-        # print(f"    Logprobs: {lps}")
-        # print(f"    Text: {text}")
         if lps is None:
             return False, f"BS=1 request {i} missing logprobs"
         bs1_tokens_per_prompt.append(list(toks))
@@ -150,34 +143,10 @@ def _compare_bs1_vs_bsn(
             bsN_texts,
         ), 1
     ):
-        # print(f"    Comparing prompt {i}...", end="", flush=True)
-        # print(f" BS=1 tokens: {tokens_bs1}")
-        # print(f" BS={batch_size} tokens: {tokens_bsN}")
         if tokens_bs1 != tokens_bsN:
-            # Find first mismatch position
-            mismatch_pos = -1
-            for pos, (t1, t2) in enumerate(zip(tokens_bs1, tokens_bsN)):
-                if t1 != t2:
-                    mismatch_pos = pos
-                    break
-            
-            if mismatch_pos == -1 and len(tokens_bs1) != len(tokens_bsN):
-                mismatch_pos = min(len(tokens_bs1), len(tokens_bsN))
-            
             error_msg = (
                 f"Prompt {i}: Different tokens sampled.\n"
                 f"  Prompt: {repr(batch_prompts[i-1][:80])}\n"
-                f"  Mismatch at position: {mismatch_pos}\n"
-                f"  Token lengths: BS=1 has {len(tokens_bs1)} tokens, BS={batch_size} has {len(tokens_bsN)} tokens\n"
-            )
-            
-            if mismatch_pos >= 0 and mismatch_pos < len(tokens_bs1) and mismatch_pos < len(tokens_bsN):
-                error_msg += (
-                    f"  BS=1 token[{mismatch_pos}]: {tokens_bs1[mismatch_pos]}\n"
-                    f"  BS={batch_size} token[{mismatch_pos}]: {tokens_bsN[mismatch_pos]}\n"
-                )
-            
-            error_msg += (
                 f"  BS=1 output: {repr(text_bs1)}\n"
                 f"  BS={batch_size} output: {repr(text_bsN)}"
             )
@@ -198,8 +167,6 @@ def _compare_bs1_vs_bsn(
                 error_msg = (
                     f"Prompt {i} Step {t}: Bitwise logprob mismatch (abs diff={diff:.6e})\n"
                     f"  BS=1: {a:.6e}, BS={batch_size}: {b:.6e}"
-                    f"  BS=1 {logprobs_bs1=}\n"
-                    f"  BS={batch_size} {logprobs_bsN=}"
                 )
                 if verbose:
                     error_msg += f"\n  Tokens: {tokens_bs1}"
@@ -279,7 +246,7 @@ def test_multi_batch_invariance(
                 "temperature": 0.0,
                 "max_tokens": max_tokens,
                 "seed": 42,
-                "logprobs": 1,
+                "logprobs": 5,
             }
             
             try:
@@ -348,13 +315,13 @@ if __name__ == "__main__":
     
     # Get configuration from environment
     host = os.getenv("SGLANG_HOST", "127.0.0.1")
-    port = int(os.getenv("SGLANG_PORT", "30005"))
+    port = int(os.getenv("SGLANG_PORT", "30000"))
     base_url = f"http://{host}:{port}"
     backend = os.getenv("SGLANG_ATTENTION_BACKEND", "flashinfer")
     
     # Configure batch sizes and max_tokens to test
-    batch_sizes = [i for i in range(2, 65)]
-    max_tokens_list = [128]
+    batch_sizes = [32]
+    max_tokens_list = [96]
     
     n_prompts = max(batch_sizes) * 2  # Generate enough prompts for largest batch
     

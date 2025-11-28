@@ -274,7 +274,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 enable_deterministic_current = is_batch_invariant_mode_enabled()
 
             current_decode_split_tile_size = (self.decode_split_tile_size if enable_deterministic_current else None)
-            # logger.info(f"[FlashInfer][Decode] enable_deterministic={enable_deterministic_current}, current_decode_split_tile_size={current_decode_split_tile_size}")
+            #logger.info(f"[DEBUG][DECODE] batch_invariant={enable_deterministic_current}, fixed_split_size={current_decode_split_tile_size}, batch_size={len(forward_batch.req_pool_indices)}")
             self.indices_updater_decode.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
@@ -318,27 +318,52 @@ class FlashInferAttnBackend(AttentionBackend):
                 self.prefill_wrappers_verify, False, False
             )
         elif forward_batch.forward_mode.is_target_det_verify():
-            # Handle TARGET_DET_VERIFY similar to TARGET_VERIFY
+            # Handle TARGET_DET_VERIFY - this mode MUST always use deterministic settings
             # This mode is used for deterministic verification - re-running output tokens
             # to verify determinism. The input tokens are already in KV cache.
             # We need to pass prefix_lens (the length of input tokens already in cache)
-            if self.enable_det_infer_mode > 0:
-                current_prefill_split_tile_size = self.prefill_split_tile_size
-                use_ragged = False
+            # Always use deterministic settings regardless of enable_det_infer_mode
+            current_prefill_split_tile_size = self.prefill_split_tile_size
+            use_ragged = False
+            extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
+            
+            from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+            batch_inv_enabled = is_batch_invariant_mode_enabled()
+            # logger.info(f"[DEBUG][TARGET_DET_VERIFY] batch_invariant={batch_inv_enabled}, "
+            #            f"fixed_split_size={current_prefill_split_tile_size}, "
+            #            f"use_ragged={use_ragged}, "
+            #            f"extend_no_prefix={extend_no_prefix}, "
+            #            f"batch_size={len(forward_batch.req_pool_indices)}")
+            
+            # self.indices_updater_prefill.update(
+            #     forward_batch.req_pool_indices,
+            #     forward_batch.seq_lens,
+            #     forward_batch.seq_lens_cpu,
+            #     forward_batch.seq_lens_sum,
+            #     prefix_lens=forward_batch.extend_prefix_lens,
+            #     prefill_wrappers=self.prefill_wrappers_verify,
+            #     use_ragged=False,
+            #     encoder_lens=forward_batch.encoder_lens,
+            #     spec_info=forward_batch.spec_info,
+            #     fixed_split_size=current_prefill_split_tile_size,
+            # )
+            # self.forward_metadata = PrefillMetadata(
+            #     self.prefill_wrappers_verify, False, extend_no_prefix
+            # )
             self.indices_updater_prefill.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
                 forward_batch.seq_lens_cpu,
                 forward_batch.seq_lens_sum,
                 prefix_lens=forward_batch.extend_prefix_lens,
-                prefill_wrappers=self.prefill_wrappers_verify,
-                use_ragged=False,
+                prefill_wrappers=self.prefill_wrappers_paged,
+                use_ragged=use_ragged,
                 encoder_lens=forward_batch.encoder_lens,
-                spec_info=forward_batch.spec_info,
+                spec_info=None,
                 fixed_split_size=current_prefill_split_tile_size,
             )
             self.forward_metadata = PrefillMetadata(
-                self.prefill_wrappers_verify, False, False
+                self.prefill_wrappers_paged, use_ragged, extend_no_prefix#, self.mixed_determinism
             )
         else:
             prefix_lens = forward_batch.extend_prefix_lens
@@ -357,7 +382,7 @@ class FlashInferAttnBackend(AttentionBackend):
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
                 current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
                 use_ragged = not enable_deterministic_current
-                # logger.info(f"[FlashInfer][Prefill] enable_deterministic={enable_deterministic_current}, use_ragged={use_ragged}, current_prefill_split_tile_size={current_prefill_split_tile_size}")
+                #logger.info(f"[DEBUG][PREFILL] batch_invariant={enable_deterministic_current}, fixed_split_size={current_prefill_split_tile_size}, use_ragged={use_ragged}, batch_size={len(forward_batch.req_pool_indices)}")
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
 
             self.indices_updater_prefill.update(

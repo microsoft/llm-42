@@ -49,6 +49,7 @@ class DeterministicVerificationWorker:
             target_worker: The underlying TpModelWorker to wrap
         """
         self.target_worker = target_worker
+        self.metrics_collector = getattr(target_worker, "metrics_collector", None)
 
     def forward_batch_generation(
         self,
@@ -128,18 +129,30 @@ class DeterministicVerificationWorker:
             reqs: Requests to verify (tokens already appended)
         """
         try:
+            # logger.info(f"[DEBUG][DetVerifyWorker] Starting verification for {len(reqs)} requests")
+            
+            # Check allocator state before verification
+            available_before = original_batch.token_to_kv_pool_allocator.available_size()
+                    # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available BEFORE verification: {available_before}")
+            
             det_verify_info = DetVerifyInfo.from_requests(reqs)
             verify_batch = det_verify_info.prepare_verify_batch(original_batch, reqs)
             
-            # Run verification forward pass
+            # logger.info(f"[DEBUG][DetVerifyWorker] Verification batch prepared with {len(verify_batch.input_ids)} input tokens")
+            #logger.info(f"[DEBUG][DetVerifyWorker] out_cache_loc: {verify_batch.out_cache_loc.tolist() if verify_batch.out_cache_loc is not None else None}")
+            
+            # Run verification forward pass (batch_invariant context is now managed in tp_worker)
             verify_model_worker_batch = verify_batch.get_model_worker_batch()
+            # logger.info(f"[DEBUG][DetVerifyWorker] Running forward pass with forward_mode={verify_model_worker_batch.forward_mode}")
             verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
             
-            # Sample using deterministic sampling with same parameters as original generation
-            verified_token_ids = self.target_worker.model_runner.sample(
-                verify_output.logits_output,
-                verify_model_worker_batch
-            )
+            # Check allocator state after verification
+            available_after = original_batch.token_to_kv_pool_allocator.available_size()
+            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER verification: {available_after}")
+            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache delta: {available_before - available_after}")
+            
+            # Extract results (sampling already done inside forward_batch_generation)
+            verified_token_ids = verify_output.next_token_ids
             verified_logprobs = verify_output.logits_output.next_token_logprobs
             
             # Compare outputs and handle rollback
@@ -153,12 +166,50 @@ class DeterministicVerificationWorker:
             for req in reqs:
                 req.det_verified_tokens = len(req.output_ids)
             
-            # Clear verification batch references
+            # Update batch state if there was any rollback
+            # (need to sync seq_lens with the new req.output_ids length)
+            had_rollback = any(info[1] > 0 for info in rollback_info if info is not None)
+            if had_rollback:
+                #logger.info(f"[DEBUG][DetVerifyWorker] Rollback detected, updating batch state")
+                self._update_batch_state(original_batch)
+            
+            # Clear verification batch references to free GPU memory
+            # Critical: verify_batch shares KV cache allocator with original_batch
+            # At high batch sizes (BS=63-64), we need to explicitly clear all tensor
+            # references to prevent memory accumulation
             verify_batch.out_cache_loc = None
             verify_batch.input_ids = None
+            verify_batch.seq_lens = None
+            verify_batch.seq_lens_cpu = None
+            verify_batch.req_pool_indices = None
             
-            # Update batch state to reflect modified req.output_ids after verification
-            self._update_batch_state(original_batch)
+            # Clear sampling_info tensors if present
+            if hasattr(verify_batch, 'sampling_info') and verify_batch.sampling_info is not None:
+                verify_batch.sampling_info.temperatures = None
+                verify_batch.sampling_info.top_ps = None
+                verify_batch.sampling_info.top_ks = None
+                verify_batch.sampling_info.min_ps = None
+                verify_batch.sampling_info.sampling_seed = None
+                verify_batch.sampling_info.deterministic_indices = None
+            
+            # Clear shared resource references (don't free, just remove refs)
+            verify_batch.req_to_token_pool = None
+            verify_batch.token_to_kv_pool_allocator = None
+            
+            # Force GPU memory cleanup - critical for high batch sizes
+            # if torch.cuda.is_available():
+            #     torch.cuda.empty_cache()
+            
+            # NOTE: We don't update original_batch state here because:
+            # 1. The original batch is already done processing
+            # 2. The scheduler will create a new batch for the next decode step
+            # 3. Modifying seq_lens here might confuse KV cache tracking
+            # self._update_batch_state(original_batch)
+            
+            # Check allocator state after cleanup
+            available_final = original_batch.token_to_kv_pool_allocator.available_size()
+            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER cleanup: {available_final}")
+            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache total delta: {available_before - available_final}")
             
         except Exception as e:
             logger.error(f"Error during verification: {e}")
@@ -213,6 +264,11 @@ class DeterministicVerificationWorker:
         for req, info in zip(reqs, rollback_info):
             if info is None or info[1] == 0:
                 continue
+            
+            # Track metrics
+            if self.metrics_collector:
+                self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
+                self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
             
             mismatch_pos, tokens_rolled_back = info
             

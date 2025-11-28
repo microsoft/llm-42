@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the SGLang project
 """
-HTTP-based batch invariance test across multiple batch sizes and max_tokens.
-Tests BS=1 vs BS=N for various N and token lengths.
+HTTP-based batch invariance test with mixed deterministic/non-deterministic requests.
+Tests BS=1 vs BS=N for various N and token lengths, with configurable mix of deterministic
+and non-deterministic requests.
 
 Environment variables:
   - SGLANG_TEST_MODEL: served model name (e.g., meta-llama/Meta-Llama-3.1-8B-Instruct)
@@ -16,10 +17,14 @@ Usage:
     # Start server:
     bash launch_batch_invariance_test.sh
     
-    # Run test:
-    python vllm_online_batch_invariance_multitest.py
+    # Run test with 70% deterministic, 30% non-deterministic:
+    python vllm_online_batch_invariance_mixed_test.py --deterministic-pct 70
+    
+    # Run test with default 50/50 split:
+    python vllm_online_batch_invariance_mixed_test.py
 """
 
+import argparse
 import os
 import random
 import sys
@@ -41,8 +46,6 @@ def _request_completion(
 ) -> dict[str, Any] | None:
     payload: dict[str, Any] = {"model": model, "prompt": prompt}
     payload.update(sp)
-    # Enable deterministic inference
-    payload["is_deterministic"] = True
 
     for attempt in range(max_retries + 1):
         try:
@@ -85,41 +88,63 @@ def _compare_bs1_vs_bsn(
     base_url: str,
     model_name: str,
     batch_size: int,
+    deterministic_pct: float = 50.0,
     verbose: bool = False,
 ) -> tuple[bool, str]:
     """
-    Compare BS=1 vs BS=N for a given batch size.
+    Compare BS=1 vs BS=N for a given batch size with mixed deterministic/non-deterministic requests.
+    
+    Args:
+        prompts: List of prompts to use
+        sp_kwargs: Sampling parameters (base config)
+        base_url: Server URL
+        model_name: Model name
+        batch_size: Batch size to test
+        deterministic_pct: Percentage of requests that should be deterministic (0-100)
+        verbose: Print verbose output
     
     Returns:
         (success, error_message): True if test passes, False otherwise with error message
     """
+    # Determine which requests should be deterministic
+    num_deterministic = int(batch_size * deterministic_pct / 100.0)
+    num_non_deterministic = batch_size - num_deterministic
+    
+    # Create list indicating which requests are deterministic
+    is_deterministic = [True] * num_deterministic + [False] * num_non_deterministic
+    random.shuffle(is_deterministic)  # Randomize order
+    
+    if verbose:
+        print(f"    Testing BS={batch_size}: {num_deterministic} deterministic, {num_non_deterministic} non-deterministic")
+    
     # BS=1: Get reference outputs
     bs1_tokens_per_prompt: list[list[Any]] = []
     bs1_logprobs_per_prompt: list[list[float] | None] = []
     bs1_texts: list[str] = []
     
-    for i, p in enumerate(prompts[:batch_size], 1):
-        resp = _request_completion(base_url, model_name, p, sp_kwargs, verbose=False)
+    for i, (p, is_det) in enumerate(zip(prompts[:batch_size], is_deterministic), 1):
+        sp = sp_kwargs.copy()
+        sp["is_deterministic"] = is_det
+        
+        resp = _request_completion(base_url, model_name, p, sp, verbose=False)
         if resp is None or not resp.get("choices"):
             return False, f"BS=1 request {i} failed or returned empty response"
-        # print(f"    BS=1 request {i} completed.")
-        # print(f" {resp=}", flush=True)
         choice = resp["choices"][0]
-        # print(f" {choice=}", flush=True)
         toks, lps, text = _extract_tokens_and_logprobs(choice)
-        # print(f"    Extracted {len(toks)} tokens and logprobs for prompt {i}.")
-        # print(f"    Tokens: {toks}")
-        # print(f"    Logprobs: {lps}")
-        # print(f"    Text: {text}")
         if lps is None:
             return False, f"BS=1 request {i} missing logprobs"
         bs1_tokens_per_prompt.append(list(toks))
         bs1_logprobs_per_prompt.append(list(lps))
         bs1_texts.append(text)
 
-    # BS=N: Get batched output
+    # BS=N: Get batched output with mixed deterministic/non-deterministic
+    # Use the new list-based is_deterministic API
     batch_prompts = prompts[:batch_size]
-    resp = _request_completion(base_url, model_name, batch_prompts, sp_kwargs, verbose=False)
+    
+    sp_batch = sp_kwargs.copy()
+    sp_batch["is_deterministic"] = is_deterministic
+    
+    resp = _request_completion(base_url, model_name, batch_prompts, sp_batch, verbose=False)
     if resp is None or not resp.get("choices"):
         return False, f"BS={batch_size} batched request failed or returned empty response"
     
@@ -139,8 +164,8 @@ def _compare_bs1_vs_bsn(
         bsN_logprobs_per_prompt.append(list(lps))
         bsN_texts.append(text)
 
-    # Compare results
-    for i, (tokens_bs1, tokens_bsN, logprobs_bs1, logprobs_bsN, text_bs1, text_bsN) in enumerate(
+    # Compare results - only deterministic requests should match exactly
+    for i, (tokens_bs1, tokens_bsN, logprobs_bs1, logprobs_bsN, text_bs1, text_bsN, is_det) in enumerate(
         zip(
             bs1_tokens_per_prompt,
             bsN_tokens_per_prompt,
@@ -148,62 +173,49 @@ def _compare_bs1_vs_bsn(
             bsN_logprobs_per_prompt,
             bs1_texts,
             bsN_texts,
+            is_deterministic,
         ), 1
     ):
-        # print(f"    Comparing prompt {i}...", end="", flush=True)
-        # print(f" BS=1 tokens: {tokens_bs1}")
-        # print(f" BS={batch_size} tokens: {tokens_bsN}")
-        if tokens_bs1 != tokens_bsN:
-            # Find first mismatch position
-            mismatch_pos = -1
-            for pos, (t1, t2) in enumerate(zip(tokens_bs1, tokens_bsN)):
-                if t1 != t2:
-                    mismatch_pos = pos
-                    break
-            
-            if mismatch_pos == -1 and len(tokens_bs1) != len(tokens_bsN):
-                mismatch_pos = min(len(tokens_bs1), len(tokens_bsN))
-            
-            error_msg = (
-                f"Prompt {i}: Different tokens sampled.\n"
-                f"  Prompt: {repr(batch_prompts[i-1][:80])}\n"
-                f"  Mismatch at position: {mismatch_pos}\n"
-                f"  Token lengths: BS=1 has {len(tokens_bs1)} tokens, BS={batch_size} has {len(tokens_bsN)} tokens\n"
-            )
-            
-            if mismatch_pos >= 0 and mismatch_pos < len(tokens_bs1) and mismatch_pos < len(tokens_bsN):
-                error_msg += (
-                    f"  BS=1 token[{mismatch_pos}]: {tokens_bs1[mismatch_pos]}\n"
-                    f"  BS={batch_size} token[{mismatch_pos}]: {tokens_bsN[mismatch_pos]}\n"
-                )
-            
-            error_msg += (
-                f"  BS=1 output: {repr(text_bs1)}\n"
-                f"  BS={batch_size} output: {repr(text_bsN)}"
-            )
-            return False, error_msg
-        
-        if logprobs_bs1 is None or logprobs_bsN is None:
-            return False, f"Prompt {i}: Missing logprobs in one of the runs"
-        
-        if len(logprobs_bs1) != len(logprobs_bsN):
-            return False, (
-                f"Prompt {i}: Different number of steps: "
-                f"{len(logprobs_bs1)} (BS=1) vs {len(logprobs_bsN)} (BS={batch_size})"
-            )
-        
-        for t, (a, b) in enumerate(zip(logprobs_bs1, logprobs_bsN)):
-            if a != b:
-                diff = abs(a - b)
+        if is_det:
+            # Deterministic requests must match exactly
+            if tokens_bs1 != tokens_bsN:
                 error_msg = (
-                    f"Prompt {i} Step {t}: Bitwise logprob mismatch (abs diff={diff:.6e})\n"
-                    f"  BS=1: {a:.6e}, BS={batch_size}: {b:.6e}"
-                    f"  BS=1 {logprobs_bs1=}\n"
-                    f"  BS={batch_size} {logprobs_bsN=}"
+                    f"Prompt {i} (DETERMINISTIC): Different tokens sampled.\n"
+                    f"  Prompt: {repr(batch_prompts[i-1][:80])}\n"
+                    f"  BS=1 output: {repr(text_bs1)}\n"
+                    f"  BS={batch_size} output: {repr(text_bsN)}"
                 )
-                if verbose:
-                    error_msg += f"\n  Tokens: {tokens_bs1}"
                 return False, error_msg
+            
+            if logprobs_bs1 is None or logprobs_bsN is None:
+                return False, f"Prompt {i} (DETERMINISTIC): Missing logprobs in one of the runs"
+            
+            if len(logprobs_bs1) != len(logprobs_bsN):
+                return False, (
+                    f"Prompt {i} (DETERMINISTIC): Different number of steps: "
+                    f"{len(logprobs_bs1)} (BS=1) vs {len(logprobs_bsN)} (BS={batch_size})"
+                )
+            
+            for t, (a, b) in enumerate(zip(logprobs_bs1, logprobs_bsN)):
+                if a != b:
+                    diff = abs(a - b)
+                    error_msg = (
+                        f"Prompt {i} (DETERMINISTIC) Step {t}: Bitwise logprob mismatch (abs diff={diff:.6e})\n"
+                        f"  BS=1: {a:.6e}, BS={batch_size}: {b:.6e}"
+                    )
+                    if verbose:
+                        error_msg += f"\n  Tokens: {tokens_bs1}"
+                    return False, error_msg
+        else:
+            # Non-deterministic requests - just verify we got valid output
+            if not tokens_bsN:
+                return False, f"Prompt {i} (NON-DETERMINISTIC): Empty output in BS={batch_size}"
+            if logprobs_bsN is None or len(logprobs_bsN) == 0:
+                return False, f"Prompt {i} (NON-DETERMINISTIC): Missing logprobs in BS={batch_size}"
+            
+            # We expect outputs may differ, so just log this for information
+            if verbose and tokens_bs1 != tokens_bsN:
+                print(f"      Prompt {i} (NON-DETERMINISTIC): Outputs differ as expected")
     
     return True, ""
 
@@ -213,20 +225,27 @@ def test_multi_batch_invariance(
     base_url: str,
     batch_sizes: list[int],
     max_tokens_list: list[int],
+    deterministic_pct: float = 50.0,
     n_prompts: int = 256,
 ) -> None:
     """
-    Test batch invariance across multiple batch sizes and max_tokens values.
+    Test batch invariance across multiple batch sizes and max_tokens values with mixed
+    deterministic and non-deterministic requests.
     
     Args:
         backend: Attention backend name
         base_url: Server base URL
         batch_sizes: List of batch sizes to test
         max_tokens_list: List of max_tokens values to test
+        deterministic_pct: Percentage of requests that should be deterministic (0-100)
         n_prompts: Total number of prompts to generate (should be >= max(batch_sizes))
     """
     random.seed(int(os.getenv("SGLANG_TEST_SEED", "12345")))
     model_name = resolve_model_name(backend)
+    
+    # Validate deterministic_pct
+    if not 0 <= deterministic_pct <= 100:
+        raise ValueError(f"deterministic_pct must be between 0 and 100, got {deterministic_pct}")
     
     # Check if server is running
     try:
@@ -246,13 +265,14 @@ def test_multi_batch_invariance(
         print(f"Warning: Increasing n_prompts to {max_batch_size} to match largest batch size")
     
     print(f"\n{'='*80}")
-    print(f"MULTI-BATCH INVARIANCE TEST")
+    print(f"MIXED DETERMINISTIC/NON-DETERMINISTIC BATCH INVARIANCE TEST")
     print(f"{'='*80}")
     print(f"Server: {base_url}")
     print(f"Backend: {backend}")
     print(f"Model: {model_name}")
     print(f"Batch sizes: {batch_sizes}")
     print(f"Max tokens: {max_tokens_list}")
+    print(f"Deterministic: {deterministic_pct:.0f}% | Non-deterministic: {100-deterministic_pct:.0f}%")
     print(f"Total prompts generated: {n_prompts}")
     print(f"{'='*80}\n")
     
@@ -272,14 +292,16 @@ def test_multi_batch_invariance(
         print(f"{'─'*80}")
         
         for batch_size in batch_sizes:
-            test_name = f"BS={batch_size}, max_tokens={max_tokens}"
+            num_det = int(batch_size * deterministic_pct / 100.0)
+            num_non_det = batch_size - num_det
+            test_name = f"BS={batch_size} ({num_det}D/{num_non_det}ND), max_tokens={max_tokens}"
             print(f"  [{passed_tests + failed_tests + 1}/{total_tests}] {test_name}... ", end="", flush=True)
             
             sp_kwargs: dict[str, Any] = {
                 "temperature": 0.0,
                 "max_tokens": max_tokens,
                 "seed": 42,
-                "logprobs": 1,
+                "logprobs": 5,
             }
             
             try:
@@ -289,6 +311,7 @@ def test_multi_batch_invariance(
                     base_url=base_url,
                     model_name=model_name,
                     batch_size=batch_size,
+                    deterministic_pct=deterministic_pct,
                     verbose=False,
                 )
                 
@@ -317,6 +340,7 @@ def test_multi_batch_invariance(
     print(f"Total tests: {total_tests}")
     print(f"Passed: {passed_tests} ({100*passed_tests/total_tests:.1f}%)")
     print(f"Failed: {failed_tests} ({100*failed_tests/total_tests:.1f}%)")
+    print(f"Deterministic ratio: {deterministic_pct:.0f}% / {100-deterministic_pct:.0f}%")
     print(f"{'='*80}\n")
     
     if failed_tests > 0:
@@ -342,24 +366,68 @@ def test_multi_batch_invariance(
 
 if __name__ == "__main__":
     """Run test standalone"""
+    parser = argparse.ArgumentParser(
+        description="Batch invariance test with mixed deterministic/non-deterministic requests"
+    )
+    parser.add_argument(
+        "--deterministic-pct",
+        type=float,
+        default=50.0,
+        help="Percentage of requests that should be deterministic (0-100, default: 50)",
+    )
+    parser.add_argument(
+        "--batch-sizes",
+        type=int,
+        nargs="+",
+        default=[2, 8, 32],
+        help="List of batch sizes to test (default: 2 8 32)",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        nargs="+",
+        default=[8, 96],
+        help="List of max_tokens values to test (default: 8 96)",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default=None,
+        help="Server host (default: from SGLANG_HOST env or 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help="Server port (default: from SGLANG_PORT env or 30000)",
+    )
+    parser.add_argument(
+        "--backend",
+        type=str,
+        default=None,
+        help="Attention backend (default: from SGLANG_ATTENTION_BACKEND env or flashinfer)",
+    )
+    
+    args = parser.parse_args()
+    
     print("\n" + "="*80)
-    print("MULTI-BATCH INVARIANCE TEST")
+    print("MIXED DETERMINISTIC/NON-DETERMINISTIC BATCH INVARIANCE TEST")
     print("="*80)
     
-    # Get configuration from environment
-    host = os.getenv("SGLANG_HOST", "127.0.0.1")
-    port = int(os.getenv("SGLANG_PORT", "30005"))
+    # Get configuration from args or environment
+    host = args.host or os.getenv("SGLANG_HOST", "127.0.0.1")
+    port = args.port or int(os.getenv("SGLANG_PORT", "30000"))
     base_url = f"http://{host}:{port}"
-    backend = os.getenv("SGLANG_ATTENTION_BACKEND", "flashinfer")
-    
-    # Configure batch sizes and max_tokens to test
-    batch_sizes = [i for i in range(2, 65)]
-    max_tokens_list = [128]
+    backend = args.backend or os.getenv("SGLANG_ATTENTION_BACKEND", "flashinfer")
+    deterministic_pct = args.deterministic_pct
+    batch_sizes = args.batch_sizes
+    max_tokens_list = args.max_tokens
     
     n_prompts = max(batch_sizes) * 2  # Generate enough prompts for largest batch
     
     print(f"Server: {base_url}")
     print(f"Backend: {backend}")
+    print(f"Deterministic: {deterministic_pct:.0f}% | Non-deterministic: {100-deterministic_pct:.0f}%")
     print(f"Batch sizes: {batch_sizes}")
     print(f"Max tokens: {max_tokens_list}")
     print(f"Total prompts: {n_prompts}")
@@ -379,6 +447,11 @@ if __name__ == "__main__":
         print("Start server with: bash launch_batch_invariance_test.sh")
         sys.exit(1)
     
+    # Validate deterministic_pct
+    if not 0 <= deterministic_pct <= 100:
+        print(f"Error: --deterministic-pct must be between 0 and 100, got {deterministic_pct}")
+        sys.exit(1)
+    
     # Run test
     try:
         test_multi_batch_invariance(
@@ -386,6 +459,7 @@ if __name__ == "__main__":
             base_url=base_url,
             batch_sizes=batch_sizes,
             max_tokens_list=max_tokens_list,
+            deterministic_pct=deterministic_pct,
             n_prompts=n_prompts,
         )
         sys.exit(0)

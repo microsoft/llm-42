@@ -2055,6 +2055,7 @@ class ModelRunner:
                     else:
                         # No sampling info, default to disabled
                         should_enable_batch_invariant = False
+                # should_enable_batch_invariant = True
         elif self.enable_selective_determinism and not is_verification_mode:
             # Selective determinism: check if ANY request in batch needs deterministic behavior
             if forward_batch.sampling_info is not None:
@@ -2073,8 +2074,12 @@ class ModelRunner:
             # For det_infer mode, global default is DISABLED
             # Only use context manager when we need to enable it
             if should_enable_batch_invariant:
+                logger.info(f"[DEBUG][ModelRunner] Enabling batch_invariant for det_infer_mode, forward_mode={forward_batch.forward_mode}, is_verification={is_verification_mode}, batch_size={forward_batch.batch_size}")
                 batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
                 batch_invariant_context.__enter__()
+            else:
+                logger.info(f"[DEBUG][ModelRunner] batch_invariant DISABLED for det_infer_mode, forward_mode={forward_batch.forward_mode}, batch_size={forward_batch.batch_size}")
+                pass
         elif self.enable_selective_determinism:
             # For selective determinism, global default is also DISABLED
             # Only use context manager when we need to enable it
@@ -2165,29 +2170,53 @@ class ModelRunner:
         Returns:
             A list of next_token_ids
         """
-        # For duplex models with multiple output streams.
-        if isinstance(logits_output, tuple):
-            return torch.stack(
-                [self.sample(values, forward_batch) for values in logits_output],
-                axis=-1,
-            )
+        # For verification modes only, enable batch_invariant during sampling
+        # to maintain determinism in logprobs computation (log_softmax, softmax, etc.)
+        # BUT: Don't create a nested context if batch_invariant is already enabled from forward pass
+        is_verification = forward_batch.forward_mode.is_any_verify()
+        should_enable_batch_invariant = is_verification and self.enable_det_infer_mode > 0
+        
+        batch_inv_context = None
+        if should_enable_batch_invariant:
+            from sglang.srt.batch_invariant_ops import set_batch_invariant_mode, is_batch_invariant_mode_enabled
+            # Only create context if not already enabled (avoid nested contexts)
+            if not is_batch_invariant_mode_enabled():
+                logger.info(f"[DEBUG][ModelRunner.sample] Enabling batch_invariant for verification sampling, forward_mode={forward_batch.forward_mode}")
+                batch_inv_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
+                batch_inv_context.__enter__()
+                logger.info(f"[DEBUG][ModelRunner.sample] batch_invariant={is_batch_invariant_mode_enabled()}")
+            else:
+                logger.info(f"[DEBUG][ModelRunner.sample] batch_invariant already enabled, skipping context creation")
+        
+        try:
+            # For duplex models with multiple output streams.
+            if isinstance(logits_output, tuple):
+                return torch.stack(
+                    [self.sample(values, forward_batch) for values in logits_output],
+                    axis=-1,
+                )
 
-        self._preprocess_logits(logits_output, forward_batch.sampling_info)
-        # Sample the next tokens
-        next_token_ids = self.sampler(
-            logits_output,
-            forward_batch.sampling_info,
-            forward_batch.return_logprob,
-            forward_batch.top_logprobs_nums,
-            forward_batch.token_ids_logprobs,
-            # For prefill, we only use the position of the last token.
-            (
-                forward_batch.positions
-                if forward_batch.forward_mode.is_decode()
-                else forward_batch.seq_lens - 1
-            ),
-        )
-        return next_token_ids
+            self._preprocess_logits(logits_output, forward_batch.sampling_info)
+            # Sample the next tokens
+            next_token_ids = self.sampler(
+                logits_output,
+                forward_batch.sampling_info,
+                forward_batch.return_logprob,
+                forward_batch.top_logprobs_nums,
+                forward_batch.token_ids_logprobs,
+                # For prefill, we only use the position of the last token.
+                (
+                    forward_batch.positions
+                    if forward_batch.forward_mode.is_decode()
+                    else forward_batch.seq_lens - 1
+                ),
+            )
+            return next_token_ids
+        finally:
+            if batch_inv_context is not None:
+                batch_inv_context.__exit__(None, None, None)
+                # if should_enable_batch_invariant:
+                #     logger.info(f"[DEBUG][ModelRunner.sample] Exited batch_invariant context")
 
     def compute_logprobs_only(
         self,

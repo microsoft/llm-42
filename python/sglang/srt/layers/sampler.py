@@ -90,15 +90,27 @@ class Sampler(nn.Module):
             # Use torch.argmax if all requests use greedy sampling
             batch_next_token_ids = torch.argmax(logits, -1)
             if return_logprob:
+                import logging
+                logger = logging.getLogger(__name__)
+                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                #logger.info(f"[DEBUG][Sampler][Greedy] Computing log_softmax, batch_invariant={is_batch_invariant_mode_enabled()}, shape={logits.shape}")
                 logprobs = torch.nn.functional.log_softmax(logits, dim=-1)
 
         else:
             # If requested, cache probabilities from original logits before temperature scaling.
             if return_logprob and RETURN_ORIGINAL_LOGPROB:
+                import logging
+                logger = logging.getLogger(__name__)
+                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                #logger.info(f"[DEBUG][Sampler][NonGreedy] Computing softmax (original), batch_invariant={is_batch_invariant_mode_enabled()}, shape={logits.shape}")
                 probs_without_temp_scaling = torch.softmax(logits, dim=-1)
 
             # Post process logits
             logits.div_(sampling_info.temperatures)
+            import logging
+            logger = logging.getLogger(__name__)
+            from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+            #logger.info(f"[DEBUG][Sampler][NonGreedy] Computing softmax (after temp), batch_invariant={is_batch_invariant_mode_enabled()}, shape={logits.shape}")
             logits[:] = torch.softmax(logits, dim=-1)
             probs = logits
             del logits

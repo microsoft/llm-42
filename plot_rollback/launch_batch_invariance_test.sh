@@ -8,7 +8,7 @@ set -e
 # Model and server configuration
 MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
-PORT="${SGLANG_PORT:-30005}"
+PORT="${SGLANG_PORT:-30000}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 
@@ -43,11 +43,6 @@ $PYTHON_CMD -m sglang.launch_server \
     --disable-radix-cache \
     --disable-chunked-prefix-cache \
     --disable-overlap-schedule \
-    --disable-cuda-graph \
-    --min-det-step-size 10 \
-    --enable-det-infer 1
-    # --enable-selective-determinism 1 \
-    # --enable-deterministic-inference 1 \
     # --min-det-step-size 10 \
     # --enable-det-infer 1
     # --enable-selective-determinism 1 \

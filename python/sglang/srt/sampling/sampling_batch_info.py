@@ -84,6 +84,8 @@ class SamplingBatchInfo:
         global_server_args_dict = cls._get_global_server_args_dict()
         enable_deterministic = global_server_args_dict["enable_deterministic_inference"] > 0 or global_server_args_dict["enable_det_infer"] > 0 or global_server_args_dict["enable_selective_determinism"] > 0
 
+        #logger.info(f"[SamplingBatchInfo.from_schedule_batch] Creating sampling_info for {len(batch.reqs)} requests, enable_deterministic={enable_deterministic}")
+
         reqs = batch.reqs
         device = batch.device
         

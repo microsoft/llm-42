@@ -683,6 +683,20 @@ class TokenizerMetricsCollector:
             documentation="Number of requests aborted.",
             labelnames=labels.keys(),
         )
+        self.num_rollbacks_total = Counter(
+            name="sglang:num_rollbacks_total",
+            documentation="Total rollback events.",
+            labelnames=labels.keys(),
+        )
+        self.tokens_rolled_back_total = Counter(
+            name="sglang:tokens_rolled_back_total",
+            documentation="Total tokens rolled back.",
+            labelnames=labels.keys(),
+        )
+        
+        # Initialize rollback counters to ensure they appear in metrics
+        self.num_rollbacks_total.labels(**labels).inc(0)
+        self.tokens_rolled_back_total.labels(**labels).inc(0)
 
         if bucket_time_to_first_token is None:
             bucket_time_to_first_token = [

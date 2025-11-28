@@ -226,7 +226,7 @@ class SchedulerOutputProcessorMixin:
 
         self.token_to_kv_pool_allocator.free_group_begin()
 
-        # First, append tokens and check finish condition
+        # First, append tokens and logprobs, then check finish condition
         # NOTE: the length of reqs and next_token_ids don't match if it is spec decoding.
         # We should ignore using next_token_ids for spec decoding cases.
         for i, (req, next_token_id) in enumerate(zip(batch.reqs, next_token_ids)):
@@ -250,13 +250,33 @@ class SchedulerOutputProcessorMixin:
             if batch.spec_algorithm.is_none():
                 # speculative worker will solve the output_ids in speculative decoding
                 req.output_ids.append(next_token_id)
+                
+                # Add logprobs BEFORE verification so verification can update them
+                if req.return_logprob and batch.return_logprob:
+                    req.output_token_logprobs_val.append(next_token_logprobs[i])
+                    req.output_token_logprobs_idx.append(next_token_id)
+                    if req.top_logprobs_num > 0:
+                        req.output_top_logprobs_val.append(
+                            logits_output.next_token_top_logprobs_val[i]
+                        )
+                        req.output_top_logprobs_idx.append(
+                            logits_output.next_token_top_logprobs_idx[i]
+                        )
+                    if req.token_ids_logprob is not None:
+                        req.output_token_ids_logprobs_val.append(
+                            logits_output.next_token_token_ids_logprobs_val[i]
+                        )
+                        req.output_token_ids_logprobs_idx.append(
+                            logits_output.next_token_token_ids_logprobs_idx[i]
+                        )
 
             # Check if finished, but DON'T cache yet for deterministic requests
             req.check_finished()
-
+        self.token_to_kv_pool_allocator.free_group_end()
         if self.server_args.enable_det_infer:
             self.model_worker.check_and_verify_deterministic_requests(batch)
 
+        self.token_to_kv_pool_allocator.free_group_begin()
         # Now cache finished requests after verification is complete
         # For deterministic requests, verification might have caused rollback which could change finished state
         for i, (req, next_token_id) in enumerate(zip(batch.reqs, next_token_ids)):
@@ -275,6 +295,9 @@ class SchedulerOutputProcessorMixin:
             
             # Now check if request is finished and cache it
             if req.finished():
+                logger.info(f"Request {req.rid} finished with reason: {req.finished_reason}")
+                logger.info(f"origin_input_ids: len={len(req.origin_input_ids)} ids={req.origin_input_ids}")
+                logger.info(f"Output IDs: len={len(req.output_ids)} ids={req.output_ids}")
                 if self.server_args.disaggregation_decode_enable_offload_kvcache:
                     # Asynchronously offload KV cache; cache_finished_req will be called after Device->Host transfer completes
                     if not self.decode_offload_manager.offload_kv_cache(req):
@@ -284,24 +307,7 @@ class SchedulerOutputProcessorMixin:
 
                 req.time_stats.completion_time = time.perf_counter()
 
-            if req.return_logprob and batch.spec_algorithm.is_none():
-                # speculative worker handles logprob in speculative decoding
-                req.output_token_logprobs_val.append(next_token_logprobs[i])
-                req.output_token_logprobs_idx.append(next_token_id)
-                if req.top_logprobs_num > 0:
-                    req.output_top_logprobs_val.append(
-                        logits_output.next_token_top_logprobs_val[i]
-                    )
-                    req.output_top_logprobs_idx.append(
-                        logits_output.next_token_top_logprobs_idx[i]
-                    )
-                if req.token_ids_logprob is not None:
-                    req.output_token_ids_logprobs_val.append(
-                        logits_output.next_token_token_ids_logprobs_val[i]
-                    )
-                    req.output_token_ids_logprobs_idx.append(
-                        logits_output.next_token_token_ids_logprobs_idx[i]
-                    )
+            # Logprobs already added in first loop before verification
 
             if req.return_hidden_states and logits_output.hidden_states is not None:
                 req.hidden_states.append(

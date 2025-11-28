@@ -137,6 +137,8 @@ class DetVerifyInfo:
         verify_batch.seq_lens_sum = total_seq_lens.sum().item()
         verify_batch.orig_seq_lens = total_seq_lens.clone()
         
+        logger.info(f"[DEBUG][DetVerifyInfo] Verification batch: num_reqs={len(reqs_to_verify)}, total_tokens={len(input_ids)}, output_lens={output_lens}, prefix_lens={prefix_lens_list}")
+        
         verify_batch.return_logprob = True
         verify_batch.top_logprobs_nums = [0] * len(reqs_to_verify)
         verify_batch.token_ids_logprobs = [[] for _ in reqs_to_verify]
@@ -254,9 +256,15 @@ class DetVerifyInfo:
         Returns:
             List of (mismatch_position, tokens_rolled_back) tuples for each request
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         verified_token_ids = verified_token_ids.tolist() if isinstance(verified_token_ids, torch.Tensor) else verified_token_ids
         verified_logprobs_list = verified_logprobs.tolist() if isinstance(verified_logprobs, torch.Tensor) else verified_logprobs
-        
+        # logger.info(f"[DEBUG][DetVerifyInfo] Starting verification comparison for {len(reqs)} requests")
+        # logger.info(f"[DEBUG][DetVerifyInfo] verified_token_ids length: {len(verified_token_ids)}")
+        # logger.info(f"[DEBUG][DetVerifyInfo] original_outputs length: {len(self.original_outputs)}")
+
         original_ids = self.original_outputs.tolist()
         rollback_info = []
         offset = 0
@@ -266,17 +274,33 @@ class DetVerifyInfo:
             orig_output = original_ids[offset : offset + output_len]
             verify_output = verified_token_ids[offset : offset + output_len]
             
+            # logger.info(f"[DEBUG][DetVerifyInfo] Comparing req {i}, output_len={output_len}, orig={orig_output}..., verify={verify_output}...")
+            # logger.info(f"[DEBUG][DetVerifyInfo] req {i} verified logprobs={verified_logprobs_list[offset : offset + output_len] if verified_logprobs_list is not None else 'N/A'}")
+            # logger.info(f"[DEBUG][DetVerifyInfo] BEFORE comparison: "
+            #             f"original logprobs={req.output_token_logprobs_val[-output_len:] if req.output_token_logprobs_val is not None else 'N/A'}, "
+            #             f"verified logprobs={verified_logprobs_list[offset : offset + output_len] if verified_logprobs_list is not None else 'N/A'}")
             mismatch_pos = self.first_mismatch_position(orig_output, verify_output)
             # mismatch_pos = min(5, output_len)  # testing
             
             tokens_to_rollback = len(orig_output) - mismatch_pos
             
+            # logger.info(f"[DEBUG][DetVerifyInfo] Mismatch location: "
+            #             f"len(orig)={len(orig_output)}, len(verify)={len(verify_output)}, "
+            #             f"mismatch_pos={mismatch_pos}, tokens_to_rollback={tokens_to_rollback}"
+            #             f"len(req.output_ids)={len(req.output_ids)}"
+            #             f"mismatch = {len(req.output_ids) - (len(orig_output) + mismatch_pos)}")
+            
             if tokens_to_rollback > 0:
                 req.output_ids = req.output_ids[:-tokens_to_rollback]
                 
-                if verified_logprobs_list is not None and hasattr(req, 'output_token_logprobs') and req.output_token_logprobs is not None:
-                    req.output_token_logprobs = req.output_token_logprobs[:-tokens_to_rollback]
-                    req.output_token_logprobs.extend(verified_logprobs_list[offset : offset + mismatch_pos])
+                if verified_logprobs_list is not None and req.output_token_logprobs_val is not None:
+                    # Replace logprobs for ALL verified tokens (up to and including mismatch)
+                    req.output_token_logprobs_val = req.output_token_logprobs_val[:-output_len]
+                    req.output_token_logprobs_idx = req.output_token_logprobs_idx[:-output_len]
+                    
+                    # Add verified logprobs up to mismatch position
+                    req.output_token_logprobs_val.extend(verified_logprobs_list[offset : offset + mismatch_pos])
+                    req.output_token_logprobs_idx.extend(verify_output[:mismatch_pos])
                 
                 req.finished_reason = None
                 req.finished_output = None
@@ -284,22 +308,35 @@ class DetVerifyInfo:
                 if mismatch_pos < len(verify_output):
                     req.output_ids.append(verify_output[mismatch_pos])
                     
-                    if verified_logprobs_list is not None and hasattr(req, 'output_token_logprobs') and req.output_token_logprobs is not None:
-                        req.output_token_logprobs.append(verified_logprobs_list[offset + mismatch_pos])
+                    if verified_logprobs_list is not None and req.output_token_logprobs_val is not None:
+                        req.output_token_logprobs_val.append(verified_logprobs_list[offset + mismatch_pos])
+                        req.output_token_logprobs_idx.append(verify_output[mismatch_pos])
                     
                     tokens_to_rollback -= 1
                 
                 rollback_info.append((mismatch_pos, tokens_to_rollback))
             else:
-                if verified_logprobs_list is not None and hasattr(req, 'output_token_logprobs') and req.output_token_logprobs is not None:
-                    verified_logprobs_for_req = verified_logprobs_list[offset : offset + output_len]
-                    start_idx = len(req.output_token_logprobs) - output_len
-                    if start_idx >= 0:
-                        req.output_token_logprobs[start_idx:] = verified_logprobs_for_req
-                    else:
-                        req.output_token_logprobs = verified_logprobs_for_req[-len(req.output_token_logprobs):]
+                # No rollback needed, but still replace with verified logprobs and token IDs
+                if verified_logprobs_list is not None and req.output_token_logprobs_val is not None:
+                    # Replace logprobs for ALL verified tokens
+                    req.output_token_logprobs_val = req.output_token_logprobs_val[:-output_len]
+                    req.output_token_logprobs_idx = req.output_token_logprobs_idx[:-output_len]
+                    
+                    # Add verified logprobs and token IDs
+                    req.output_token_logprobs_val.extend(verified_logprobs_list[offset : offset + output_len])
+                    req.output_token_logprobs_idx.extend(verify_output[:output_len])
                 
                 rollback_info.append((mismatch_pos, 0))
+
+            # Update send_output_token_logprobs_offset to match the new logprobs length
+            # This is critical for streaming output to work correctly after verification
+            if verified_logprobs_list is not None and req.output_token_logprobs_val is not None:
+                req.send_output_token_logprobs_offset = len(req.output_token_logprobs_val)
+            
+            # logger.info(f"[DEBUG][DetVerifyInfo] AFTER comparison: "
+            #             f"output_ids={req.output_ids}, "
+            #             f"logprobs_idx={req.output_token_logprobs_idx if req.output_token_logprobs_val is not None else 'None'}"
+            #             f"logprobs_val={req.output_token_logprobs_val if req.output_token_logprobs_val is not None else 'None'}")
             
             offset += output_len
         
