@@ -273,10 +273,36 @@ class SchedulerOutputProcessorMixin:
             # Check if finished, but DON'T cache yet for deterministic requests
             req.check_finished()
         self.token_to_kv_pool_allocator.free_group_end()
+        # logger.info(f"KV cache available BEFORE verification: {self.token_to_kv_pool_allocator.available_size()}")
+        # Handle deterministic verification and get rollback info
+        rollback_results = []
         if self.server_args.enable_det_infer:
-            self.model_worker.check_and_verify_deterministic_requests(batch)
+            rollback_results = self.model_worker.check_and_verify_deterministic_requests(batch)
+            # logger.info(f"Deterministic verification rollback results: {rollback_results}")
 
         self.token_to_kv_pool_allocator.free_group_begin()
+        
+        # Free KV cache slots for rolled back tokens (inside free_group for proper batching)
+        for req, tokens_rolled_back in rollback_results:
+            # Get the KV cache indices for the slots to free
+            # After rollback, output_ids has been truncated and corrected token appended
+            # The corrected token is at position (origin + output_len - 1), so we start freeing AFTER that
+            start_free_pos = len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0)
+            end_free_pos = start_free_pos + tokens_rolled_back
+            
+            kv_indices_to_free_raw = batch.req_to_token_pool.req_to_token[
+                req.req_pool_idx, start_free_pos:end_free_pos
+            ]
+            # logger.info(f"Request {req.rid} rolling back from position {start_free_pos} to {end_free_pos} (total {tokens_rolled_back} tokens).")
+            # logger.info(f"KV cache slots BEFORE rollback: {batch.req_to_token_pool.req_to_token[req.req_pool_idx, :len(req.origin_input_ids) + len(req.output_ids) - 1]}")
+            # # # Filter out zero indices (slot 0 is padding, should never be freed)
+            # # kv_indices_to_free = kv_indices_to_free_raw[kv_indices_to_free_raw != 0]
+            # logger.info(f"Freeing KV cache indices: {kv_indices_to_free_raw}")
+            # logger.info(f"Request {req.rid} rolled back {tokens_rolled_back} tokens.")
+            # logger.info(f"Request {req.rid} output_ids after rollback: {req.output_ids}")
+            # logger.info(f"Request {req.rid} page_size: {self.page_size}")
+            if kv_indices_to_free_raw.numel() > 0:
+                self.token_to_kv_pool_allocator.free(kv_indices_to_free_raw)
         # Now cache finished requests after verification is complete
         # For deterministic requests, verification might have caused rollback which could change finished state
         for i, (req, next_token_id) in enumerate(zip(batch.reqs, next_token_ids)):
@@ -295,9 +321,9 @@ class SchedulerOutputProcessorMixin:
             
             # Now check if request is finished and cache it
             if req.finished():
-                logger.info(f"Request {req.rid} finished with reason: {req.finished_reason}")
-                logger.info(f"origin_input_ids: len={len(req.origin_input_ids)} ids={req.origin_input_ids}")
-                logger.info(f"Output IDs: len={len(req.output_ids)} ids={req.output_ids}")
+                # logger.info(f"Request {req.rid} finished with reason: {req.finished_reason}")
+                # logger.info(f"origin_input_ids: len={len(req.origin_input_ids)} ids={req.origin_input_ids}")
+                # logger.info(f"Output IDs: len={len(req.output_ids)} ids={req.output_ids}")
                 if self.server_args.disaggregation_decode_enable_offload_kvcache:
                     # Asynchronously offload KV cache; cache_finished_req will be called after Device->Host transfer completes
                     if not self.decode_offload_manager.offload_kv_cache(req):

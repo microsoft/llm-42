@@ -697,6 +697,7 @@ class Req:
 
     def finished(self) -> bool:
         # Whether request reached finished condition
+        # logger.info(f"[REQ_DEBUG] Request {self.rid} finished check: {self.finished_reason is not None}")
         return self.finished_reason is not None
 
     def init_next_round_input(

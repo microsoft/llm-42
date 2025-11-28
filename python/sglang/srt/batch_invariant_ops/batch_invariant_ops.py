@@ -616,9 +616,9 @@ def addmm_bi_fused_kernel(bias, a, b, split_frac=0.25):
         return bf16_batch_invariant_fused_mm(a, b, a.dtype, split_frac=split_frac, bias=bias)
 
 def _log_softmax_batch_invariant(input, dim, _half_to_float):
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"[DEBUG][BatchInvariantOps] _log_softmax_batch_invariant called, shape={input.shape}, dim={dim}")
+    # import logging
+    # logger = logging.getLogger(__name__)
+    # logger.info(f"[DEBUG][BatchInvariantOps] _log_softmax_batch_invariant called, shape={input.shape}, dim={dim}")
     assert not _half_to_float, "not implemented"
     return log_softmax(input, dim=dim)
 
@@ -715,8 +715,8 @@ def set_batch_invariant_mode(enabled: bool = True, mode: int = 1):
     # Only change state if different from current state
     needs_change = (enabled != old_was_enabled) or (enabled and mode != old_mode_value)
     
-    logger.info(f"[DEBUG][BatchInvariantOps][ContextManager] ENTER: enabled={enabled}, mode={mode}, "
-                f"old_enabled={old_was_enabled}, old_mode={old_mode_value}, needs_change={needs_change}")
+    # logger.info(f"[DEBUG][BatchInvariantOps][ContextManager] ENTER: enabled={enabled}, mode={mode}, "
+    #             f"old_enabled={old_was_enabled}, old_mode={old_mode_value}, needs_change={needs_change}")
     
     if needs_change:
         if enabled:
@@ -728,7 +728,7 @@ def set_batch_invariant_mode(enabled: bool = True, mode: int = 1):
     
     # Only restore if we actually changed something
     if needs_change:
-        logger.info(f"[DEBUG][BatchInvariantOps][ContextManager] EXIT: restoring to enabled={old_was_enabled}, mode={old_mode_value}")
+        # logger.info(f"[DEBUG][BatchInvariantOps][ContextManager] EXIT: restoring to enabled={old_was_enabled}, mode={old_mode_value}")
         if old_was_enabled and old_mode_value > 0:
             # Restore to previous mode, suppress logging since we're just restoring
             enable_batch_invariant_mode(old_mode_value, _suppress_log=True)

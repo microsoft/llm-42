@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List, Tuple, Union
 
 import torch
 
@@ -72,7 +72,7 @@ class DeterministicVerificationWorker:
     def check_and_verify_deterministic_requests(
         self, 
         batch: Union[ScheduleBatch, ModelWorkerBatch]
-    ):
+    ) -> List[Tuple[Req, int]]:
         """
         Check for deterministic requests that need verification and verify them.
         Should be called AFTER tokens have been appended and check_finished() called.
@@ -82,9 +82,13 @@ class DeterministicVerificationWorker:
         
         Args:
             batch: Current ScheduleBatch or ModelWorkerBatch after output processing
+            
+        Returns:
+            List of (req, tokens_rolled_back) tuples for requests that had rollback.
+            The caller should use this to free KV cache slots.
         """
         if batch.reqs is None:
-            return
+            return []
         
         reqs_to_verify = []
         
@@ -112,14 +116,15 @@ class DeterministicVerificationWorker:
                 reqs_to_verify.append(req)
         
         if reqs_to_verify:
-            self._verify_deterministic_requests(batch, reqs_to_verify)
+            return self._verify_deterministic_requests(batch, reqs_to_verify)
+        return []
 
 
     def _verify_deterministic_requests(
         self, 
         original_batch: Union[ScheduleBatch, ModelWorkerBatch], 
         reqs: List[Req]
-    ):
+    ) -> List[Tuple[Req, int]]:
         """
         Verify deterministic requests by re-running them.
         Tokens are already in req.output_ids at this point.
@@ -127,6 +132,9 @@ class DeterministicVerificationWorker:
         Args:
             original_batch: Original batch context
             reqs: Requests to verify (tokens already appended)
+            
+        Returns:
+            List of (req, tokens_rolled_back) tuples for requests that had rollback.
         """
         try:
             # logger.info(f"[DEBUG][DetVerifyWorker] Starting verification for {len(reqs)} requests")
@@ -148,19 +156,29 @@ class DeterministicVerificationWorker:
             
             # Check allocator state after verification
             available_after = original_batch.token_to_kv_pool_allocator.available_size()
-            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER verification: {available_after}")
+            logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER verification: {available_after}")
             # logger.info(f"[DEBUG][DetVerifyWorker] KV cache delta: {available_before - available_after}")
             
             # Extract results (sampling already done inside forward_batch_generation)
             verified_token_ids = verify_output.next_token_ids
             verified_logprobs = verify_output.logits_output.next_token_logprobs
+
+            logger.info(f"[DEBUG][DetVerifyWorker] Verified token IDs: {len(verified_token_ids)=}")
             
             # Compare outputs and handle rollback
             rollback_info = det_verify_info.verify_and_compare(
                 reqs, verified_token_ids, verified_logprobs
             )
             
-            self._handle_kv_cache_rollback(original_batch, reqs, rollback_info)
+            # Collect rollback info for KV cache freeing (will be done by caller)
+            rollback_results = []
+            for req, info in zip(reqs, rollback_info):
+                if info is not None and info[1] > 0:
+                    # Track metrics
+                    if self.metrics_collector:
+                        self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
+                        self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
+                    rollback_results.append((req, info[1]))
             
             # Update verified token counts
             for req in reqs:
@@ -168,8 +186,7 @@ class DeterministicVerificationWorker:
             
             # Update batch state if there was any rollback
             # (need to sync seq_lens with the new req.output_ids length)
-            had_rollback = any(info[1] > 0 for info in rollback_info if info is not None)
-            if had_rollback:
+            if rollback_results:
                 #logger.info(f"[DEBUG][DetVerifyWorker] Rollback detected, updating batch state")
                 self._update_batch_state(original_batch)
             
@@ -211,6 +228,8 @@ class DeterministicVerificationWorker:
             # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER cleanup: {available_final}")
             # logger.info(f"[DEBUG][DetVerifyWorker] KV cache total delta: {available_before - available_final}")
             
+            return rollback_results
+            
         except Exception as e:
             logger.error(f"Error during verification: {e}")
             raise
@@ -251,40 +270,6 @@ class DeterministicVerificationWorker:
         batch.seq_lens_cpu = torch.tensor(updated_seq_lens, dtype=torch.int32)
         batch.orig_seq_lens = batch.seq_lens.clone()
         batch.seq_lens_sum = sum(updated_seq_lens)
-
-    def _handle_kv_cache_rollback(
-        self,
-        original_batch: Union[ScheduleBatch, ModelWorkerBatch],
-        reqs: List[Req],
-        rollback_info: List,
-    ):
-        """
-        Handle KV cache state after rollback.
-        """
-        for req, info in zip(reqs, rollback_info):
-            if info is None or info[1] == 0:
-                continue
-            
-            # Track metrics
-            if self.metrics_collector:
-                self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
-                self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
-            
-            mismatch_pos, tokens_rolled_back = info
-            
-            # Get the KV cache indices for the slots to free
-            start_free_pos = len(req.origin_input_ids) + len(req.output_ids) - 1
-            end_free_pos = start_free_pos + tokens_rolled_back + 1
-            
-            kv_indices_to_free_raw = original_batch.req_to_token_pool.req_to_token[
-                req.req_pool_idx, start_free_pos:end_free_pos
-            ]
-            
-            # Filter out zero indices (slot 0 is padding, should never be freed)
-            kv_indices_to_free = kv_indices_to_free_raw[kv_indices_to_free_raw != 0]
-            
-            if kv_indices_to_free.numel() > 0:
-                original_batch.token_to_kv_pool_allocator.free(kv_indices_to_free)
 
     def __getattr__(self, name):
         """

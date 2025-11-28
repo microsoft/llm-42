@@ -137,7 +137,7 @@ class DetVerifyInfo:
         verify_batch.seq_lens_sum = total_seq_lens.sum().item()
         verify_batch.orig_seq_lens = total_seq_lens.clone()
         
-        logger.info(f"[DEBUG][DetVerifyInfo] Verification batch: num_reqs={len(reqs_to_verify)}, total_tokens={len(input_ids)}, output_lens={output_lens}, prefix_lens={prefix_lens_list}")
+        # logger.info(f"[DEBUG][DetVerifyInfo] Verification batch: num_reqs={len(reqs_to_verify)}, total_tokens={len(input_ids)}, output_lens={output_lens}, prefix_lens={prefix_lens_list}")
         
         verify_batch.return_logprob = True
         verify_batch.top_logprobs_nums = [0] * len(reqs_to_verify)
@@ -334,10 +334,11 @@ class DetVerifyInfo:
                 req.send_output_token_logprobs_offset = len(req.output_token_logprobs_val)
             
             # logger.info(f"[DEBUG][DetVerifyInfo] AFTER comparison: "
-            #             f"output_ids={req.output_ids}, "
-            #             f"logprobs_idx={req.output_token_logprobs_idx if req.output_token_logprobs_val is not None else 'None'}"
-            #             f"logprobs_val={req.output_token_logprobs_val if req.output_token_logprobs_val is not None else 'None'}")
-            
+            #             f"len origin_input_ids={len(req.origin_input_ids)}, "
+            #             f"len output_ids={len(req.output_ids)}, "
+            #             f"mismatch_pos={mismatch_pos}, tokens_rolled_back={tokens_to_rollback}, "
+            #             f"start pos {len(req.origin_input_ids) + len(req.output_ids) - 1}, "
+            #             f"KV slots = {req.req_pool_idx}, ")
             offset += output_len
         
         return rollback_info

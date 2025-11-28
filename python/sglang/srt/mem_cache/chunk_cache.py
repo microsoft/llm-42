@@ -46,8 +46,8 @@ class ChunkCache(BasePrefixCache):
         )
 
     def cache_finished_req(self, req: Req, insert: bool = True):
-        # import logging
-        # logger = logging.getLogger(__name__)
+        import logging
+        logger = logging.getLogger(__name__)
         # logger.info(
         #     f"Free For request {req.rid}: "
         #     f"input_ids len={len(req.origin_input_ids)}, "
@@ -56,11 +56,15 @@ class ChunkCache(BasePrefixCache):
         # )
         kv_indices = self.req_to_token_pool.req_to_token[
             req.req_pool_idx,
-            # For decode server: if req.output_ids is empty, we want to free all req.origin_input_ids
+            # The last output token is the one being generated, so it doesn't have KV cache yet.
+            # Use max(..., 0) to handle the case when output_ids is empty.
             : len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0),
         ]
+        # logger.info(f"len(kv_indices) to free: {len(kv_indices)}")
+        # logger.info(f"Freeing KV cache indices: {kv_indices}")
         self.req_to_token_pool.free(req.req_pool_idx)
         self.token_to_kv_pool_allocator.free(kv_indices)
+        # logger.info(f"KV cache available AFTER cleaning: {self.token_to_kv_pool_allocator.available_size()}")
 
     def cache_unfinished_req(self, req: Req, chunked=False):
         kv_indices = self.req_to_token_pool.req_to_token[

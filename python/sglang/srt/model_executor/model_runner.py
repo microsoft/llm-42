@@ -2074,11 +2074,11 @@ class ModelRunner:
             # For det_infer mode, global default is DISABLED
             # Only use context manager when we need to enable it
             if should_enable_batch_invariant:
-                logger.info(f"[DEBUG][ModelRunner] Enabling batch_invariant for det_infer_mode, forward_mode={forward_batch.forward_mode}, is_verification={is_verification_mode}, batch_size={forward_batch.batch_size}")
+                # logger.info(f"[DEBUG][ModelRunner] Enabling batch_invariant for det_infer_mode, forward_mode={forward_batch.forward_mode}, is_verification={is_verification_mode}, batch_size={forward_batch.batch_size}")
                 batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
                 batch_invariant_context.__enter__()
             else:
-                logger.info(f"[DEBUG][ModelRunner] batch_invariant DISABLED for det_infer_mode, forward_mode={forward_batch.forward_mode}, batch_size={forward_batch.batch_size}")
+                # logger.info(f"[DEBUG][ModelRunner] batch_invariant DISABLED for det_infer_mode, forward_mode={forward_batch.forward_mode}, batch_size={forward_batch.batch_size}")
                 pass
         elif self.enable_selective_determinism:
             # For selective determinism, global default is also DISABLED
@@ -2181,12 +2181,12 @@ class ModelRunner:
             from sglang.srt.batch_invariant_ops import set_batch_invariant_mode, is_batch_invariant_mode_enabled
             # Only create context if not already enabled (avoid nested contexts)
             if not is_batch_invariant_mode_enabled():
-                logger.info(f"[DEBUG][ModelRunner.sample] Enabling batch_invariant for verification sampling, forward_mode={forward_batch.forward_mode}")
+                # logger.info(f"[DEBUG][ModelRunner.sample] Enabling batch_invariant for verification sampling, forward_mode={forward_batch.forward_mode}")
                 batch_inv_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
                 batch_inv_context.__enter__()
-                logger.info(f"[DEBUG][ModelRunner.sample] batch_invariant={is_batch_invariant_mode_enabled()}")
-            else:
-                logger.info(f"[DEBUG][ModelRunner.sample] batch_invariant already enabled, skipping context creation")
+            #     logger.info(f"[DEBUG][ModelRunner.sample] batch_invariant={is_batch_invariant_mode_enabled()}")
+            # else:
+            #     logger.info(f"[DEBUG][ModelRunner.sample] batch_invariant already enabled, skipping context creation")
         
         try:
             # For duplex models with multiple output streams.
