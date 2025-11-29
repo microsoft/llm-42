@@ -353,8 +353,8 @@ if __name__ == "__main__":
     backend = os.getenv("SGLANG_ATTENTION_BACKEND", "flashinfer")
     
     # Configure batch sizes and max_tokens to test
-    batch_sizes = [i for i in range(23, 78)]
-    max_tokens_list = [128]
+    batch_sizes = [i for i in range(2, 129)]
+    max_tokens_list = [128, 256]
     
     n_prompts = max(batch_sizes) * 2  # Generate enough prompts for largest batch
     
