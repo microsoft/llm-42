@@ -894,8 +894,8 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                 # else:
                 #     logger.info(f"Prompt Input IDs: {obj.input_ids}")
                 # logger.info(f"Prompt Text: {obj.text}")
-                if "output_ids" in out:
-                    logger.info(f"  Token IDs: {out['output_ids']}")
+                # if "output_ids" in out:
+                #     logger.info(f"  Token IDs: {out['output_ids']}")
                 # if "text" in out:
                 #     logger.info(f"  Text: {out['text']}")
 

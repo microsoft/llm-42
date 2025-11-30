@@ -46,8 +46,8 @@ class ChunkCache(BasePrefixCache):
         )
 
     def cache_finished_req(self, req: Req, insert: bool = True):
-        import logging
-        logger = logging.getLogger(__name__)
+        # import logging
+        # logger = logging.getLogger(__name__)
         # logger.info(
         #     f"Free For request {req.rid}: "
         #     f"input_ids len={len(req.origin_input_ids)}, "

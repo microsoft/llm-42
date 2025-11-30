@@ -1,0 +1,89 @@
+{
+  "min_det_step_size": 5,
+  "config": {
+    "batch_sizes": [
+      8,
+      16,
+      32,
+      64
+    ],
+    "max_tokens_list": [
+      32,
+      64,
+      128,
+      256
+    ],
+    "fixed_max_tokens": 128,
+    "fixed_batch_size": 32,
+    "n_prompts": 64,
+    "temperature": 0.0
+  },
+  "vary_batch_size": {
+    "BS=8": {
+      "num_rollbacks": 11,
+      "tokens_rolled_back": 22,
+      "num_requests": 8,
+      "completed": 8,
+      "rollback_rate": 1.375,
+      "avg_tokens_per_rollback": 2.0
+    },
+    "BS=16": {
+      "num_rollbacks": 21,
+      "tokens_rolled_back": 52,
+      "num_requests": 16,
+      "completed": 16,
+      "rollback_rate": 1.3125,
+      "avg_tokens_per_rollback": 2.4761904761904763
+    },
+    "BS=32": {
+      "num_rollbacks": 30,
+      "tokens_rolled_back": 75,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 0.9375,
+      "avg_tokens_per_rollback": 2.5
+    },
+    "BS=64": {
+      "num_rollbacks": 47,
+      "tokens_rolled_back": 118,
+      "num_requests": 64,
+      "completed": 64,
+      "rollback_rate": 0.734375,
+      "avg_tokens_per_rollback": 2.5106382978723403
+    }
+  },
+  "vary_max_tokens": {
+    "max_tokens=32": {
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 9,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 0.15625,
+      "avg_tokens_per_rollback": 1.8
+    },
+    "max_tokens=64": {
+      "num_rollbacks": 15,
+      "tokens_rolled_back": 32,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 0.46875,
+      "avg_tokens_per_rollback": 2.1333333333333333
+    },
+    "max_tokens=128": {
+      "num_rollbacks": 30,
+      "tokens_rolled_back": 75,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 0.9375,
+      "avg_tokens_per_rollback": 2.5
+    },
+    "max_tokens=256": {
+      "num_rollbacks": 56,
+      "tokens_rolled_back": 123,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 1.75,
+      "avg_tokens_per_rollback": 2.1964285714285716
+    }
+  }
+}

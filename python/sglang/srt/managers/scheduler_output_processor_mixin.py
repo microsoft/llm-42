@@ -284,6 +284,7 @@ class SchedulerOutputProcessorMixin:
         
         # Free KV cache slots for rolled back tokens (inside free_group for proper batching)
         for req, tokens_rolled_back in rollback_results:
+            logger.info(f"Request {req.rid} rolling back {tokens_rolled_back} tokens at {len(req.output_ids)=}")
             # Get the KV cache indices for the slots to free
             # After rollback, output_ids has been truncated and corrected token appended
             # The corrected token is at position (origin + output_len - 1), so we start freeing AFTER that

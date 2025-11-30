@@ -617,6 +617,14 @@ class Scheduler(
         # Init metrics stats
         self.init_metrics(tp_rank, pp_rank, dp_rank)
 
+        # Set metrics_collector on DeterministicVerificationWorker if enabled
+        if server_args.enable_det_infer and hasattr(self, 'metrics_collector'):
+            from sglang.srt.detinfer.det_verify_worker import (
+                DeterministicVerificationWorker,
+            )
+            if isinstance(self.model_worker, DeterministicVerificationWorker):
+                self.model_worker.metrics_collector = self.metrics_collector
+
         if self.enable_kv_cache_events:
             self.init_kv_events(server_args.kv_events_config)
 

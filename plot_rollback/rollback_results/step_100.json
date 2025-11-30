@@ -1,0 +1,89 @@
+{
+  "min_det_step_size": 100,
+  "config": {
+    "batch_sizes": [
+      8,
+      16,
+      32,
+      64
+    ],
+    "max_tokens_list": [
+      32,
+      64,
+      128,
+      256
+    ],
+    "fixed_max_tokens": 128,
+    "fixed_batch_size": 32,
+    "n_prompts": 64,
+    "temperature": 0.0
+  },
+  "vary_batch_size": {
+    "BS=8": {
+      "num_rollbacks": 12,
+      "tokens_rolled_back": 970,
+      "num_requests": 8,
+      "completed": 8,
+      "rollback_rate": 1.5,
+      "avg_tokens_per_rollback": 80.83333333333333
+    },
+    "BS=16": {
+      "num_rollbacks": 18,
+      "tokens_rolled_back": 1293,
+      "num_requests": 16,
+      "completed": 16,
+      "rollback_rate": 1.125,
+      "avg_tokens_per_rollback": 71.83333333333333
+    },
+    "BS=32": {
+      "num_rollbacks": 21,
+      "tokens_rolled_back": 1483,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 0.65625,
+      "avg_tokens_per_rollback": 70.61904761904762
+    },
+    "BS=64": {
+      "num_rollbacks": 31,
+      "tokens_rolled_back": 2180,
+      "num_requests": 64,
+      "completed": 64,
+      "rollback_rate": 0.484375,
+      "avg_tokens_per_rollback": 70.3225806451613
+    }
+  },
+  "vary_max_tokens": {
+    "max_tokens=32": {
+      "num_rollbacks": 11,
+      "tokens_rolled_back": 187,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 0.34375,
+      "avg_tokens_per_rollback": 17.0
+    },
+    "max_tokens=64": {
+      "num_rollbacks": 18,
+      "tokens_rolled_back": 670,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 0.5625,
+      "avg_tokens_per_rollback": 37.22222222222222
+    },
+    "max_tokens=128": {
+      "num_rollbacks": 21,
+      "tokens_rolled_back": 1483,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 0.65625,
+      "avg_tokens_per_rollback": 70.61904761904762
+    },
+    "max_tokens=256": {
+      "num_rollbacks": 33,
+      "tokens_rolled_back": 1924,
+      "num_requests": 32,
+      "completed": 32,
+      "rollback_rate": 1.03125,
+      "avg_tokens_per_rollback": 58.303030303030305
+    }
+  }
+}

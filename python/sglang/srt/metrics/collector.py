@@ -485,6 +485,21 @@ class SchedulerMetricsCollector:
             labelnames=list(labels.keys()) + ["stage"],
         )
 
+        # Deterministic inference rollback metrics
+        self.num_rollbacks_total = Counter(
+            name="sglang:num_rollbacks_total",
+            documentation="Total rollback events during deterministic inference.",
+            labelnames=labels.keys(),
+        )
+        self.tokens_rolled_back_total = Counter(
+            name="sglang:tokens_rolled_back_total",
+            documentation="Total tokens rolled back during deterministic inference.",
+            labelnames=labels.keys(),
+        )
+        # Initialize rollback counters to ensure they appear in metrics
+        self.num_rollbacks_total.labels(**labels).inc(0)
+        self.tokens_rolled_back_total.labels(**labels).inc(0)
+
     def _log_gauge(self, gauge, data: Union[int, float]) -> None:
         # Convenience function for logging to gauge.
         gauge.labels(**self.labels).set(data)
@@ -497,6 +512,12 @@ class SchedulerMetricsCollector:
 
     def increment_transfer_failed_reqs(self) -> None:
         self.num_transfer_failed_reqs.labels(**self.labels).inc(1)
+
+    def increment_rollbacks(self, num_tokens: int = 0) -> None:
+        """Increment rollback counters for deterministic inference."""
+        self.num_rollbacks_total.labels(**self.labels).inc(1)
+        if num_tokens > 0:
+            self.tokens_rolled_back_total.labels(**self.labels).inc(num_tokens)
 
     def observe_per_stage_req_latency(self, stage: str, latency: float) -> None:
         labels_with_stage = {**self.labels, "stage": stage}
@@ -683,20 +704,6 @@ class TokenizerMetricsCollector:
             documentation="Number of requests aborted.",
             labelnames=labels.keys(),
         )
-        self.num_rollbacks_total = Counter(
-            name="sglang:num_rollbacks_total",
-            documentation="Total rollback events.",
-            labelnames=labels.keys(),
-        )
-        self.tokens_rolled_back_total = Counter(
-            name="sglang:tokens_rolled_back_total",
-            documentation="Total tokens rolled back.",
-            labelnames=labels.keys(),
-        )
-        
-        # Initialize rollback counters to ensure they appear in metrics
-        self.num_rollbacks_total.labels(**labels).inc(0)
-        self.tokens_rolled_back_total.labels(**labels).inc(0)
 
         if bucket_time_to_first_token is None:
             bucket_time_to_first_token = [

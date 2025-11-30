@@ -1,32 +1,56 @@
 #!/bin/bash
 # Automated sweep for varying min-det-step-size
+# Creates two plots:
+#   1. Rollbacks vs min_det_step_size (vary batch size, fix max_tokens)
+#   2. Rollbacks vs min_det_step_size (vary max_tokens, fix batch_size)
 
 set -e
 
 MODEL="${MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
-PORT=30000
-STEP_SIZES=(1 5 10 20 50)
-DURATION=120  # seconds per experiment
-RESULTS_DIR="sweep_results"
+PORT=30003
+STEP_SIZES=(5 10 20 50 100)
+RESULTS_DIR="rollback_results"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 
+# Test configuration
+BATCH_SIZES="8 16 32 64"
+MAX_TOKENS_LIST="32 64 128 256"
+FIXED_MAX_TOKENS=128
+FIXED_BATCH_SIZE=32
+N_PROMPTS=64
+NUM_BATCHES=1  # Number of batched requests per config (each batch sends batch_size prompts in ONE request)
+TEMPERATURE=0.0
+
 # Track PIDs for cleanup
 SERVER_PID=""
-COLLECTOR_PID=""
+SCRIPT_PID=""
 
 # Cleanup function
 cleanup() {
     echo ""
     echo "Cleaning up..."
-    if [ -n "$COLLECTOR_PID" ]; then
-        kill $COLLECTOR_PID 2>/dev/null || true
+    # Disable trap to prevent repeated calls
+    trap - SIGINT SIGTERM
+    
+    if [ -n "$SCRIPT_PID" ] && kill -0 $SCRIPT_PID 2>/dev/null; then
+        echo "Killing Python script (PID: $SCRIPT_PID)..."
+        kill $SCRIPT_PID 2>/dev/null || true
+        sleep 1
+        kill -9 $SCRIPT_PID 2>/dev/null || true
     fi
-    if [ -n "$SERVER_PID" ]; then
+    
+    if [ -n "$SERVER_PID" ] && kill -0 $SERVER_PID 2>/dev/null; then
+        echo "Killing server (PID: $SERVER_PID)..."
         kill $SERVER_PID 2>/dev/null || true
         sleep 2
         kill -9 $SERVER_PID 2>/dev/null || true
     fi
+    
+    # Also kill any remaining sglang processes on this port
+    pkill -f "sglang.launch_server.*--port $PORT" 2>/dev/null || true
+    
+    echo "Done."
     exit 1
 }
 
@@ -35,19 +59,13 @@ trap cleanup SIGINT SIGTERM
 
 mkdir -p "$RESULTS_DIR"
 
-# Add metrics (one-time)
-echo "Adding rollback metrics..."
-python add_rollback_metrics.py
-
 # Function to run one experiment
 run_experiment() {
     local step_size=$1
-    local output_dir="$RESULTS_DIR/step_${step_size}"
-    mkdir -p "$output_dir"
     
     echo ""
     echo "=========================================="
-    echo "Running: step_size=$step_size"
+    echo "Running: min_det_step_size=$step_size"
     echo "=========================================="
     
     # Start server
@@ -61,26 +79,27 @@ run_experiment() {
         --disable-chunked-prefix-cache \
         --disable-overlap-schedule \
         --enable-metrics \
-        --enable-deterministic-inference 1 \
+        --enable-det-infer 1 \
         --min-det-step-size "$step_size" \
-        --disable-radix-cache \
-        > "$output_dir/server.log" 2>&1 &
+        > "$RESULTS_DIR/server_step_${step_size}.log" 2>&1 &
     
     local server_pid=$!
     SERVER_PID=$server_pid
     echo "Server PID: $server_pid"
     
     # Wait for server (longer timeout for model loading)
-    echo "Waiting for server..."
-    for i in {1..120}; do
+    # Wait at least 40 seconds before first check
+    echo "Waiting 40s for server to initialize..."
+    sleep 40
+    
+    echo "Checking server status..."
+    for i in {1..60}; do
         if curl -s "http://localhost:$PORT/health" > /dev/null 2>&1; then
             echo "✓ Server ready"
             break
         fi
         sleep 5
-        if [ $((i % 6)) -eq 0 ]; then
-            echo "  Still waiting... (${i}0s)"
-        fi
+        echo "  Still waiting... ($((40 + i*5))s)"
     done
     
     if ! curl -s "http://localhost:$PORT/health" > /dev/null 2>&1; then
@@ -89,45 +108,34 @@ run_experiment() {
         return 1
     fi
     
-    # Start stats collection
-    echo "Collecting stats for ${DURATION}s..."
-    python collect_rollback_stats.py \
-        --url "http://localhost:$PORT" \
-        --duration "$DURATION" \
-        --output "$output_dir/stats.json" &
+    # Run the rollback collection script in foreground (so we can track it)
+    echo "Running rollback collection..."
+    python vllm_online_batch_invariance_multitest.py \
+        --min-det-step-size "$step_size" \
+        --batch-sizes $BATCH_SIZES \
+        --max-tokens-list $MAX_TOKENS_LIST \
+        --fixed-max-tokens $FIXED_MAX_TOKENS \
+        --fixed-batch-size $FIXED_BATCH_SIZE \
+        --n-prompts $N_PROMPTS \
+        --num-batches $NUM_BATCHES \
+        --temperature $TEMPERATURE \
+        --output-dir "$RESULTS_DIR" &
     
-    local collector_pid=$!
-    COLLECTOR_PID=$collector_pid
-    
-    # Run your benchmark here
-    echo "Running benchmark..."
-    python3 vllm_online_batch_invariance_multitest.py
-    
-    # For now, just wait for stats collection
-    echo "Waiting for stats collection to complete..."
-    sleep "$DURATION"
-    
-    # Wait for collector
-    wait $collector_pid 2>/dev/null || true
+    SCRIPT_PID=$!
+    wait $SCRIPT_PID
+    SCRIPT_PID=""
     
     # Stop server
     echo "Stopping server..."
     kill $server_pid 2>/dev/null || true
-    sleep 5
+    sleep 3
     # Force kill if still running
     kill -9 $server_pid 2>/dev/null || true
     
     # Clear PIDs
     SERVER_PID=""
-    COLLECTOR_PID=""
     
-    # Generate plots
-    echo "Generating plots..."
-    python plot_rollback_stats.py \
-        --input "$output_dir/stats.json" \
-        --output "$output_dir"
-    
-    echo "✓ Completed: step_size=$step_size"
+    echo "✓ Completed: min_det_step_size=$step_size"
 }
 
 # Run experiments for each step size
@@ -135,28 +143,29 @@ for step_size in "${STEP_SIZES[@]}"; do
     run_experiment "$step_size"
 done
 
-# Generate comparison plot
+# Generate plots
 echo ""
 echo "=========================================="
-echo "Generating comparison plots..."
+echo "Generating plots..."
 echo "=========================================="
 
-stats_files=()
-labels=()
-for step_size in "${STEP_SIZES[@]}"; do
-    stats_files+=("$RESULTS_DIR/step_${step_size}/stats.json")
-    labels+=("step=${step_size}")
-done
+# Convert step sizes array to space-separated string
+STEP_SIZES_STR="${STEP_SIZES[*]}"
 
-python plot_rollback_stats.py \
-    --compare "${stats_files[@]}" \
-    --labels "${labels[@]}" \
-    --output "$RESULTS_DIR/comparison"
+python vllm_online_batch_invariance_multitest.py \
+    --plot-only \
+    --output-dir "$RESULTS_DIR" \
+    --step-sizes-to-plot $STEP_SIZES_STR
 
 echo ""
 echo "=========================================="
 echo "✓ Sweep complete!"
 echo "=========================================="
 echo "Results in: $RESULTS_DIR/"
+echo ""
+echo "Output files:"
+echo "  - step_N.json: Raw data for each min_det_step_size"
+echo "  - plot_vary_batch_size.png: Rollbacks vs step_size (varying batch size)"
+echo "  - plot_vary_max_tokens.png: Rollbacks vs step_size (varying max_tokens)"
 echo ""
 ls -la "$RESULTS_DIR"

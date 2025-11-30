@@ -156,14 +156,14 @@ class DeterministicVerificationWorker:
             
             # Check allocator state after verification
             available_after = original_batch.token_to_kv_pool_allocator.available_size()
-            logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER verification: {available_after}")
+            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER verification: {available_after}")
             # logger.info(f"[DEBUG][DetVerifyWorker] KV cache delta: {available_before - available_after}")
             
             # Extract results (sampling already done inside forward_batch_generation)
             verified_token_ids = verify_output.next_token_ids
             verified_logprobs = verify_output.logits_output.next_token_logprobs
 
-            logger.info(f"[DEBUG][DetVerifyWorker] Verified token IDs: {len(verified_token_ids)=}")
+            # logger.info(f"[DEBUG][DetVerifyWorker] Verified token IDs: {len(verified_token_ids)=}")
             
             # Compare outputs and handle rollback
             rollback_info = det_verify_info.verify_and_compare(
