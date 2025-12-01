@@ -243,7 +243,6 @@ class TpModelWorker:
         self.set_hicache_consumer(model_worker_batch.hicache_consumer_index)
 
         forward_batch = ForwardBatch.init_new(model_worker_batch, self.model_runner)
-        # logger.info(f"TP Worker {self.tp_rank} processing req {model_worker_batch} on device {self.device} with input shape {forward_batch.input_ids.shape}")
         pp_proxy_tensors = None
         if not self.pp_group.is_first_rank:
             pp_proxy_tensors = PPProxyTensors(
@@ -253,7 +252,6 @@ class TpModelWorker:
             )
 
         if self.pp_group.is_last_rank:
-            # logger.info(f"TP Worker {self.tp_rank} running forward and sampling for req {model_worker_batch}")
             logits_output, can_run_cuda_graph = self.model_runner.forward(
                 forward_batch, pp_proxy_tensors=pp_proxy_tensors
             )

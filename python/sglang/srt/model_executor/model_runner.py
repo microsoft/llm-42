@@ -145,6 +145,7 @@ from sglang.srt.weight_sync.tensor_bucket import (
     FlattenedTensorBucket,
     FlattenedTensorMetadata,
 )
+from sglang.srt.batch_invariant_ops import set_batch_invariant_mode, is_batch_invariant_mode_enabled
 
 MLA_ATTENTION_BACKENDS = [
     "aiter",
@@ -2055,7 +2056,6 @@ class ModelRunner:
                     else:
                         # No sampling info, default to disabled
                         should_enable_batch_invariant = False
-                # should_enable_batch_invariant = True
         elif self.enable_selective_determinism and not is_verification_mode:
             # Selective determinism: check if ANY request in batch needs deterministic behavior
             if forward_batch.sampling_info is not None:
@@ -2064,22 +2064,13 @@ class ModelRunner:
                 is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
                 should_enable_batch_invariant = is_any_deterministic
 
-            
-        
-        # Use context manager to temporarily enable batch_invariant when needed
-        from sglang.srt.batch_invariant_ops import set_batch_invariant_mode
-
         batch_invariant_context = None
         if self.enable_det_infer_mode:
             # For det_infer mode, global default is DISABLED
             # Only use context manager when we need to enable it
             if should_enable_batch_invariant:
-                # logger.info(f"[DEBUG][ModelRunner] Enabling batch_invariant for det_infer_mode, forward_mode={forward_batch.forward_mode}, is_verification={is_verification_mode}, batch_size={forward_batch.batch_size}")
                 batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
                 batch_invariant_context.__enter__()
-            else:
-                # logger.info(f"[DEBUG][ModelRunner] batch_invariant DISABLED for det_infer_mode, forward_mode={forward_batch.forward_mode}, batch_size={forward_batch.batch_size}")
-                pass
         elif self.enable_selective_determinism:
             # For selective determinism, global default is also DISABLED
             # Only use context manager when we need to enable it
@@ -2178,15 +2169,10 @@ class ModelRunner:
         
         batch_inv_context = None
         if should_enable_batch_invariant:
-            from sglang.srt.batch_invariant_ops import set_batch_invariant_mode, is_batch_invariant_mode_enabled
             # Only create context if not already enabled (avoid nested contexts)
             if not is_batch_invariant_mode_enabled():
-                # logger.info(f"[DEBUG][ModelRunner.sample] Enabling batch_invariant for verification sampling, forward_mode={forward_batch.forward_mode}")
                 batch_inv_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
                 batch_inv_context.__enter__()
-            #     logger.info(f"[DEBUG][ModelRunner.sample] batch_invariant={is_batch_invariant_mode_enabled()}")
-            # else:
-            #     logger.info(f"[DEBUG][ModelRunner.sample] batch_invariant already enabled, skipping context creation")
         
         try:
             # For duplex models with multiple output streams.
@@ -2215,9 +2201,7 @@ class ModelRunner:
         finally:
             if batch_inv_context is not None:
                 batch_inv_context.__exit__(None, None, None)
-                # if should_enable_batch_invariant:
-                #     logger.info(f"[DEBUG][ModelRunner.sample] Exited batch_invariant context")
-
+                
     def compute_logprobs_only(
         self,
         logits_output: LogitsProcessorOutput,

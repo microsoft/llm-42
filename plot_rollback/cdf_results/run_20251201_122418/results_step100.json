@@ -1,0 +1,344 @@
+{
+  "config": {
+    "num_requests": 1,
+    "batch_size": 64,
+    "max_tokens": 128,
+    "temperature": 0.0,
+    "seed": 42,
+    "min_prompt_words": 50,
+    "max_prompt_words": 100,
+    "step_size": 100
+  },
+  "summary": {
+    "total_requests": 64,
+    "requests_with_rollbacks": 17,
+    "total_rollbacks": 30,
+    "total_tokens_rolled_back": 1184,
+    "rollback_rate": 0.265625,
+    "avg_rollbacks_per_request": 0.46875,
+    "avg_tokens_per_rollback": 39.46666666666667,
+    "avg_tokens_rolled_back_per_request": 18.5
+  },
+  "per_request_stats": [
+    {
+      "rid": "b31e8d6efb714328a44a6dc4133e0bff",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e2287622a7f64f83be8d8a2931d71a26",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9078891a6416495281d461ea3dfb2b73",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "502330811c60455b829198d827cefc10",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "47b3b5fe11784523b6dd4f3e30ce89fc",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f3198e7480d346c5a49a075cf57cb11b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2851e49d4aeb4d67a96e615e0e21a3ef",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2099ea61a3b843dd83fc6eab74c8fd99",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e50c1706daa14f9e971df6c703310aa2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "813fde3c83e84f04bfa5acca99e01b0e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "af4154496b5147b9b2f9b02df0e379b0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7e195f95b1e547e3b499336fca176cd0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ba74fa57acf549e881d44937fb49cb2f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1d68e5bda29847e7a8418a6e31238d1c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "da5d625661cb4ece972817a2fcb8404e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7d13e52457104fff95f0f830ec7fc6f5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d684bec863b04e24aa3cea82d5b820cb",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "23a48c2c207546fb9c07ecffd871cb7b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ec09b235448f46768d6d655909fa6d6f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2c11e0b8179344e8a78e3a99a03adcbd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ad35a5b2d9ad47b3a3cd4765d74e78c5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "975887bbd2cd423f8dc9da516381ce23",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "470fb83bb28d4c498e74f473bd76e5bb",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9d577b99c2534925969d52bd5795bc97",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "376e2a6dfe0d476a90466400240222a4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3071221dc867429ca54379aa3536dc32",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3d45ac3f0eac4e7f95062683dd6f4314",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5e051f139b584d4da98135be6d1ab320",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7913e4ec2e4c4f939c6116c808644456",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9f8aceccd9fe4cf7832578a0b8491304",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f481d7a2ba324126ab37d03c071af019",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ecd4ff981e014c598ecdf3f15d3675a3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8b96d9b1893b4f92abffb8d44b0fed58",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d61da25f753541c291be4c374b5f4322",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "dee4919bd2ff482880972cd0300e11b5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "fd7aaea6b35a4dfaa8e894cd53cb8528",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5f0d7a60b3b64bf49673d06f2f0fa726",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a5d538a314e3424c962526cfe1c3a9ab",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "58207f9781db4b0d98b61e845293e63e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "64e59419154649e8b9555066c3317b1f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ec3792b6dc1d4d7d8d98d3fc6a691209",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a705428fb3924238ba6cc1fa01209709",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bc88d2515ab54b8392f19323f1cf2bb3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6ed99b41f93c417283882ebda2c2be29",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "fd08f4d165c945478fc59bee161c8090",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5fffbe3e0f684900915c8dba9b3dd8be",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "12b6fa0dffb1493b8f5300c5ca27967e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "22c50ec0bb34488992c0d6792a5e9851",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 15
+    },
+    {
+      "rid": "8cba59b2b43c45cfac7f5c2448c199c9",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 15
+    },
+    {
+      "rid": "c18cadc4da024ccdbd00a1b945c9db59",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 15
+    },
+    {
+      "rid": "ca23892100f04599ab1afacfee0aa0fb",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 15
+    },
+    {
+      "rid": "c613b61987714bfcae8b12652118f9a5",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 15
+    },
+    {
+      "rid": "7d1da66a565f43919ecd38d7d630d350",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 35
+    },
+    {
+      "rid": "e63378cc4ecf40709fcf7860e3718700",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 35
+    },
+    {
+      "rid": "9c5a542717ed4714b5f8077b240d7e0d",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 35
+    },
+    {
+      "rid": "285f2b35a4b646ccb1243145943c977d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 46
+    },
+    {
+      "rid": "1938dbc83c1d48f992cc9dd5b4ea5182",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 46
+    },
+    {
+      "rid": "d80a8ba510dc4681a757a1f77ae40402",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 46
+    },
+    {
+      "rid": "8feafb4575ce48cbb855092015a01c0a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 46
+    },
+    {
+      "rid": "9bb0380dab3145aa9bd67fa751b4fe12",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 164
+    },
+    {
+      "rid": "b0c82ecaa7ea40f38f7138417b722e9b",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 164
+    },
+    {
+      "rid": "99a8219dae4943c0ae32721040467120",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 164
+    },
+    {
+      "rid": "945fe9280cba445ab48ae3568111a0cb",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 164
+    },
+    {
+      "rid": "fb89ae67dc384bb18aee79c4171e2713",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 164
+    }
+  ]
+}

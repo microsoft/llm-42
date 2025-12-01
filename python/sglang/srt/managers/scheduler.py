@@ -967,7 +967,6 @@ class Scheduler(
             self.cur_batch = batch
 
             if batch:
-                # logger.info(f"Scheduler.event_loop_normal received requests {batch=}")
                 result = self.run_batch(batch)
                 self.process_batch_result(batch, result)
             else:
@@ -1759,7 +1758,6 @@ class Scheduler(
         )
 
     def get_next_batch_to_run(self) -> Optional[ScheduleBatch]:
-        # logger.info("Getting next batch to run")
         # Merge the prefill batch into the running batch
         chunked_req_to_exclude = set()
         if self.chunked_req:
@@ -1814,9 +1812,6 @@ class Scheduler(
             # Run decode
             if not self.running_batch.is_empty():
                 self.running_batch = self.update_running_batch(self.running_batch)
-                # logger.info(
-                #     f"Running decode batch with {self.running_batch.batch_size()} requests."
-                # )
                 ret = self.running_batch if not self.running_batch.is_empty() else None
             else:
                 ret = None
@@ -2065,12 +2060,6 @@ class Scheduler(
     ) -> Union[GenerationBatchResult, EmbeddingBatchResult]:
         """Run a batch."""
         self.forward_ct += 1
-        # logger.info(
-        #     # f"Scheduler.run_batch forward_ct={self.forward_ct}, "
-        #     # f"batch_size={batch.batch_size()}, "
-        #     f"forward_mode={batch.forward_mode}, "
-        #     f"reqs={[req.rid for req in batch.reqs]}"
-        # )
         # Whether to run the profiler
         self._profile_batch_predicate(batch)
         if self.forward_sleep_time is not None:
@@ -2079,10 +2068,6 @@ class Scheduler(
 
         # Run forward
         if self.is_generation:
-            # logger.info(f"Scheduler.run_batch running forward for batch with reqs {[req.rid for req in batch.reqs]}")
-            # logger.info(f"Scheduler.run_batch batch.forward_mode={batch.forward_mode}")
-            # logger.info(f"Scheduler.run_batch batch input_ids: {[req.origin_input_ids for req in batch.reqs]}")
-            # logger.info(f"Scheduler.run_batch batch input_ids tensor: {batch.input_ids}")
             batch_or_worker_batch = batch
 
             if self.spec_algorithm.is_none():

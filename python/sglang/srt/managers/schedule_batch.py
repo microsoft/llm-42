@@ -634,13 +634,11 @@ class Req:
         self.is_deterministic: bool = sampling_params.is_deterministic
         self.det_verified_tokens: int = 0  # Number of tokens that have been verified
         self.det_step_size: int = sampling_params.det_step_size  # Current verification step size
-        self.force_deterministic_mode: bool = False 
+        self.force_deterministic_mode: bool = False
+        # Request-level rollback stats
+        self.det_num_rollbacks: int = 0  # Number of rollback events for this request
+        self.det_tokens_rolled_back: int = 0  # Total tokens rolled back for this request 
         
-        if self.is_deterministic:
-            logger.info(
-                        f"[DET_DEBUG] Request {self.rid} initialized with is_deterministic=True, "
-                        f"det_verified={self.det_verified_tokens}"
-            )
     
         # For metrics
         self.metrics_collector = metrics_collector
@@ -697,7 +695,6 @@ class Req:
 
     def finished(self) -> bool:
         # Whether request reached finished condition
-        # logger.info(f"[REQ_DEBUG] Request {self.rid} finished check: {self.finished_reason is not None}")
         return self.finished_reason is not None
 
     def init_next_round_input(
@@ -854,6 +851,15 @@ class Req:
             prefix = f"Req Time Stats(rid={self.rid}, input len={len(self.origin_input_ids)}, output len={len(self.output_ids)}, type={self.time_stats.disagg_mode_str()})"
         logger.info(f"{prefix}: {self.time_stats.convert_to_duration()}")
         self.has_log_time_stats = True
+
+    def log_det_rollback_stats(self):
+        """Log deterministic rollback stats for this request."""
+        if self.is_deterministic:
+            logger.info(
+                f"Det Rollback Stats(rid={self.rid}): "
+                f"rollbacks={self.det_num_rollbacks}, "
+                f"tokens_rolled_back={self.det_tokens_rolled_back}"
+            )
 
     def set_finish_with_abort(self, error_msg: str):
         if get_tensor_model_parallel_rank() == 0:
@@ -1637,11 +1643,6 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
         self.forward_mode = ForwardMode.DECODE
         bs = len(self.reqs)
 
-        # logger.info("Preparing for decode")
-        # logger.info(f"Decoding batch size: {bs}")
-        # logger.info(f"Decoding batch reqs tensor: {self.reqs}")
-        # logger.info(f"Decoding batch input_ids tensor: {self.output_ids}")
-
         if (
             self.spec_algorithm.is_eagle()
             or self.spec_algorithm.is_standalone()
@@ -1674,8 +1675,6 @@ class ScheduleBatch(ScheduleBatchDisaggregationDecodeMixin):
                 self.sampling_info.penalizer_orchestrator.cumulate_output_tokens(
                     self.output_ids.to(torch.int64)
                 )
-        # logger.info(f"Decoding batch size: {bs}")
-        # logger.info(f"Decoding batch input_ids tensor: {self.output_ids}")
         # Update fields
         self.input_ids = self.output_ids
         self.output_ids = None

@@ -137,33 +137,16 @@ class DeterministicVerificationWorker:
             List of (req, tokens_rolled_back) tuples for requests that had rollback.
         """
         try:
-            # logger.info(f"[DEBUG][DetVerifyWorker] Starting verification for {len(reqs)} requests")
-            
-            # Check allocator state before verification
-            available_before = original_batch.token_to_kv_pool_allocator.available_size()
-                    # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available BEFORE verification: {available_before}")
-            
             det_verify_info = DetVerifyInfo.from_requests(reqs)
             verify_batch = det_verify_info.prepare_verify_batch(original_batch, reqs)
             
-            # logger.info(f"[DEBUG][DetVerifyWorker] Verification batch prepared with {len(verify_batch.input_ids)} input tokens")
-            #logger.info(f"[DEBUG][DetVerifyWorker] out_cache_loc: {verify_batch.out_cache_loc.tolist() if verify_batch.out_cache_loc is not None else None}")
-            
             # Run verification forward pass (batch_invariant context is now managed in tp_worker)
             verify_model_worker_batch = verify_batch.get_model_worker_batch()
-            # logger.info(f"[DEBUG][DetVerifyWorker] Running forward pass with forward_mode={verify_model_worker_batch.forward_mode}")
             verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
-            
-            # Check allocator state after verification
-            available_after = original_batch.token_to_kv_pool_allocator.available_size()
-            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER verification: {available_after}")
-            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache delta: {available_before - available_after}")
             
             # Extract results (sampling already done inside forward_batch_generation)
             verified_token_ids = verify_output.next_token_ids
             verified_logprobs = verify_output.logits_output.next_token_logprobs
-
-            # logger.info(f"[DEBUG][DetVerifyWorker] Verified token IDs: {len(verified_token_ids)=}")
             
             # Compare outputs and handle rollback
             rollback_info = det_verify_info.verify_and_compare(
@@ -174,7 +157,10 @@ class DeterministicVerificationWorker:
             rollback_results = []
             for req, info in zip(reqs, rollback_info):
                 if info is not None and info[1] > 0:
-                    # Track metrics
+                    # Track per-request stats
+                    req.det_num_rollbacks += 1
+                    req.det_tokens_rolled_back += info[1]
+                    # Track global metrics
                     if self.metrics_collector:
                         self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
                         self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
@@ -212,21 +198,6 @@ class DeterministicVerificationWorker:
             # Clear shared resource references (don't free, just remove refs)
             verify_batch.req_to_token_pool = None
             verify_batch.token_to_kv_pool_allocator = None
-            
-            # Force GPU memory cleanup - critical for high batch sizes
-            # if torch.cuda.is_available():
-            #     torch.cuda.empty_cache()
-            
-            # NOTE: We don't update original_batch state here because:
-            # 1. The original batch is already done processing
-            # 2. The scheduler will create a new batch for the next decode step
-            # 3. Modifying seq_lens here might confuse KV cache tracking
-            # self._update_batch_state(original_batch)
-            
-            # Check allocator state after cleanup
-            available_final = original_batch.token_to_kv_pool_allocator.available_size()
-            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache available AFTER cleanup: {available_final}")
-            # logger.info(f"[DEBUG][DetVerifyWorker] KV cache total delta: {available_before - available_final}")
             
             return rollback_results
             

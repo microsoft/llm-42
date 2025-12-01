@@ -885,19 +885,6 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                     else:
                         msg = f"Finish: obj={dataclass_to_string_truncated(obj, max_length, skip_names=skip_names)}, out={dataclass_to_string_truncated(out, max_length, skip_names=out_skip_names)}"
                     logger.info(msg)
-                
-                # Print token IDs and text on request finish
-                # logger.info(f"Request finished: rid={obj.rid}")
-                # # Log tokenized input IDs from the tokenized object, not the original request
-                # if state.tokenized_obj is not None:
-                #     logger.info(f"Prompt Input IDs: {state.tokenized_obj.input_ids}")
-                # else:
-                #     logger.info(f"Prompt Input IDs: {obj.input_ids}")
-                # logger.info(f"Prompt Text: {obj.text}")
-                # if "output_ids" in out:
-                #     logger.info(f"  Token IDs: {out['output_ids']}")
-                # if "text" in out:
-                #     logger.info(f"  Text: {out['text']}")
 
 
                 # Check if this was an abort/error created by scheduler
