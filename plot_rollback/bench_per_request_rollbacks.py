@@ -18,6 +18,9 @@ Usage:
     # Run benchmark (sends 2 batched requests, each with 32 prompts = 64 total prompts):
     python bench_per_request_rollbacks.py --num-requests 2 --batch-size 32 --log-file server.log
     
+    # Run with QPS rate limiting (async requests):
+    python bench_per_request_rollbacks.py --num-requests 10 --batch-size 8 --qps 4 --log-file server.log
+    
     # Or run without log file (stats will be printed in server output):
     python bench_per_request_rollbacks.py --num-requests 100 --batch-size 1
 
@@ -28,6 +31,7 @@ Environment variables:
 """
 
 import argparse
+import asyncio
 import json
 import os
 import random
@@ -39,9 +43,137 @@ from pathlib import Path
 from typing import Any, Optional, List, Dict
 from collections import defaultdict
 
+import aiohttp
 import requests
+from tqdm import tqdm
 
 from utils import _random_prompt, resolve_model_name
+
+# ShareGPT dataset URL
+SHAREGPT_URL = "https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json"
+
+def download_and_cache_file(url: str, filename: Optional[str] = None) -> str:
+    """Download and cache a file from URL."""
+    if filename is None:
+        filename = os.path.join("/tmp", url.split("/")[-1])
+    
+    if os.path.isfile(filename):
+        try:
+            with open(filename) as f:
+                json.load(f)
+            print(f"Using cached file: {filename}")
+            return filename
+        except json.JSONDecodeError:
+            pass
+    
+    print(f"Downloading from {url} to {filename}")
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    
+    total_size = int(response.headers.get("content-length", 0))
+    chunk_size = 1024
+    
+    with open(filename, "wb") as f, tqdm(
+        desc=filename,
+        total=total_size,
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
+    ) as bar:
+        for chunk in response.iter_content(chunk_size=chunk_size):
+            f.write(chunk)
+            bar.update(len(chunk))
+    
+    return filename
+
+
+@dataclass
+class ShareGPTSample:
+    """A single sample from ShareGPT dataset with prompt and expected output length."""
+    prompt: str
+    output_len: int  # Length of assistant response in tokens
+
+
+def load_sharegpt_prompts(
+    num_prompts: int,
+    dataset_path: Optional[str] = None,
+    max_prompt_len: int = 8192,
+    max_output_len: int = 2048,
+    tokenizer: Optional[Any] = None,
+) -> List[ShareGPTSample]:
+    """
+    Load prompts from ShareGPT dataset.
+    
+    Args:
+        num_prompts: Number of prompts to load
+        dataset_path: Path to local ShareGPT JSON file (downloads if not provided)
+        max_prompt_len: Maximum prompt length in tokens
+        max_output_len: Maximum output length in tokens
+        tokenizer: HuggingFace tokenizer for accurate token counting (if None, uses char/4 heuristic)
+    
+    Returns:
+        List of ShareGPTSample with prompt and expected output length
+    """
+    # Download if needed
+    if dataset_path is None or not os.path.isfile(dataset_path):
+        dataset_path = download_and_cache_file(SHAREGPT_URL)
+    
+    print(f"Loading ShareGPT dataset from: {dataset_path}")
+    with open(dataset_path) as f:
+        dataset = json.load(f)
+    
+    # Filter conversations with at least 2 turns (user + assistant)
+    dataset = [
+        data
+        for data in dataset
+        if len(data.get("conversations", data.get("conversation", []))) >= 2
+    ]
+    
+    # Helper function to count tokens
+    def count_tokens(text: str) -> int:
+        if tokenizer is not None:
+            return len(tokenizer.encode(text))
+        else:
+            # Fallback: rough heuristic (~4 chars per token)
+            return len(text) // 4
+    
+    if tokenizer is not None:
+        print(f"  Using tokenizer: {tokenizer.name_or_path}")
+    else:
+        print(f"  Warning: No tokenizer provided, using char/4 heuristic for token counts")
+    
+    # Extract first user message and assistant response from each conversation
+    samples = []
+    for data in dataset:
+        convs = data.get("conversations", data.get("conversation", []))
+        if len(convs) >= 2:
+            prompt = convs[0].get("value", "")
+            response = convs[1].get("value", "")
+            
+            prompt_tokens = count_tokens(prompt)
+            output_tokens = count_tokens(response)
+            
+            # Filter by token length
+            if (10 < prompt_tokens < max_prompt_len and 
+                1 < output_tokens < max_output_len):
+                samples.append(ShareGPTSample(
+                    prompt=prompt,
+                    output_len=output_tokens,
+                ))
+    
+    # Shuffle and take num_prompts
+    random.shuffle(samples)
+    samples = samples[:num_prompts]
+    
+    if samples:
+        output_lens = [s.output_len for s in samples]
+        avg_output_len = sum(output_lens) / len(output_lens)
+        print(f"Loaded {len(samples)} samples from ShareGPT")
+        print(f"  Output length stats: min={min(output_lens)}, max={max(output_lens)}, avg={avg_output_len:.1f} tokens")
+    else:
+        print(f"Loaded 0 samples from ShareGPT")
+    
+    return samples
 
 
 @dataclass
@@ -74,6 +206,11 @@ class BenchmarkConfig:
     min_prompt_words: int = 10  # Match vllm_online_batch_invariance_multitest.py
     max_prompt_words: int = 50  # Match vllm_online_batch_invariance_multitest.py
     step_size: int = 0  # det_step_size used (0 = unknown)
+    # Dataset options
+    dataset: str = "random"  # "random" or "sharegpt"
+    dataset_path: Optional[str] = None  # Path to dataset file (for sharegpt)
+    # QPS options
+    qps: float = 0.0  # Requests per second (0 = sync/no rate limit)
 
 
 @dataclass 
@@ -261,10 +398,195 @@ def send_request(
         return None
 
 
+async def async_send_request(
+    session: aiohttp.ClientSession,
+    base_url: str,
+    model: str,
+    prompts: List[str],
+    max_tokens: int,
+    temperature: float,
+    seed: int,
+    pbar: Optional[tqdm] = None,
+    request_timeout: int = 300,  # 5 min per-request timeout
+    request_idx: int = 0,  # For tracking/debugging
+) -> Optional[dict]:
+    """Send an async completion request and return the response."""
+    payload = {
+        "model": model,
+        "prompt": prompts if len(prompts) > 1 else prompts[0],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "seed": seed,
+        "is_deterministic": True,
+    }
+    
+    # Calculate prompt size for debugging
+    prompt_chars = sum(len(p) for p in prompts) if isinstance(prompts, list) else len(prompts[0]) if prompts else 0
+    
+    try:
+        # Use per-request timeout
+        async with asyncio.timeout(request_timeout):
+            async with session.post(
+                f"{base_url}/v1/completions",
+                json=payload,
+            ) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    if pbar:
+                        pbar.update(1)
+                    return result
+                else:
+                    error_text = await response.text()
+                    print(f"\n[Request {request_idx}] Failed with status {response.status}: {error_text[:200]}", file=sys.stderr)
+                    if pbar:
+                        pbar.update(1)
+                    return None
+    except asyncio.TimeoutError:
+        print(f"\n[Request {request_idx}] Timeout after {request_timeout}s (prompt_chars={prompt_chars}, max_tokens={max_tokens})", file=sys.stderr)
+        if pbar:
+            pbar.update(1)
+        return None
+    except aiohttp.ClientError as e:
+        print(f"\n[Request {request_idx}] ClientError: {type(e).__name__}: {e} (prompt_chars={prompt_chars})", file=sys.stderr)
+        if pbar:
+            pbar.update(1)
+        return None
+    except Exception as e:
+        print(f"\n[Request {request_idx}] Exception: {type(e).__name__}: {e} (prompt_chars={prompt_chars})", file=sys.stderr)
+        if pbar:
+            pbar.update(1)
+        return None
+
+
+async def run_benchmark_async(
+    base_url: str,
+    model_name: str,
+    config: BenchmarkConfig,
+    prompts: List[str],
+    prompt_max_tokens: List[int],
+    verbose: bool = False,
+) -> List[str]:
+    """
+    Run benchmark with QPS rate limiting using async requests.
+    
+    Args:
+        base_url: Server URL
+        model_name: Model name
+        config: Benchmark configuration
+        prompts: List of all prompts (pre-generated)
+        prompt_max_tokens: List of max_tokens per prompt
+        verbose: Verbose output
+    
+    Returns:
+        List of request IDs
+    """
+    request_ids = []
+    
+    # Create batches (prompts and their max_tokens)
+    batches = []
+    batch_max_tokens_list = []
+    for i in range(config.num_requests):
+        start_idx = i * config.batch_size
+        batch_prompts = prompts[start_idx:start_idx + config.batch_size]
+        batch_max_tokens = prompt_max_tokens[start_idx:start_idx + config.batch_size]
+        batches.append(batch_prompts)
+        # Use max of batch output lengths (API only accepts one max_tokens per request)
+        batch_max_tokens_list.append(max(batch_max_tokens) if batch_max_tokens else config.max_tokens)
+    
+    # Calculate delay between requests for target QPS
+    delay = 1.0 / config.qps if config.qps > 0 else 0
+    
+    print(f"  Running async with QPS={config.qps}, delay={delay:.3f}s between requests")
+    
+    # Create aiohttp session with longer timeout and higher connection limit
+    timeout = aiohttp.ClientTimeout(total=1800)  # 30 min for long-running requests
+    connector = aiohttp.TCPConnector(limit=0, limit_per_host=0)  # No connection limit
+    async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+        tasks = []
+        task_indices = []  # Track which request index each task corresponds to
+        pbar = tqdm(total=config.num_requests, desc="Requests")
+        
+        for i, batch_prompts in enumerate(batches):
+            # Create task with request index for tracking
+            task = asyncio.create_task(
+                async_send_request(
+                    session=session,
+                    base_url=base_url,
+                    model=model_name,
+                    prompts=batch_prompts,
+                    max_tokens=batch_max_tokens_list[i],
+                    temperature=config.temperature,
+                    seed=config.seed,
+                    pbar=pbar,
+                    request_idx=i,
+                )
+            )
+            tasks.append(task)
+            task_indices.append(i)
+            
+            # Rate limit: wait before sending next request
+            if delay > 0 and i < len(batches) - 1:
+                await asyncio.sleep(delay)
+        
+        # Wait for all tasks to complete (with overall timeout)
+        try:
+            results = await asyncio.wait_for(
+                asyncio.gather(*tasks, return_exceptions=True),
+                timeout=1800  # 30 min overall timeout for all remaining tasks
+            )
+        except asyncio.TimeoutError:
+            print(f"\nWarning: Timed out waiting for all requests to complete", file=sys.stderr)
+            # Cancel remaining tasks
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            # Gather completed results
+            results = []
+            for idx, task in enumerate(tasks):
+                if task.done() and not task.cancelled():
+                    try:
+                        results.append(task.result())
+                    except Exception as e:
+                        results.append(e)
+                else:
+                    print(f"\n[Request {task_indices[idx]}] Did not complete (cancelled or stuck)", file=sys.stderr)
+                    results.append(None)
+        pbar.close()
+    
+    # Count successes and failures, track which failed
+    success_count = 0
+    failure_count = 0
+    failed_indices = []
+    for idx, result in enumerate(results):
+        if isinstance(result, dict) and "choices" in result:
+            success_count += 1
+        elif isinstance(result, Exception):
+            failure_count += 1
+            failed_indices.append(task_indices[idx])
+            print(f"  [Request {task_indices[idx]}] Exception in result: {type(result).__name__}: {result}", file=sys.stderr)
+        elif result is None:
+            failure_count += 1
+            failed_indices.append(task_indices[idx])
+    
+    if failure_count > 0:
+        print(f"\n  Completed: {success_count} success, {failure_count} failed out of {len(results)} total")
+        print(f"  Failed request indices: {failed_indices[:20]}{'...' if len(failed_indices) > 20 else ''}")
+    
+    # Extract request IDs from results
+    for result in results:
+        if isinstance(result, dict) and "choices" in result:
+            for choice in result["choices"]:
+                if "meta_info" in choice and "id" in choice["meta_info"]:
+                    request_ids.append(choice["meta_info"]["id"])
+    
+    return request_ids
+
+
 def run_benchmark(
     base_url: str,
     model_name: str,
     config: BenchmarkConfig,
+    tokenizer: Optional[Any] = None,
     verbose: bool = False,
 ) -> tuple[List[str], Optional[Dict[str, int]]]:
     """
@@ -289,47 +611,93 @@ def run_benchmark(
     
     # Generate all prompts upfront
     total_prompts = config.num_requests * config.batch_size
-    prompts = [
-        _random_prompt(config.min_prompt_words, config.max_prompt_words)
-        for _ in range(total_prompts)
-    ]
+    
+    # Track per-prompt max_tokens (for ShareGPT, use dataset output lengths)
+    prompt_max_tokens: List[int] = []
+    
+    if config.dataset == "sharegpt":
+        print(f"  Using ShareGPT dataset")
+        samples = load_sharegpt_prompts(
+            num_prompts=total_prompts,
+            dataset_path=config.dataset_path,
+            tokenizer=tokenizer,
+        )
+        prompts = [s.prompt for s in samples]
+        prompt_max_tokens = [s.output_len for s in samples]
+        
+        # Pad with random prompts if ShareGPT doesn't have enough
+        if len(prompts) < total_prompts:
+            print(f"  Warning: Only {len(prompts)} ShareGPT prompts available, padding with random")
+            for _ in range(total_prompts - len(prompts)):
+                prompts.append(_random_prompt(config.min_prompt_words, config.max_prompt_words))
+                prompt_max_tokens.append(config.max_tokens)  # Use default for random
+    else:
+        print(f"  Using random prompts ({config.min_prompt_words}-{config.max_prompt_words} words)")
+        prompts = [
+            _random_prompt(config.min_prompt_words, config.max_prompt_words)
+            for _ in range(total_prompts)
+        ]
+        prompt_max_tokens = [config.max_tokens] * total_prompts
     
     print(f"\nRunning benchmark: {config.num_requests} batched requests, "
-          f"batch_size={config.batch_size} prompts/request, "
-          f"max_tokens={config.max_tokens}")
-    print(f"  Total prompts: {total_prompts}")
+          f"batch_size={config.batch_size} prompts/request")
+    if config.dataset == "sharegpt":
+        avg_max_tokens = sum(prompt_max_tokens) / len(prompt_max_tokens) if prompt_max_tokens else config.max_tokens
+        print(f"  max_tokens: per-prompt from dataset (avg={avg_max_tokens:.1f})")
+    else:
+        print(f"  max_tokens: {config.max_tokens} (fixed)")
+    print(f"  Total prompts: {total_prompts}, dataset: {config.dataset}")
     
-    for i in range(config.num_requests):
-        if verbose or (i + 1) % 10 == 0 or config.num_requests <= 10:
-            print(f"  Batch {i+1}/{config.num_requests} ({config.batch_size} prompts)...", end=" ", flush=True)
-        
-        # Get batch_size prompts for this batched request
-        start_idx = i * config.batch_size
-        batch_prompts = prompts[start_idx:start_idx + config.batch_size]
-        
-        # Send ALL batch_size prompts in ONE API call (batched request)
-        resp = send_request(
-            base_url=base_url,
-            model=model_name,
-            prompts=batch_prompts,  # List of batch_size prompts
-            max_tokens=config.max_tokens,
-            temperature=config.temperature,
-            seed=config.seed,  # Use consistent seed like vllm script
+    # Use async if QPS is set, otherwise sync
+    if config.qps > 0:
+        print(f"  QPS mode: {config.qps} requests/second")
+        request_ids = asyncio.run(
+            run_benchmark_async(
+                base_url=base_url,
+                model_name=model_name,
+                config=config,
+                prompts=prompts,
+                prompt_max_tokens=prompt_max_tokens,
+                verbose=verbose,
+            )
         )
-        
-        if resp:
-            # Extract request IDs from response - each prompt gets its own request ID
-            if "choices" in resp:
-                for choice in resp["choices"]:
-                    if "meta_info" in choice and "id" in choice["meta_info"]:
-                        request_ids.append(choice["meta_info"]["id"])
+    else:
+        # Synchronous mode
+        for i in range(config.num_requests):
+            if verbose or (i + 1) % 10 == 0 or config.num_requests <= 10:
+                print(f"  Batch {i+1}/{config.num_requests} ({config.batch_size} prompts)...", end=" ", flush=True)
             
-            if verbose or (i + 1) % 10 == 0 or config.num_requests <= 10:
-                num_choices = len(resp.get("choices", []))
-                print(f"✓ ({num_choices} completions)")
-        else:
-            if verbose or (i + 1) % 10 == 0 or config.num_requests <= 10:
-                print("✗")
+            # Get batch_size prompts for this batched request
+            start_idx = i * config.batch_size
+            batch_prompts = prompts[start_idx:start_idx + config.batch_size]
+            batch_max_tokens = prompt_max_tokens[start_idx:start_idx + config.batch_size]
+            
+            # Use max of batch output lengths (API only accepts one max_tokens per request)
+            batch_max_token = max(batch_max_tokens) if batch_max_tokens else config.max_tokens
+            
+            # Send ALL batch_size prompts in ONE API call (batched request)
+            resp = send_request(
+                base_url=base_url,
+                model=model_name,
+                prompts=batch_prompts,  # List of batch_size prompts
+                max_tokens=batch_max_token,
+                temperature=config.temperature,
+                seed=config.seed,  # Use consistent seed like vllm script
+            )
+            
+            if resp:
+                # Extract request IDs from response - each prompt gets its own request ID
+                if "choices" in resp:
+                    for choice in resp["choices"]:
+                        if "meta_info" in choice and "id" in choice["meta_info"]:
+                            request_ids.append(choice["meta_info"]["id"])
+                
+                if verbose or (i + 1) % 10 == 0 or config.num_requests <= 10:
+                    num_choices = len(resp.get("choices", []))
+                    print(f"✓ ({num_choices} completions)")
+            else:
+                if verbose or (i + 1) % 10 == 0 or config.num_requests <= 10:
+                    print("✗")
     
     # Get Prometheus stats AFTER benchmark
     prometheus_delta = None
@@ -414,20 +782,29 @@ def main():
     # Benchmark options
     parser.add_argument("--num-requests", type=int, default=1,
                         help="Number of batched API calls to send")
-    parser.add_argument("--batch-size", type=int, default=32,
+    parser.add_argument("--batch-size", type=int, default=1,
                         help="Number of prompts per batched API call (all sent together)")
-    parser.add_argument("--max-tokens", type=int, default=128,
+    parser.add_argument("--max-tokens", type=int, default=0,
                         help="Maximum tokens to generate per prompt")
     parser.add_argument("--temperature", type=float, default=0.0,
                         help="Sampling temperature")
-    parser.add_argument("--seed", type=int, default=12345,
+    parser.add_argument("--seed", type=int, default=42,
                         help="Random seed (default matches vllm_online_batch_invariance_multitest.py)")
-    parser.add_argument("--min-prompt-words", type=int, default=10,
-                        help="Minimum prompt length in words (default matches vllm script)")
-    parser.add_argument("--max-prompt-words", type=int, default=50,
-                        help="Maximum prompt length in words (default matches vllm script)")
+    parser.add_argument("--min-prompt-words", type=int, default=0,
+                        help="Minimum prompt length in words (for random dataset)")
+    parser.add_argument("--max-prompt-words", type=int, default=0,
+                        help="Maximum prompt length in words (for random dataset)")
     parser.add_argument("--step-size", type=int, default=0,
                         help="det_step_size used (for labeling in results)")
+    parser.add_argument("--qps", type=float, default=0.0,
+                        help="Requests per second (0 = synchronous, no rate limit)")
+    
+    # Dataset options
+    parser.add_argument("--dataset", type=str, default="random",
+                        choices=["random", "sharegpt"],
+                        help="Dataset to use for prompts: 'random' or 'sharegpt'")
+    parser.add_argument("--dataset-path", type=str, default=None,
+                        help="Path to dataset file (for sharegpt, downloads if not provided)")
     
     # Log analysis options
     parser.add_argument("--log-file", type=str, default=None,
@@ -454,6 +831,9 @@ def main():
         min_prompt_words=args.min_prompt_words,
         max_prompt_words=args.max_prompt_words,
         step_size=args.step_size,
+        dataset=args.dataset,
+        dataset_path=args.dataset_path,
+        qps=args.qps,
     )
     
     # Set random seed
@@ -489,10 +869,23 @@ def main():
         
         print(f"Using model: {model_name}")
         
+        # Load tokenizer for accurate token counting (for ShareGPT dataset)
+        tokenizer = None
+        if config.dataset == "sharegpt":
+            try:
+                from transformers import AutoTokenizer
+                print(f"Loading tokenizer for {model_name}...")
+                tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+                print(f"  Tokenizer loaded: {tokenizer.__class__.__name__}")
+            except Exception as e:
+                print(f"  Warning: Could not load tokenizer: {e}")
+                print(f"  Falling back to char/4 heuristic for token counts")
+        
         request_ids, prometheus_delta = run_benchmark(
             base_url=base_url,
             model_name=model_name,
             config=config,
+            tokenizer=tokenizer,
             verbose=args.verbose,
         )
         

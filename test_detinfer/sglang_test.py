@@ -33,17 +33,17 @@ with open(os.path.join(dirpath, "long_prompt.txt"), "r") as f:
 @dataclasses.dataclass
 class BenchArgs:
     host: str = "localhost"
-    port: int = 30000
+    port: int = 30005
     batch_size: int = 1
     temperature: float = 0.0
     sampling_seed: int = 42
-    max_new_tokens: int = 100
+    max_new_tokens: int = 120
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
-    return_logprob: bool = False
+    return_logprob: bool = True
     stream: bool = False
     profile: bool = False
-    is_deterministic: bool = False
+    is_deterministic: bool = True
     profile_steps: int = 3
     profile_by_stage: bool = False
     test_mode: str = "single"
@@ -83,7 +83,11 @@ class BenchArgs:
             ],
         )
         parser.add_argument("--profile", action="store_true")
-        parser.add_argument("--is-deterministic", action="store_true")
+        parser.add_argument(
+            "--is-deterministic",
+            action="store_true",
+            default=BenchArgs.is_deterministic,
+        )
         parser.add_argument(
             "--profile-steps", type=int, default=BenchArgs.profile_steps
         )

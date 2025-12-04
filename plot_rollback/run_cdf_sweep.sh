@@ -5,6 +5,14 @@
 # Usage:
 #   ./run_cdf_sweep.sh [options]
 #
+# Environment variables:
+#   DATASET         - Dataset to use: "random" or "sharegpt" (default: random)
+#   DATASET_PATH    - Path to local dataset file (optional)
+#   NUM_REQUESTS    - Number of batched API calls (default: 2)
+#   BATCH_SIZE      - Prompts per batch (default: 32)
+#   MAX_TOKENS      - Max tokens to generate (default: 128)
+#   REQUEST_RATE    - QPS / request rate for async requests (default: 0 = sync)
+#
 # This script will:
 #   1. Run benchmarks for det_step_size = 10, 20, 50, 100
 #   2. Collect per-request rollback stats from server logs  
@@ -18,16 +26,33 @@ TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 
 # Benchmark configuration
-NUM_REQUESTS="${NUM_REQUESTS:-100}"
-BATCH_SIZE="${BATCH_SIZE:-32}"
+NUM_REQUESTS="${NUM_REQUESTS:-2}"
+BATCH_SIZE="${BATCH_SIZE:-1}"
 MAX_TOKENS="${MAX_TOKENS:-128}"
+
+# Dataset configuration
+DATASET="${DATASET:-random}"
+DATASET_PATH="${DATASET_PATH:-}"
+
+# QPS configuration (0 = synchronous)
+QPS="${QPS:-0}"
 
 # Step sizes to sweep
 STEP_SIZES=(10 20 50 100)
 
 OUTPUT_DIR="cdf_results"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-RUN_DIR="$OUTPUT_DIR/run_$TIMESTAMP"
+
+# Build descriptive run directory name based on config
+RUN_NAME="${DATASET}_n${NUM_REQUESTS}_b${BATCH_SIZE}"
+if [ "$QPS" != "0" ]; then
+    RUN_NAME="${RUN_NAME}_qps${QPS}"
+else
+    RUN_NAME="${RUN_NAME}_sync"
+fi
+RUN_NAME="${RUN_NAME}_${TIMESTAMP}"
+
+RUN_DIR="$OUTPUT_DIR/$RUN_NAME"
 
 # Track server PID for cleanup
 SERVER_PID=""
@@ -64,6 +89,15 @@ echo "  Step sizes:     ${STEP_SIZES[*]}"
 echo "  Num requests:   $NUM_REQUESTS"
 echo "  Batch size:     $BATCH_SIZE"
 echo "  Max tokens:     $MAX_TOKENS"
+echo "  Dataset:        $DATASET"
+if [ -n "$DATASET_PATH" ]; then
+    echo "  Dataset path:   $DATASET_PATH"
+fi
+if [ "$QPS" != "0" ]; then
+    echo "  QPS:            $QPS requests/sec"
+else
+    echo "  QPS:            sync (no rate limit)"
+fi
 echo "  Output dir:     $RUN_DIR"
 echo ""
 
@@ -119,12 +153,27 @@ run_experiment() {
     
     # Run benchmark
     echo "Running benchmark..."
+    
+    # Build dataset args
+    DATASET_ARGS="--dataset $DATASET"
+    if [ -n "$DATASET_PATH" ]; then
+        DATASET_ARGS="$DATASET_ARGS --dataset-path $DATASET_PATH"
+    fi
+    
+    # Build QPS args
+    QPS_ARGS=""
+    if [ "$QPS" != "0" ]; then
+        QPS_ARGS="--qps $QPS"
+    fi
+    
     python bench_per_request_rollbacks.py \
         --port "$PORT" \
         --num-requests "$NUM_REQUESTS" \
         --batch-size "$BATCH_SIZE" \
         --max-tokens "$MAX_TOKENS" \
         --step-size "$step_size" \
+        $DATASET_ARGS \
+        $QPS_ARGS \
         --log-file "$LOG_FILE" \
         --output "$RESULTS_FILE"
     
@@ -139,7 +188,9 @@ run_experiment() {
         --num-requests "$NUM_REQUESTS" \
         --batch-size "$BATCH_SIZE" \
         --max-tokens "$MAX_TOKENS" \
-        --step-size "$step_size"
+        --step-size "$step_size" \
+        $DATASET_ARGS \
+        $QPS_ARGS
     
     # Stop server
     echo "Stopping server..."

@@ -1,0 +1,4997 @@
+{
+  "config": {
+    "num_requests": 1000,
+    "batch_size": 1,
+    "max_tokens": 128,
+    "temperature": 0.0,
+    "seed": 42,
+    "min_prompt_words": 0,
+    "max_prompt_words": 0,
+    "step_size": 100,
+    "dataset": "sharegpt",
+    "dataset_path": null,
+    "qps": 1.0
+  },
+  "summary": {
+    "total_requests": 994,
+    "requests_with_rollbacks": 482,
+    "total_rollbacks": 991,
+    "total_tokens_rolled_back": 51253,
+    "rollback_rate": 0.48490945674044267,
+    "avg_rollbacks_per_request": 0.9969818913480886,
+    "avg_tokens_per_rollback": 51.718466195761856,
+    "avg_tokens_rolled_back_per_request": 51.56237424547284
+  },
+  "per_request_stats": [
+    {
+      "rid": "3067a59c97814cf6b9fb6c753d3b7720",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "52aef71c869b4655b17b67abc2e7d27c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "117f896b06c346a0b808b6f97d89f7e3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8b85747647144239b3676c4ebf40eac8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d0d9628f0c474e6cbf445ffe453dd215",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 52
+    },
+    {
+      "rid": "893c061bec9c4a7b9171091c9df3f3a5",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 35
+    },
+    {
+      "rid": "8f6592e44a6f4235985f541adc6559de",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "851763c4dd454ac78da96ccd89ac0659",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 257
+    },
+    {
+      "rid": "691727cc99574d598c0411cf5ee1730b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "45fab4dc60ce40948a2f5af58b7184d6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "56f71f376b794c66aaee5876a73cee25",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "46a9349f241443cebd44fc00656fdf5c",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 191
+    },
+    {
+      "rid": "cfb64058d89c46399cc38c8bb7a10ea4",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 184
+    },
+    {
+      "rid": "30eb8300a3f749b8b718b205ff03c92b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e9a1783fb99743609803bf51701cd50e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "da366ce6f7a345ff9aa7159e81efd337",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "848310cbb9204295a05588732e0b5f9f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "031d807baa664fd79b3964e796dd5837",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 31
+    },
+    {
+      "rid": "be5449d0d8af4594a8838357035a4d6c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 20
+    },
+    {
+      "rid": "2cf2d03a16764ba88699191d49b88f5d",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 56
+    },
+    {
+      "rid": "84825bef8f1d48dd9a9045f43b877e64",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b89c67c399254b8fa27764760f544af0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0b435fa5a0144da4a0ea83ad5e6db449",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4f4e674c316a4000867073b18fa38aba",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "2650999321614bb48a0cd67ba87f3204",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 19
+    },
+    {
+      "rid": "3425603163894119bab78a65f05dcd0b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "cad676fd2dee48b7991650d37bdd3e3e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b1c426cfa719444380141218c8b133e2",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 89
+    },
+    {
+      "rid": "01b1fc7e85c743f787b3fcd7b117a4d5",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 62
+    },
+    {
+      "rid": "edeb90a7673546fa96d0a484e8809f7b",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 8
+    },
+    {
+      "rid": "05a2f2401a3144c28cf26aff8d3c1d3b",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 35
+    },
+    {
+      "rid": "59ecfd4cb6d24f8c99db130f17a1c3eb",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 41
+    },
+    {
+      "rid": "3fd0005dd06a4a6aa9c2a3a8a1c6f3e4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 5
+    },
+    {
+      "rid": "86eb7ac36842400b8189b805f1891538",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 3
+    },
+    {
+      "rid": "6f1e01b0591741d4886158145d4fd37d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "fc11123332734165a6b99ae63c570f2f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 17
+    },
+    {
+      "rid": "27fe3fb914534c0f975d71ec475352c9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2525bcb2a0624b778279a7449b5f2b24",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 110
+    },
+    {
+      "rid": "f86d9f2a4b264729b1679d16699dc3d0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0ee1cb8b70af49fdb7a387db7051f21c",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 64
+    },
+    {
+      "rid": "b0ec788d15f447a89ba6a603c377e305",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d7ee6732abe2456eb38cefd436112d4e",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 60
+    },
+    {
+      "rid": "edbeaef0aa6340a1a6481bd89daf2f18",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "46fa943d634e4207bab6b5c6d0562fda",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 80
+    },
+    {
+      "rid": "caaed1a821794db890ee552d527861d1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7098465bb2ed477cb0c913021e6289a0",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 77
+    },
+    {
+      "rid": "cc51f927a6dc4cce95aba77648ca142a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ca3673d73d1f434d8a3fe4d00295edd8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e7c165a17575407c9ad05c6ac0720c13",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "33b2f138514d4ee1afa3e00b80796c5c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "040687e57cce4583bbc18019c88de0d7",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "11f6dcc055964135b4696203086745c8",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 301
+    },
+    {
+      "rid": "65785a983d7b45d1a3f95b29b1a78682",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "84ca22854e454422b7142d7091f55437",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c6c343e5478c499c91327f6d0f8fc73a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 95
+    },
+    {
+      "rid": "8424d98a86f6418799f6b54404aff27f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 7
+    },
+    {
+      "rid": "daf4f26b16c9435a934db2278ce32f75",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5e12ef3da2ae4733a7d8e63049b3d6bd",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 3
+    },
+    {
+      "rid": "e041a62b701e40979eb9320fb1f22ebe",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 143
+    },
+    {
+      "rid": "ad2c4fad03774584ad196c4e76edde6f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7baa0c6a7e414d87820eafb10195217f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 148
+    },
+    {
+      "rid": "01644d26e010452d839f06f389e88ebe",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9d4e0a753dc94a7cad983282284b1999",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ed01cee613944a6ebfe498a1aaac575f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3f6f15b54b904c799e3fb990207540f3",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 117
+    },
+    {
+      "rid": "392a9b9fd99d43478470f5300d1d9cf6",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 98
+    },
+    {
+      "rid": "1ee024413e5f4dee954152f4a833ee81",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "fb8eb6d067874382835b48c4141ded4b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ab01204b1b6143d694fc34c7c7ced235",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 86
+    },
+    {
+      "rid": "5d87f62f1850416fa47ed0f8d854f81a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "33fd73ef8b4e4149a9d6d512ea133d78",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 52
+    },
+    {
+      "rid": "db051b129e6c47328db1315b90267f02",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 23
+    },
+    {
+      "rid": "3c22519a19bd42bf83d604935768d169",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 68
+    },
+    {
+      "rid": "7eb09b86c91b4b39aa12bb7a2c9ada0c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 93
+    },
+    {
+      "rid": "b19a4250c0094041a48844389eb03f8e",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 58
+    },
+    {
+      "rid": "fa25f5ab0f994decbec93527e304e14c",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 116
+    },
+    {
+      "rid": "874f49f56de84b7fa2be7a65d50f3d94",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d7e7241c87c344b49353894af4199974",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 75
+    },
+    {
+      "rid": "804835b9bfcc4c12bafb18225d8abfaf",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "18977646d33440dd8c5bc87964e1eb49",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0fa96f9007834eb999cfb6caaf98587c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "99ecbe2656ec449d8b7a32dc4baea6c6",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 162
+    },
+    {
+      "rid": "efb62049b2b7452896f8b69aae9a5b53",
+      "num_rollbacks": 6,
+      "tokens_rolled_back": 355
+    },
+    {
+      "rid": "8f33d015ca32434f9285a1527e97360f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7490d91e67994f88a287c173a0e89177",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 117
+    },
+    {
+      "rid": "be2fad865b4a47cd9f16332cfc4d79d6",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 142
+    },
+    {
+      "rid": "7dd50f7706a94a81865216ebbf2cdfef",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bff2c9f43dd741efa184fe4f5fe477c2",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 100
+    },
+    {
+      "rid": "9d112c310bdd48598063bc97f2de07e4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8b17008e0f194e9ca61d3882c4994f8f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c6197ba876d1404b92d97edfc32144ed",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 34
+    },
+    {
+      "rid": "1a9c2911946a41129b7d98d8348b3401",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 193
+    },
+    {
+      "rid": "056a38d0e2404ada825abcb65428dba4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1adc41ea39f24ca1a97b09cec5e98478",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2a2fefe63e1d4f9dabd0566992356078",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "eecfefec65fe4ab49e49f7c821fa3e06",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "873f26c353864b5d8fce1e35ec399e4c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "610f3bc4cea341dc82ea9d547c700802",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 27
+    },
+    {
+      "rid": "814b212a08574171bfd0a93d98b0359d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "834b4dfb825c464984b1ba8523b9d93c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 19
+    },
+    {
+      "rid": "dee8965d47c245d59372e737c4a63e52",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 218
+    },
+    {
+      "rid": "1bf3801a5dc74b0f9a0f03ce05834bb2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "dcdb4018064642fab0c15b827c334d59",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "50eafb1f435e44adaa731ebc968337ae",
+      "num_rollbacks": 9,
+      "tokens_rolled_back": 555
+    },
+    {
+      "rid": "8f7cdae6094e4fa3ba61f8a7c615732d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9c0329e9c94646d1a83efc814ecf7e18",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 28
+    },
+    {
+      "rid": "a0e8281a72cb4a64824bbdb91d0960c5",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 8
+    },
+    {
+      "rid": "517b4a3450514250838bdb158e80decd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d0ea137cc2ea43c5af0863a95f5d5962",
+      "num_rollbacks": 10,
+      "tokens_rolled_back": 616
+    },
+    {
+      "rid": "ba46a4233aa04e4a89c17d6572ce2d47",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 2
+    },
+    {
+      "rid": "e87fdf2e488243caaffddc83cc668a44",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 10
+    },
+    {
+      "rid": "f2427f38be5945b59c8bfb78fd949f68",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 168
+    },
+    {
+      "rid": "cabf89663ccf48e49ba42c35787ee711",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "dcaf384114c941279e6188a39925ef6a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3da080ec580b4c479aa60682183bd8d3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "39df8090030847d1b01520458b98bcd8",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 6
+    },
+    {
+      "rid": "77c8f19bcaa8455e995c0d11512ce226",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 51
+    },
+    {
+      "rid": "090fd91b100d4a2aafaa288b271abe83",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1adfee90c16a4fe4ab8050bf43ccb62b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "39bf8b0296054371a54a19394bb84139",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 24
+    },
+    {
+      "rid": "d875081a76134670a83737b576c4ddc2",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 17
+    },
+    {
+      "rid": "04909b059170400f92e5bd58ae092ade",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "975b2e78746f44d48ca4a3a2e7762e0e",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 126
+    },
+    {
+      "rid": "c5b8574f26094cb6a66badc05e627fbe",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4880db941d904f2d8c69a93d2bc526cf",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 48
+    },
+    {
+      "rid": "c695cbfeabc44a158648ca2d3632bd79",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 7
+    },
+    {
+      "rid": "6d8a370badf44ca5a7773d058f44645d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 91
+    },
+    {
+      "rid": "d4569ec843ab477f959c43847b495146",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "caf4f8be80544f84ba59e604e219bc93",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "66bad4f25faf4a9ab214e35fad2d862f",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 97
+    },
+    {
+      "rid": "cabdd7ad5ccd4509a3f228563ac50cb9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0a1bff3cb40340e58c9e7bb11dce4edf",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6f37754dac3046f780b11e748f4dee2f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 57
+    },
+    {
+      "rid": "b36954d7b80644a59ac79390fffa99bd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9911c72a83d74631b9e949b3f5196acd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c4c4e11534024fc58dce24c6d77fa046",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 33
+    },
+    {
+      "rid": "735563812c8049ce95ee68b671c4442a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 12
+    },
+    {
+      "rid": "ff794558ab4d4305b519e178a4b9381b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9635145cca114029b14774091a888932",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "06290dec5dc344b081941bb4b2c987f4",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 369
+    },
+    {
+      "rid": "7dce7081042c44d29d7d39f9bcbe3ee4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 57
+    },
+    {
+      "rid": "b6349c806f2044f08f4b64b4f52ce126",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 23
+    },
+    {
+      "rid": "5484b92148824148b90bf15f1a43689f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f3303762fd8c49c4b406fccb55b9c4f6",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 28
+    },
+    {
+      "rid": "574ff7592ccd46cb959a1ad177868d59",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 78
+    },
+    {
+      "rid": "84fe41d890a74634b57f8b8bbfcf198f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 90
+    },
+    {
+      "rid": "6fa2f0511d7e423a86100f47d86ac908",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 1
+    },
+    {
+      "rid": "b15dcf07d16d4490be0a84e695b05eaf",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 154
+    },
+    {
+      "rid": "410df8f31ec94395a8a43e6c79146c00",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 158
+    },
+    {
+      "rid": "7a8a1e3bba8647da9286420078a731c9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7ce457cca7c14e6395de2ceaefec452b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ef4a87d33e804fd0958807319e7331a3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "04dab4e8053044c7b789379e41e9ba81",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b91ee2a57b7048ba85967b13654628f4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 21
+    },
+    {
+      "rid": "ad91d9311ad14eef98e42a4be0654c72",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "91002ebd102a4e7493a8b3b2bf38ee63",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 256
+    },
+    {
+      "rid": "f31260f361fa45f6801dd318de081699",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 76
+    },
+    {
+      "rid": "e5895906b7e54c72a17b7dc72767f6f7",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 18
+    },
+    {
+      "rid": "0438c373a2b043f4a6489297c670b44e",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 117
+    },
+    {
+      "rid": "f03ab96b97844ccb842578d3221d3590",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a5cae582e5f448ffad524f6aa9505337",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 39
+    },
+    {
+      "rid": "47981cc232274ddeb083ede502bb8d6b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e904488767a44179ae7b76e997775ffb",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 72
+    },
+    {
+      "rid": "46b2c2642cd94894ba7995051f1b0f65",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 310
+    },
+    {
+      "rid": "39ca7d04afca474b88d5722c5da48fb0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "fcac80446f914c99b028acd146376c98",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 114
+    },
+    {
+      "rid": "cc3b4e5057c4480dba47a6d00af67ce7",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "096aef8c1a004e1485273ddc24dd8802",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3eb347c71016424b988e589094f222bd",
+      "num_rollbacks": 6,
+      "tokens_rolled_back": 355
+    },
+    {
+      "rid": "21495afce83248bfb474ed9bf931230a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f48c52db0a7b44609001713a1aea6010",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 93
+    },
+    {
+      "rid": "b2b9406487b140099f826386a519eb37",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2f91700543c445529503d12e568d8bb5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "eb7d7dc207754669abded6ded73674fd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f255baa7183e4f8bbd563cd58531e50a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "379b951d05f14e38850d4a95309f177a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4a0ef36bca1d4465b52a60ed72e59f96",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "31600582a6fe4c0db3562a1dfb8fed0c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e83012c78600432faf38778b220e845a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "172a37de31fb4b27982e89427d3de74c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8b4daf25c92349ca80b39694a4726b91",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bf970864dae34d8a9d8d11b81cb9046a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d5b42b6caeb745d7a27e09d1a06df075",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d2dd49a0b43d4930a6b210804b55e8e1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "69d2ebd2bc5f4a3fb7b064133b1e561a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f41cd25206954af8a72c1b6bba4c6565",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1361babc63104fc790f6e5ef606da4d8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2486d16924954374ba91ff25800b201f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "37a28b63e6244b25880b86532d9c841d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 2
+    },
+    {
+      "rid": "71f5edd3adf548bf9ab90e92c107d8cf",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8308718d3c90401da8532215f12a3d86",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 93
+    },
+    {
+      "rid": "ed8c45776ee9452d8b5f5ee6f1cee99c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "232f14f2beb44bd7a03aae107d8cdeac",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5330834776f54dcebb079409265d0477",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 144
+    },
+    {
+      "rid": "bff8f56ced394ab786e5eee29a6f336d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 99
+    },
+    {
+      "rid": "b7a934d5bd5449bfb9b788001e3a1523",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "516d06549a164836990175248d0ba54c",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 182
+    },
+    {
+      "rid": "711a54cc803e4599ae5c9cb73aaf7f57",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7c53731e0bde4f48a061ee95e160cae6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0d111b8636e945ce82a3245acbeeb414",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bea8835526d748469049840c72b22a2f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "917deb2260f84ad9a5ad2e9c0940cf43",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "552c80e771af4daabc42bbd09e5c58c8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a8b124633e9d40cebe9ac6cd98679004",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f54c7b8f9a074c858baf317015aad322",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "31547ff3c93a40648fdb6f8f36c4cf4e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f9534ce4c3884a0a9d34a18d41062d27",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 85
+    },
+    {
+      "rid": "1830543465114668b3d09afd832695c8",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 27
+    },
+    {
+      "rid": "e4ad35e5b41f4bb2b43edb9ac91cc5cd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9c802e9d89934368a7b4de4b4d1e2aaf",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 78
+    },
+    {
+      "rid": "d3de88127d994c09948f111645848913",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a13fc4e85b254a23bbd70301e1236c56",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 140
+    },
+    {
+      "rid": "7c20e9f798ac4d98b669cc7e90cd87a1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "935331a0ffe64c2fbb4863a92ddb540a",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 129
+    },
+    {
+      "rid": "51d13ad516754610bcd496af3e8e37d0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4f38a8de47584bbc88f9b3b1e8256675",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 22
+    },
+    {
+      "rid": "2114d5cdca7d48b1992f032e7bddfbbf",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 49
+    },
+    {
+      "rid": "ae0cfa6e688c408aaeecd4a89ee473f6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8bff8eb531d4434981a71425da38b992",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 1
+    },
+    {
+      "rid": "0c13625f3ea34ec0b0e4e2bb613ac95c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e426af73e2b84435a7966c20982fd6a4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 47
+    },
+    {
+      "rid": "ece8ed53b8184b35883b67ec205c636d",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 26
+    },
+    {
+      "rid": "d39afbc907c24781a4bc4b0d92222ad1",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 78
+    },
+    {
+      "rid": "a974d4aa87fe4a6da3922e7269bab9da",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2c2a98369d644901b3a570286cf8cd55",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2c875dd87be6427dbb506a74ab7a5b42",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 290
+    },
+    {
+      "rid": "f08d63e4ca284654bcf6e408b5498554",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 53
+    },
+    {
+      "rid": "9b5cecfdbdcb42dc8feae41ad66e4484",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a5bff0fa436c4dc5afdb4fbf233eb4d2",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 138
+    },
+    {
+      "rid": "89e7640fbf524ddebf3a1e98087dde05",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e1e1b1d7c9294f80ae61ad51436df088",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0e4e23fbfc124803a042998b2a422478",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 219
+    },
+    {
+      "rid": "3e11bb7fedce419987f79b51c2e848b8",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 16
+    },
+    {
+      "rid": "ce3f01b6464b4be3840b2f1c5ecc7a49",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1f1f518c147e4e3c90b0740ca0d17b3a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a161b032211d4a249ee5b04f736ffec8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "33e7b1d2c8324a7b89aa6ae02fbd5a97",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f26ab170a86e4e608e781e5d26411e75",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 69
+    },
+    {
+      "rid": "8acd1820b9214cf696d352482cd8180e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "828799d507384095a47c06ef0c5fcd8f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6e21a8df75074e3ba2c7330ed8ba6c07",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 305
+    },
+    {
+      "rid": "9c091d87090d4ee49285ca58f7d9ff02",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 123
+    },
+    {
+      "rid": "070b295368264f6ebd9f2cfd5e882604",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 145
+    },
+    {
+      "rid": "0614fcb8dc8544d3bf18691940e90fb3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1ea47f6ba414493aa7b02e8e876a272a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "feeaaa93e62244f58872758de1bc680e",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 240
+    },
+    {
+      "rid": "150f005c2dea4cc795c08cf3c0cfeafe",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 8
+    },
+    {
+      "rid": "50126d2ccc6d408cbeb97efb28849c17",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "cc76a063242a44999438fd921cbba482",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 31
+    },
+    {
+      "rid": "68508d9ded2141f28e92ba31db0ecd42",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 24
+    },
+    {
+      "rid": "000d423311e24b4fa23198ed0800815f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 11
+    },
+    {
+      "rid": "856432c4a3b640e299a8ba5159f852fa",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c050261b8a0340f196fb92264af46098",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6832934961ae47afb8f0311ab2de1499",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "268a29a70d0046e6af4086fdf784e9e3",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 125
+    },
+    {
+      "rid": "e9d392543618413bbf6636c9df492a41",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "322f61da3e3f4938b4e304ca6a947725",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 67
+    },
+    {
+      "rid": "472efb94532f4af4a630ff3f551024c2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3e1287f8d6ce4147b2e00d542962432f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 196
+    },
+    {
+      "rid": "65eb1122eba24a7f9cb0fe4b96476a63",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 7
+    },
+    {
+      "rid": "fc85021498bc4fc9b53035298e8512da",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "62bfe3fe05e5418eaaa5267bebc4f83a",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 243
+    },
+    {
+      "rid": "4712cc0c19864c15b416f7b91ccd0dcb",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 24
+    },
+    {
+      "rid": "3d4d320b1c984382b3328b3a8442b056",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e89325d09b274f59a61f46b033ec0e4c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "358307c5a1fb49a2b07d6e55126bf848",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "65c7fca0412941fbb3379804deed8c3f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "632955a7deec4c6ca38e432d383f4729",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 101
+    },
+    {
+      "rid": "243c853a879e435f86b4bccf9d7acd71",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6a3e5789ed06435bb35fef0b02ce042b",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 93
+    },
+    {
+      "rid": "a27ae76125234ba5b52a99a80a8e99e1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "af3a2307ad9d4e698edfa1b16082993f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "038c4016bc6840ad9c58554c92c536f6",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 245
+    },
+    {
+      "rid": "0afe5375344040789661bed6ae415b4a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "095f23a3c5324e229883805d89c7e6fc",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7646027b33e84b17bc8e2f7c5f3d9be4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7e4c4f5349924be5b81b6096f527a245",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b22fd9b1ffe84b149f744e016372084e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2a51a0403f3b4a979566c23887b9dd15",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 75
+    },
+    {
+      "rid": "19acb40b12154246b0bebf4ac0cf6e1c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9abf4abb24e347af86665ee2a7d4510a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f029d1c4cf4b4680aa71cbace9d81a3f",
+      "num_rollbacks": 8,
+      "tokens_rolled_back": 511
+    },
+    {
+      "rid": "7ff20132eded410087fb16ddf44aff59",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "8c73017d43534458a58a10e68213132e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "807eb4c124444379ba5f83d93c055334",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 137
+    },
+    {
+      "rid": "62a026c3182646dab849272c56fa8195",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e2df3b19799d43989c40fad68c09e538",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ae6bd84291774bd6a914d3a0c0716761",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "23aabdc2754a460c9bd794245595b236",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 120
+    },
+    {
+      "rid": "3c0d47566c8741fea6be8268c02ebd34",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 31
+    },
+    {
+      "rid": "f7151977fa3744ee80e0fa41b669b83f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d9d9128b5e3840a39e56c46728f423d0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "dc195831827a44b8805235f56a88b3d0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b34300fb9e6a45ee872085ad8950374e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1c56485b3627490c8f1e6f13720337e4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e23e338ae4d444c3b52019b2704e8c00",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9a5f2ec06dec44e8aa47910533b082f3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "aa8c712974fc4471821b02abf8fd3fd1",
+      "num_rollbacks": 6,
+      "tokens_rolled_back": 384
+    },
+    {
+      "rid": "181227f387c240f882687d1efe64201b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "182fa3bcfd5c401f8d42a667decbddd7",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 86
+    },
+    {
+      "rid": "ee7316bdfdc64a7587ae36ced9cc346e",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 242
+    },
+    {
+      "rid": "f9f4b1caf78145e2b1112f54dc218436",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 26
+    },
+    {
+      "rid": "d08bee0a7eac41168aa22c0173bf01bd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "aa029857305d4dd7a35e193fd3e7eb25",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 249
+    },
+    {
+      "rid": "40ac50dadcad4f9da8e714c035b8899e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ef2a41e037c4444d803f29d62c99559f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e6360f200ca14fcf84ebedd844895935",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "596cd4616f9b44ecb01eb4bad7eb9dea",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 273
+    },
+    {
+      "rid": "4758346506b247a6b03aaec0da3397ce",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7b4aad082d4748978280ac1f6ebb262f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c6e903a04e61438da47f83db1835529a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d4611728eaad4f6ebb3562ce5ba28eff",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 16
+    },
+    {
+      "rid": "34b7a8799e484ea199ead8036e99a07d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "31f7b747c175423693743358958a4998",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2693db3f0560452e9970474ba4b7998a",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 138
+    },
+    {
+      "rid": "499924b8f4094118aa090bf64138bb1a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "81af31ec89d644ca8e9c14c5055dbaa8",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 45
+    },
+    {
+      "rid": "f83c71c33ea14ced9f2df63dcde383c4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 4
+    },
+    {
+      "rid": "0f6ff3ec50f84fafafc1f060d03c6eb0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9348c0d9d6e6495aa93d7c3b1df320ea",
+      "num_rollbacks": 13,
+      "tokens_rolled_back": 710
+    },
+    {
+      "rid": "f7f66ecfdd1d46af847b85e09b429e5b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "65e2211b1d3a417f87227bea0be7a488",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 160
+    },
+    {
+      "rid": "82ba4857f4e8449a8c1f44f0798e76de",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 173
+    },
+    {
+      "rid": "3d59736bb3ab41d09a18093d9e742fe6",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 98
+    },
+    {
+      "rid": "b69de1a5c3864c6b8567b74ccc2fb192",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 10
+    },
+    {
+      "rid": "5a028275699b4db68da6480d072b4f95",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 108
+    },
+    {
+      "rid": "428e468d0f774321a5c1ef109abef306",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8c2ef78f511f4cd8a69e7a99c9784887",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5810db70de2641db85ad32f247607e39",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "75ebb71705334f93bdee68483f956da6",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 8
+    },
+    {
+      "rid": "5dba8e8feaf84be0b61d8132ad5e16a3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "577a3191365742e492466b08fdbf6d92",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c42fc396dc004d61aee6f19fe846d09a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ab8af372a5be466086c9ece8e73f9e7d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 61
+    },
+    {
+      "rid": "914d379f16f74562a4f19706da1f8fea",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 382
+    },
+    {
+      "rid": "1941e7ce339549a9a97e4940f6e5954f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 21
+    },
+    {
+      "rid": "7b25c7d82ca84fa389e8199104a90991",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d2bcd1dde76f433298ab90a42ee7c7c2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "133c72a16b864a09832ea3a093abd665",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 174
+    },
+    {
+      "rid": "fcbb37e398ce49a38973a6636c483cfd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3122c2a7a48149f199d6282e8e751f02",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 14
+    },
+    {
+      "rid": "8806de352fc7410fb9f81f3eadd5c596",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a589cfb018ba46f3ac12e6e555ae93a2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "aeca2a1243b54500aaf5b31b9bb073d2",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 7
+    },
+    {
+      "rid": "644e6436d9a2462ca33661a4df929fb9",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 4
+    },
+    {
+      "rid": "5e61167a7897417497e058e72b7498b9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6a9092884a9f47b9b507063e54c7f8b6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "db5b658a7b374c948d981ca976eee73d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c602e997eb29462882c7490e436124ab",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 198
+    },
+    {
+      "rid": "d60a19b2e962409195f4602d63a37a08",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 20
+    },
+    {
+      "rid": "fbaebdaf57384bfbaf41a4fb281b13c3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bee656d9f7544476b94604309e86deff",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d09639f83e1844d4949a5c543a29695a",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 72
+    },
+    {
+      "rid": "857d954589dc440aa6863e4907127838",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "229b404f54c04debaeafebd6c978355b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "31820319b700446c879e22c4b6c9dbf8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6c348236777946038bb1b091e5b9d0b1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "55a9b38cf6884f9b9b10a0ca4deee893",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e3c20bdba7944e9ebb8521cb6e36343a",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 138
+    },
+    {
+      "rid": "e2b1f74ebc8c4680b6a3758813c06bf8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "227328484f614e04ae56e5185d1f30f1",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 83
+    },
+    {
+      "rid": "ddb0720498aa4717a892d6e79547643a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "026d7fd06ce640fc907e2d45997625a9",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 85
+    },
+    {
+      "rid": "1571651495984bf69415fada073635c5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b94226f20e8540cc90b6b48796823e2b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "045eb76a0de340cb9bd4f0a0c47febea",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ac6839322e2e4f4bb5358ce2b32f4871",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "421e50fbd0e0444593ad3905a1129dab",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 319
+    },
+    {
+      "rid": "20ef3ad43e80498fba5e7646347f524f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "916710834ba443549bd712655eccecd4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d12d0b9d6656413c9533622a24a30ffb",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 217
+    },
+    {
+      "rid": "22722e84196c4bb089de80520601cf91",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 5
+    },
+    {
+      "rid": "ab3b5f15fc83434182e9d3fcb8eb0c97",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 51
+    },
+    {
+      "rid": "f24afc9711ed4ca3b6529340bb709db7",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 14
+    },
+    {
+      "rid": "63f22fc067b549cfb091bc142d2bcf3e",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 283
+    },
+    {
+      "rid": "09db3537346040cc8cacf568ba3580d3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "63dfb16789c1478cb362fab09d88d325",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 42
+    },
+    {
+      "rid": "a228d7ee79164da9a3c5c47a55c59c36",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 95
+    },
+    {
+      "rid": "76356eadb3aa4c018d5cec1e9991a494",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0575b927068d4635bfc1878a39489d47",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 78
+    },
+    {
+      "rid": "8b2939524cc0480da121339d234824a0",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 262
+    },
+    {
+      "rid": "30de8198d6a945c5925998a44eb5ea45",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "773c6f2c094e42449dcc1add117d0324",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "45aac943240f4a7787eca874681defc0",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 69
+    },
+    {
+      "rid": "741b80b6c0fd4d6cadcb848406b329b1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d165e0cc7a7043da85cf66414d489fc6",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 16
+    },
+    {
+      "rid": "2b1d9f38eed84a5a9a2600bf37f8f395",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 278
+    },
+    {
+      "rid": "f201a6a0ad3e4125944532a17daf5a99",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 5
+    },
+    {
+      "rid": "f399e2b88a37489fb74ecc9fa4c8e8ed",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 230
+    },
+    {
+      "rid": "67336a9e994a4879822bc6070b83420f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "dec1ef1cd0da455f9083918f6fec6bd0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e2668f991e814050949731c43e0c5750",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3ab51b3c23f243cea6ae5bd42e75c45d",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 129
+    },
+    {
+      "rid": "d17a4c6d41174d0aac51da7251f7c49a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ceb0140bb86e4cb6a11590be978f376b",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 138
+    },
+    {
+      "rid": "99f0e1d72c2f4e3a9b12ab023306cf60",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 48
+    },
+    {
+      "rid": "4b272291d7db4776b6c599d2640983e4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "719183d5a15c4af6a54b0ed010f31552",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 72
+    },
+    {
+      "rid": "b32b3d9cc56848ff8241f955ec1c0491",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3a59aae45bf549d7a6d7d4b37b1161b7",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 103
+    },
+    {
+      "rid": "5763121fae0c4635be763c2ec2fee1fe",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 90
+    },
+    {
+      "rid": "fe635a7da8d64a40bf2af195262018ce",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 17
+    },
+    {
+      "rid": "cfad670706c44cf2a9288ff5201af086",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "788fdda3ecea4f8cbe8a71d3c80a9d9b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d99bb641f5064a2599bfa135c3fbb1a8",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 177
+    },
+    {
+      "rid": "2d5a4e3dab4e4a609e3d6390c4db2659",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 6
+    },
+    {
+      "rid": "46b912b54cc04420acdd8aec83c52a69",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "89250d0bbf59494cabe362fbd4dec051",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "73342007fe994724b184e858a0685e0e",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 248
+    },
+    {
+      "rid": "d11331bc4eb54fa08aabad566810e811",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 19
+    },
+    {
+      "rid": "9df11dc4c4e344f199e15c57cd1cb7f6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6b15b655b7c9494fb78e6af3a1a9ce8f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 123
+    },
+    {
+      "rid": "54a1b53a89fb4e8697edbb47193cca96",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "216e2ecd72e34516b8524ee09fa1665f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 7
+    },
+    {
+      "rid": "60fafb73cdaa48f19662c82191bb248f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 81
+    },
+    {
+      "rid": "944c46b81bbc4920b3229f8bcff6b10f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b7be0261235c42d58a2a3cad0621a136",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b85bf3ec11b24a3c9d85fe3c33b41019",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 126
+    },
+    {
+      "rid": "0f3642c9b89f41d6bf9e021ea3bac937",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f63032905be24b4ebb1c8148537c20c3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7c75431eb063429b820f1fafd6b94fe7",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 320
+    },
+    {
+      "rid": "6fc5355007c1452dad1a9cf00c61cb80",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 117
+    },
+    {
+      "rid": "db789a77f4844564b05b0e4924504272",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 13
+    },
+    {
+      "rid": "0bac76167c064dc0bc8f8b89935668b5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "eb76877d8b0343dc9a156050fb41c051",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f0df3557ab0447e2a6c2916baa5e273a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0167979a04284e9a891ff632372a8e7f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 127
+    },
+    {
+      "rid": "91e48f51a5d740649538653bb801100c",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 32
+    },
+    {
+      "rid": "16bbad723a214f32b82530a0f94f9e03",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e1ea504b3fa243ab99662340175ed13f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 110
+    },
+    {
+      "rid": "f15511497eb24c1ab614374623c838b6",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 117
+    },
+    {
+      "rid": "bfbf413beebc41b792459976b45db2ae",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e4b1767fb816482aa2fa6f4613594136",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 18
+    },
+    {
+      "rid": "76ce6b9c375f450b814357acec59fb92",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 57
+    },
+    {
+      "rid": "ff7dfbf79e5e498e95ddb71e48de1162",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a3c2fde791b7477280e08627b2245db7",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 303
+    },
+    {
+      "rid": "7aaed78cd89f42b3bdfa93ade4668f4b",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 15
+    },
+    {
+      "rid": "b4e21f494ebe46509840d51b4ea897ce",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d16875de859045149c6da3fa35c8f608",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 38
+    },
+    {
+      "rid": "a732801b0f104d67b619ceb41a898243",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3da388169ecb4091b748e0e605da03ca",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 4
+    },
+    {
+      "rid": "bc4938f9b5f54256b62e63c99964769c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 70
+    },
+    {
+      "rid": "18284acc25444e649e667e4e00460b91",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 73
+    },
+    {
+      "rid": "61c153cf27524528af6fdc37cc2f8006",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 30
+    },
+    {
+      "rid": "1fadd1330976462497f7b749ee5f13b6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4578e4d9e93a46938b6462a3d6409e96",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 174
+    },
+    {
+      "rid": "ec92641edcb14b29b1d39f14b4c64b62",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0677200185864e798e01e1df70be3c9f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "71240e3a3b764617b9af6680695b38c9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9f35e985ab85428c9215a4c1e1bc10d1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3ee2346b78f540cb9da94561d9a6c76a",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 18
+    },
+    {
+      "rid": "db0de29948314e20a753328040317db2",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 195
+    },
+    {
+      "rid": "b616e6914c2848e192b5a13818a8487d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 44
+    },
+    {
+      "rid": "827b9b6d8e014323b9e3a365aa26eacc",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 132
+    },
+    {
+      "rid": "143dd0dbfdf34d2c9ddac1df00756e88",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9b6aec78883d48eea86b3397af28ef4a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 34
+    },
+    {
+      "rid": "0e123e328f6b49199b398df02c8e6018",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "38d7f14169f44571b384c8cfd2640aaf",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1f3857ba3304491ba6f3c4515a88f99b",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 1
+    },
+    {
+      "rid": "47f96c0feca142f3ad80f5d6c2f0043b",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 196
+    },
+    {
+      "rid": "2794bd9232bc4a3fb356cc9876b5a4e5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "be5ed9457b624958802542bef7ace0b6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3046a501da384a39a3bb6929808e0874",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 51
+    },
+    {
+      "rid": "537304e485dc438cb30d6f24a68a5924",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 343
+    },
+    {
+      "rid": "41c3a328d4eb4d7091e4ec2f61fde2cc",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 116
+    },
+    {
+      "rid": "7b38d961c98c4dcf8cb61b0255077b2f",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 195
+    },
+    {
+      "rid": "b6eb50ced92b4025bcde31773fedcd57",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "cc389eede06c4f49adf36a62c092257e",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 10
+    },
+    {
+      "rid": "34508baa369f4f09ae8fa494b7558d64",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "56a6949b281c44ebba63a08cd922608b",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 79
+    },
+    {
+      "rid": "f2b29457d6ee4daa8aa324461750c7ac",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "18a9ee667cb64dfe8d8d6a94eb846d21",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ed273fe9ef7645bc8cad47ca6597486e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5c761a9e9601480aab92b8865aa00eb5",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 225
+    },
+    {
+      "rid": "3ef6026003fb475191b2b29e98292ae9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7c665668bff14c98bfc2efca94ed434f",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 190
+    },
+    {
+      "rid": "721a83f4dbe447d5942bbba804f4d1d1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d9f6210ec0d94365b3eb29ec2ad9376c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "290560de8aa24f08a550628f7cd7d5c9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4a98bf85c20a42b2b76d35e88d348225",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "45465fa79fd44ed0bbc0131cc032ae50",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2d159568765949d38ac373c094b7236e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3b99124f8b374738bcc9ada7812ef4bb",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 92
+    },
+    {
+      "rid": "0f31db5b41984722bcd173c63be8b665",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f844e9c85a174086979fe756516b45de",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a050af07b497483592637206108eb473",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 149
+    },
+    {
+      "rid": "9a5edbde7a5a4d52bbb1362fdae75bd7",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6d19a2857c574dc4ab16e1e197642ff0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ef5250ab20d94b26acfe95ff7d1b780a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "842300a276d54dc69ead077013d8abd6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a6dc43286b444d0fa03f5cf66be551c4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "221e54fb196442729db0a05cc507ff34",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f401b65f8cea4489b282dc6dcffc72ee",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e91b588af1134b3f9174b7df566ad775",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 68
+    },
+    {
+      "rid": "f83358a3e0ef49bf80d275f74aeaf061",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 281
+    },
+    {
+      "rid": "7d0a5f06c09c4237a5ed151cb7b50532",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 43
+    },
+    {
+      "rid": "cbe181133fb04fb7b7ad84e57b1daca2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "42f0f631491049ea9632ba6cac1fde4a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "85d615b0f52e4090a5e96683bc2bd1c1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "97c318a70e3844288294fb486dc7ca73",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5601ca2888f242bd9c8b5270f8643633",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 238
+    },
+    {
+      "rid": "483c55eb499744e384c2dfbb34d68bc3",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 2
+    },
+    {
+      "rid": "c6e38418f024434b936d8625a0a1c225",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bd5308b7f96e4df8a117c6ee07f7909b",
+      "num_rollbacks": 7,
+      "tokens_rolled_back": 555
+    },
+    {
+      "rid": "16449f9550f6486d99da01c6f83c81f6",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 5
+    },
+    {
+      "rid": "ba1baa795cee45c8b277bff0109db828",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e06ed6627341411f8d4b6ec16a5aeabe",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "93517fd4cf2342e0ac2cce0ec537dd9d",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 92
+    },
+    {
+      "rid": "ac4a50fd7e384b068b6473a6313d3fe7",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 132
+    },
+    {
+      "rid": "59d5ac3bcd9f45e79e223cb8647933c6",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 80
+    },
+    {
+      "rid": "d7f7e93180ac458d8afb1baaba075bbb",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "26bd8eabd3744e40a66399b101694997",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ec13f7c971f842e09bfed09c30ee5e1f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c18c0a0bce0746aba234ea017bedd0a4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 42
+    },
+    {
+      "rid": "d91d2981081f461da8f60ada1f65be60",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "210ee2cf2352458c974d7ab1b0bbe0c5",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 105
+    },
+    {
+      "rid": "23860cba15f8432392929c5ec8f1eb2a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "34a0b261ba474740a1a0131cbf8078b9",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 34
+    },
+    {
+      "rid": "cdaa1de71d674fca90a2240581817327",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "43cbdd20f88e4ab6acbfa6fa980a53b7",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 127
+    },
+    {
+      "rid": "5adaf2ffdd7f49a6801da967d420fed3",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 5
+    },
+    {
+      "rid": "d338e3401555413ca92ee867b4fa4eb0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1322141cbbee42babf7c86f58acd7712",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 229
+    },
+    {
+      "rid": "0d1bdc59626a4bf29aee9479d988ab80",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bdb283e40e6443578082b488d5b63b3c",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 118
+    },
+    {
+      "rid": "898a45c1c00d4bbe8cc35f5d0ae241a4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 48
+    },
+    {
+      "rid": "01f558e9a7b946ceb4da98c9534bd1b2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "32946e9ee20b459ca8be895b5cb675fd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "14a2403376834b7b99bf85511f705b83",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1f5eec1bf3844b8b93cad1b94c4990bf",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 7
+    },
+    {
+      "rid": "ba636c688251429b98ba7fe4407a711f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 70
+    },
+    {
+      "rid": "05f0011fc39b49a4b954f586e36551fe",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "91487f2ae7df4babb216827fab1df46e",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 254
+    },
+    {
+      "rid": "c71df0ee81de4ae48863d3bb0bc128da",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b5eccd995ab647e09742b4432b0d6754",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 182
+    },
+    {
+      "rid": "671773b4328c4c5bb2af88b0e0c403bf",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 12
+    },
+    {
+      "rid": "829c723b7d384970ade2e2356517d19f",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 163
+    },
+    {
+      "rid": "4fcf47ee610046aeb52d71c9328d7fac",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 24
+    },
+    {
+      "rid": "61ea89c6af814070958eba89bbd033fe",
+      "num_rollbacks": 6,
+      "tokens_rolled_back": 337
+    },
+    {
+      "rid": "61ac6147a1d04c27823b3446464a6216",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 12
+    },
+    {
+      "rid": "213b1cc959304b26ad0a53780d79839d",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 114
+    },
+    {
+      "rid": "2735535461604dae9874422c369ee650",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e416dfc5c1ad437abeddd2be3e9ead5f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 3
+    },
+    {
+      "rid": "26520ec126a440f88aa964a5ac912707",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 88
+    },
+    {
+      "rid": "5899557a770a4abaa7bbb0b292f79d2d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f907201bd148488386eecee4ec1ebf51",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "207b04e1f8c04957bca438f901226de9",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 106
+    },
+    {
+      "rid": "efbafb95e3cc4d8bad4dc550264cc99d",
+      "num_rollbacks": 6,
+      "tokens_rolled_back": 360
+    },
+    {
+      "rid": "2556c3a7108849648a85b2fb0ad111b9",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 62
+    },
+    {
+      "rid": "3158b1f18001475faddf911061ad5ad9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a381a668ce0c43e291f18abf77f22de3",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 24
+    },
+    {
+      "rid": "0acc47d365044146b0ab2718c3f0f86f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d6d45930dfd249ed9461e4f94cf8fdee",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ce0833bab34b46bd8d31114a538b8f98",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f535a730aa4f4a1b9867acddd06cdcb9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a69ab009bcd045c087b5d676db7abd9c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 34
+    },
+    {
+      "rid": "d9f6d292ba6e41d0933ceee597bd038f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "47215899306e4a4f9b2c5814d1599eb4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 58
+    },
+    {
+      "rid": "03c8d9129435419c9c150d45de5eca2b",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 142
+    },
+    {
+      "rid": "436f5aec019849eebd8ec400ce343e81",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 16
+    },
+    {
+      "rid": "ded6d7648a5e4b7b8486e7549b2066ff",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ab84cc4b18e140a398c285ebd7b61d5c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a9b0fbc6f04e46098d5fee1f9b8a7c6a",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 124
+    },
+    {
+      "rid": "5e2b393185a54799b39741ae6a706c83",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 54
+    },
+    {
+      "rid": "22fb87f9a58647ad9d72b113716a6cc3",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 274
+    },
+    {
+      "rid": "cf8f9a5966354917a9cda2f7de2b7514",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 87
+    },
+    {
+      "rid": "355836a2cbce453e9a87dc7119d3f5c5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "742a3d62a437453c8037f013c5768c29",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 244
+    },
+    {
+      "rid": "dd7046fe88d648a0858a18063d5cf59e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d670e4f23ea240a29e93f40b8c44e749",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4d5b891f52e544238f0aac9495e5a92c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "98a0f3e7735f451bad14a084bcd1deee",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 14
+    },
+    {
+      "rid": "21284aec41c749d18743b2b36b16efcd",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 58
+    },
+    {
+      "rid": "51fe88f8c5ec4f28997fb78c78572354",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 8
+    },
+    {
+      "rid": "2b3aab1a0cb64ddaa086d186304fad5f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 135
+    },
+    {
+      "rid": "02bb2d0b42b844d1916643cf5b976695",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 30
+    },
+    {
+      "rid": "9f4b9b7e7e28469d8173555680a96852",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 44
+    },
+    {
+      "rid": "0a696f8c38db49188426e397332ad804",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "20120c74d1a04b8c9fbf56f126c32cf0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "834e9593526049b68dc00a1b5a6b3513",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 88
+    },
+    {
+      "rid": "9504564a5fc14b59a6ed0f366b1a55c3",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 32
+    },
+    {
+      "rid": "dc950240b1764d7a8d4772de161afd37",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 222
+    },
+    {
+      "rid": "d7cbebf02cb74d788a22cfdc6c3a3182",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 197
+    },
+    {
+      "rid": "b854efbde7334b9f8fd2c9d1a6d2d838",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4024ce552c20460ca9ef341929de624a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b06d15fa57944cdb9eed18b82f3dc7e2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f5b9839752c34c908d3f795cd5518140",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ef6b2e7954a940a7b4ba9767c230c95b",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 106
+    },
+    {
+      "rid": "4d8e5cc61981415c8d530416912ce31c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2e6fb4e69ba04c94b94ca89d95956954",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 9
+    },
+    {
+      "rid": "6232195b9d4c44bf9a4f3babd454976e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8eb5c263d7694a56bc51e2c00e922337",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ca0c8eeb11b44a57ae1ed5e72a6b0c4f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 67
+    },
+    {
+      "rid": "cb20134cd9354c549e7b906605fcd53f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "750bbe8051e9449e8a3bbf8a6b0365f5",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 148
+    },
+    {
+      "rid": "6d9996d3e59e478b9d1831ae4705cb1c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 65
+    },
+    {
+      "rid": "96bf3822e4de4c1fb5dee22ee78f1fad",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 28
+    },
+    {
+      "rid": "b6f0e2d12c58413ea10352c1b5b9070b",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 262
+    },
+    {
+      "rid": "289caceaffa240c5b83ae838ceab230b",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 40
+    },
+    {
+      "rid": "b0c15b4c42ea494c80b6c91774f4054c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a4a0556266dd47d1abd1a05db68c288f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 98
+    },
+    {
+      "rid": "865ad12686434d16864586fd95d3713f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 138
+    },
+    {
+      "rid": "8c3330f31a354deab5b3f0c4bab32047",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 100
+    },
+    {
+      "rid": "738193c227614862b1b6b7838bde6ced",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "aeb2fad2758d4975a57dc56b7203b7a1",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 148
+    },
+    {
+      "rid": "895e26a4a1924f139e950fc61e209d2a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 64
+    },
+    {
+      "rid": "97ff155530b048079adc8cf694debecd",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 63
+    },
+    {
+      "rid": "9a8b8c3eeb9d4f85b828fbaeabe02e95",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 201
+    },
+    {
+      "rid": "acdd9850bf8649ef9892396c0dc8f8ed",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f17efb81a8e547e0a460bbfbc91dcff0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3dd5a3c8c3814821913e355223dc4084",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "148a64bf185345b3af1b9083a08024af",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 82
+    },
+    {
+      "rid": "1cec5c4767444871a60e84d0ee8fd166",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "09a3f12288bf4e528f4407e44079c913",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 182
+    },
+    {
+      "rid": "3523661fda074cebaf356e7b7e2beb79",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9ef32c1170cb4bdcbb8aadda55c185af",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 34
+    },
+    {
+      "rid": "a11ebc42a66c4f458d07018a04df07c3",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 24
+    },
+    {
+      "rid": "fb66a3753888486b949e17d60be784f5",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 1
+    },
+    {
+      "rid": "f9455cb6a06447acac36098e487abafd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2183f22063504c1a9f4c1f7b86e2ea60",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "605db8b456cb4aad9d7b1dd15f45b3cc",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d0b719e3ee154d33ab3fe200c19784c5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bb145234e7764b2eba30fde156557653",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 87
+    },
+    {
+      "rid": "525e98ac350d492688bc416aabcdd8e0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9f3956a0299c48f2814b1c6dbaf505ed",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3ff6f4e50f0f46e6ae4cfc3888e04311",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 125
+    },
+    {
+      "rid": "d15d5f7f103d49ff8285c18c65b843a2",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 51
+    },
+    {
+      "rid": "49cb0115d2c4437fbd1dd9718c3d350a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 99
+    },
+    {
+      "rid": "4c1e312fdf544222999c8a18d6a53c81",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 8
+    },
+    {
+      "rid": "0ba407c328ad4dce9cc786f6b2bc2661",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6547a08bcd5c40ad9e3b08be4abea7f2",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 37
+    },
+    {
+      "rid": "0f9d4ccb9f57454fbd5d21a46b30ae4c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 89
+    },
+    {
+      "rid": "ed99778890914fb58286f950c84afb35",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3dd93576df97472cbc8f525beec966ac",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "22b8b8db27ca45da94b95f66a6fe32a4",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 67
+    },
+    {
+      "rid": "bbc3eead9a364cba9897ba727bf028f3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "86683bb0fea848c6bc40fec163a9eb60",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9990a6c7a6844167a5d196a51e8d764f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 5
+    },
+    {
+      "rid": "0b4b603b64cc4088b2d3ba1380b62225",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 59
+    },
+    {
+      "rid": "d966bfd03ed346d2b9b6944693ff7bfa",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ec8e727084714b26ad7d4b91293019c3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "cb077e0f49174bd59d8ceb18a2728e9a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 21
+    },
+    {
+      "rid": "95a782ce1e264e348e6cb4336d109684",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3be783bdf014460da7d11e5b1a97b205",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 136
+    },
+    {
+      "rid": "9a2ddcb12d134fc3ae58e825286aa7b3",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 69
+    },
+    {
+      "rid": "ba576012c39b4838ae5f78248d9a026d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "35619d3fa8b5468da5b58634f186a146",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 127
+    },
+    {
+      "rid": "37bc7eca89974b6caaeec569ae941581",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3c95a00afab1467ea03b97ad1cdc7f45",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 217
+    },
+    {
+      "rid": "f94edad14aa349099cdcefdcf6d8e269",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 14
+    },
+    {
+      "rid": "7755508a653a4297a7e670de7fdff077",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 301
+    },
+    {
+      "rid": "8dc3f5776db2460cbfe471b4b45db9da",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2c83f26ddb0d4201976426172b52a16b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f2750460ba4f45c4aa1f350fe17bc441",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c46b15d527a34c43b1a548676ff29e7d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "bc85f631fb724b2c86e6965db8bede8d",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 80
+    },
+    {
+      "rid": "338e0009745942ef8fdc1581e0da4095",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7c39bacc8e6a449b8da8e4df36ff577a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 16
+    },
+    {
+      "rid": "bc5e5009d9144a6391e5fbfbb0b00d6a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4369315880b44e24bc203722a593a1f8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "fb4e4e26210a4e7f9389e64f1940732e",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 150
+    },
+    {
+      "rid": "96fda884448449d0a34f6e6f1b560aa0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "df45fbc0cab94470a093ba6831ece1fd",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 33
+    },
+    {
+      "rid": "f9c21db78e9f46bfb0ffde729c4f4c23",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "cdbd9d90949040d7bc9ec17492b60ce6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ffeebedc880846c0bc815f15ec66c4af",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4ee26d82929a4909a6d59b51f6817c1c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 7
+    },
+    {
+      "rid": "65e6e74eab2c481a8a564f9970e8c16c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 5
+    },
+    {
+      "rid": "2d561a72200f4f6e8d89e58d6401e628",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "87efe978622f4d1aaee80d547d5dfa5a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0cb81332c7e34850a981098798a3b96d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "46283d06b149475e9423bbf9a7a583cd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4f4fdb29d5154aa8baab8d7fce66e04a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9acb5aff94114fa7abfd6e7027bbda48",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b793977ca992447aae63316126ce831f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 112
+    },
+    {
+      "rid": "d1fc289cf1154e418fc4e640299c7420",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "26a8cd890caf49baba1479514edb456a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 18
+    },
+    {
+      "rid": "0de4f5cc458c4b4d9006e2671e937c54",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "26f6b8bcb9554d83b920b5731d16311a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "68e76507493745d7843f96796c8d81a6",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "d1a689f5a80d4938a039eb7a207c9ebd",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 237
+    },
+    {
+      "rid": "93b6d5657a98466f977d6eaa9fc87597",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 3
+    },
+    {
+      "rid": "337416f5a8f54efc8b033a1a141d3eae",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "45646f64ba5a4e5b828ce82d166ee608",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c6a659b8dd1c47448709ad3ef4754bfe",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "09e33eebc87f40bba20f9f3647bfad01",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 20
+    },
+    {
+      "rid": "da290e8c3891498e89c7b42f2d935674",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "78f736ac14ac44e4a92c53b474501046",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 11
+    },
+    {
+      "rid": "f5d291f559804db481753168f6dc08ae",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "00deab88f18b40268f65bd577e3ca026",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 146
+    },
+    {
+      "rid": "e8b5a2ce483d4b9ca9b5ba3a3585f929",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 43
+    },
+    {
+      "rid": "90c4bd970fe843ba8699079f8135b3a0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6c44c526bf9a45e1a4db4241edd81891",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f82f35a127914aeebcd09bd457e7409d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8effea8c14284b9d95ec69d8edfa22c2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "70af4395df5e425d83b8b0310c439763",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 177
+    },
+    {
+      "rid": "cf7d9d12ba144e8581c3fa0441096961",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7e93bb7a63f04af9a7db769e8a91cc4d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 3
+    },
+    {
+      "rid": "ea9f500d7ab54228a3b9730c41c66c4a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 27
+    },
+    {
+      "rid": "dd45a15ff75b49c29804a2f068d99c77",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a6fb8ebf64174b2dabd6aa4dd8d92db2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "86c6db6e072e40119eee46ec09a6646f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "79923337a29543a4a106f854d777f269",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0686bd5200c443e2a6958628130d36d1",
+      "num_rollbacks": 7,
+      "tokens_rolled_back": 544
+    },
+    {
+      "rid": "02236c296efe4d93bc20b6af9a31889f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1547853450824da59456bcbf04be1b82",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 162
+    },
+    {
+      "rid": "20cb7acee93243c18849a8a8d62e608f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3624be3dfdab4a2f9ae35d55ec55c3f1",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 11
+    },
+    {
+      "rid": "8a39e448d6f04f0b83cefb08fbac17bb",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "17c99b59b02e4b8c8628123d8c90d842",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ecbaacb29aab409dbb95a7208d3f0c41",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 172
+    },
+    {
+      "rid": "da04d785835b4b58b7757a0dfcd98725",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7fd246323244486c873d8f9d166f78db",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 57
+    },
+    {
+      "rid": "31ba34766fa0453fbbe5c22734bf80a6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "05bf18d5cb0642659858f29d913b6cb8",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 79
+    },
+    {
+      "rid": "92e6beca08324fc8baf1bfddc4b5eb89",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 19
+    },
+    {
+      "rid": "d5583e96af794f5f9dc9d40fbb53195b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "53733540ed0448559ed0980f60b4b57a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 13
+    },
+    {
+      "rid": "513e5b74e4f94b3a9bae96b2396f3c33",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 130
+    },
+    {
+      "rid": "beace88428a2462d96604c7af2cdeaca",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 117
+    },
+    {
+      "rid": "b620b5f7e7154f55ac0d9da14a6c4acd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2df1ac613bc54df79da9c367bf1853f9",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 79
+    },
+    {
+      "rid": "ec4e4a99b080422c8c2241c785b71ab6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3e03693a5a614218af0881b23da31017",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 147
+    },
+    {
+      "rid": "abb37ac36e044d6d87618f9dcae49e83",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f2425e0968884bdf9c182e70e3c437f3",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 61
+    },
+    {
+      "rid": "2a623dcba2ce4fec86ec36bc6387651f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "27d007255a8d4bb288c12559fedbec38",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a4438cf5264145c68e3f951769a2206d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "dc78e368ff064631be62376861b5a981",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 4
+    },
+    {
+      "rid": "ebdb89ec95394c9aaa68e596731dd30c",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 160
+    },
+    {
+      "rid": "1149e3483dc748cbae55fa76b5b0734a",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 297
+    },
+    {
+      "rid": "ec272d06a0804c91bfb4d0c9e8a8860a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "95fc5d56beda403aac7a6f9c73b18565",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "774e27890d114bc590643435559543f2",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 99
+    },
+    {
+      "rid": "a2008606a5ab4e99b7d914db2d9ea0e4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 91
+    },
+    {
+      "rid": "76edfdd944c649e19748c7759799a50b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "40c1263a5065437f9eab6b65e0c572c6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1f6a5feddd83493d83cb6590916f0d61",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "75cfc8d6ee5e49c592cf47b87b1922fc",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 42
+    },
+    {
+      "rid": "ecbac3655bd84a10ac459ca39b01138e",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 36
+    },
+    {
+      "rid": "953d0111db0f44a89bd3842632b5404c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 79
+    },
+    {
+      "rid": "d79b499073774c5bbe0ab1ff89c4ea15",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1cd8dfb3dde94512b5237d94b2431f12",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 93
+    },
+    {
+      "rid": "45d408650ac24e8ea9a66bef0a0f29bd",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 93
+    },
+    {
+      "rid": "fcc9b18260c04213b448f584ebe66ce3",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 90
+    },
+    {
+      "rid": "1cd1d344c9a54f008a9f0ade178e8927",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 76
+    },
+    {
+      "rid": "c652ca6c63db47b9b6c25d9133f5af11",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a7af49dec34d438fb403fd02a0ec1cc0",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 83
+    },
+    {
+      "rid": "3084df4f44804ca8b964ce5884997cda",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 308
+    },
+    {
+      "rid": "28908d9fa63541eca67bb1e4c47b684f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "39370b877cce4c10a6791c5a2ce1ca67",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d266e3d337ef41a2ae8ea54932b212b1",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 36
+    },
+    {
+      "rid": "8f23a73379f64911a2a0b0c966507639",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b5e1e5068fdf4675bcbbd544c37eee87",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "402acbbd90164133ac6c49b635d8352d",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 164
+    },
+    {
+      "rid": "9ebb8ad4d4884ae9a12fec16429dc590",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "702c53dd910a4c518a9cf12093d71557",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 66
+    },
+    {
+      "rid": "ace85a0f699e4dc4a2e4970617f6b1a3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b1b2b043dd394f02b673f18c81936067",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 208
+    },
+    {
+      "rid": "f0b92364005f4bbf9d7a86a3414ee902",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 112
+    },
+    {
+      "rid": "d6dac7d6e37942b18ccf5f199294fa6a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1f502a0cc6ee4f56a9ac22e92c9322f5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b398fe21804f48ca879d584da18a2c61",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7a99cd1caa2d4de296788668ce4d5950",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 100
+    },
+    {
+      "rid": "cbd490a072b448ac80e1a590a706fb95",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "439257a1adbb452d94d009b1fa4abbfe",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 94
+    },
+    {
+      "rid": "1115089dcb8f4409997e67ad8733d4de",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 47
+    },
+    {
+      "rid": "39655f0808344a6dbf222aae54525817",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 98
+    },
+    {
+      "rid": "a91129c1d6884cd3a2e249bd52abb687",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f0cf7384d5e145f6867ed0202963c633",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 21
+    },
+    {
+      "rid": "5d599fc3768d4cbd95256ee83beee8fd",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 205
+    },
+    {
+      "rid": "37f792bd4ebe4edcbacfd2aab50028c3",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 33
+    },
+    {
+      "rid": "29c09ffcb68f4baa972d8b481efebbb7",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b00136cd5b794c228006889fa6fc97c0",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 148
+    },
+    {
+      "rid": "045449d482124bbca3272ecd66bb4d08",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 69
+    },
+    {
+      "rid": "666652964cf64a238492511b8318b5e9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "be738b77456b4402b2301a026ce9c60d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 76
+    },
+    {
+      "rid": "a6d740c45bd34758a4cd8c2c44431dbe",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8bc61555c4ad44ab89830a1510b50d79",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "87a4d7a6d9244588bb4d65365863bfad",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 64
+    },
+    {
+      "rid": "a92236ec42774151b491ccf47a360580",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 10
+    },
+    {
+      "rid": "c4249d80060c44d2b21afb5a75852368",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6cfeddb086784e828ec2f55ca1bc9096",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6ee20b5f81ff43039c8f95f343534f0a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "068fdd5f74e543ca9b268421fbd90ddc",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 4
+    },
+    {
+      "rid": "53fa971492af494fa9bddbe27265432e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "8d20f4331abc4cc0a2b48e1a0d99820d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 82
+    },
+    {
+      "rid": "61069aa6b00f4a9d9962e8d6f5153cfa",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f692172201724575af612b6b778998da",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 101
+    },
+    {
+      "rid": "f968f29c51f5488b97910b80c4009653",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "af0508e407f244b2a088fdc0892870b7",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 3
+    },
+    {
+      "rid": "c5220a662dff4158b47a4df28b6f347c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b0ced77afebd40848d18bcf86edc315a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "784f1b89f8874f59bd47accc399a6547",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5589c41328d7436fb3732bc8264040f8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6440538ed1094aef82d323eb51cc4e65",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2857da003f904e1ab4ccb19504bc9cd1",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 371
+    },
+    {
+      "rid": "1c8f1dbbb800418db08c22cbc8d300ad",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 198
+    },
+    {
+      "rid": "bb12f10785b94d96ad98334662e1255e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "89470ee04c92433d81de77d58e75a9e9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3df5c228491a4f1e838768d5e6909534",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a1e233faecb445e7b3c7cd20d908c394",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1c44655dee974c3497a7a5bcc0ac9faf",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e8fe3fa9a7404b4aae39b0a7290394f1",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 61
+    },
+    {
+      "rid": "19ed2dbe9fed4c5c9b2593895dc74bf4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9bb337a701d347839c324ae5c3942abf",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 72
+    },
+    {
+      "rid": "c93aaf088f62483e950a1ce0f9bbb431",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 166
+    },
+    {
+      "rid": "abf5fcc7319c499c8ae91e09aa85e59b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2dbe06987fd2429982d88afa9f49674c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c8b2e0ab15ca45aebdfb3fa8e938fb39",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 226
+    },
+    {
+      "rid": "04bb6f7c204e410a8e298187bd77d2a9",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 50
+    },
+    {
+      "rid": "aa176e6d39b540c7a7a875bbca475a39",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2d1d7862f22d4dd8860234ca70b357ff",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "1f61c8839ebf4de78b062e8c6c7f0e66",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6596e62d1cde41dbbeaf09c6dde9986c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3000772f91aa46528e11b167894aad53",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 17
+    },
+    {
+      "rid": "0e09475b683b400e8cc3e51348036615",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7c1260639e9e401aa7a9428ed9284438",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "cb8b9915932f4afba042f007b63b73fa",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a2c7fd739dcc42489ef97003f7db1302",
+      "num_rollbacks": 7,
+      "tokens_rolled_back": 271
+    },
+    {
+      "rid": "10af1030dd1d46a3aa5bd62dacd0c87d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 96
+    },
+    {
+      "rid": "a6449e81b4824b75a52615823fe867f2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "572452db1fba414db1720f2169936b3d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a6c9b00862314f83940d96d4f6c373c3",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 65
+    },
+    {
+      "rid": "22920d9309c64ba4bb528dd1fdfd5c90",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "30480802d9594bc0bb00aa888dc047e5",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "d57608ad40ef4fc68b6fcaa736bdf2e3",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "062493a9534f464881c3980bbae3ea6c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6c34ea7f8d50427ca23dab05d6f9815e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7b5f66549546416e900bfa9394a6e5b0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5dfc7475397e4b7389f277d82b8ddfe0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3a543fd924d144838b44e33abf12827b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a184b6940a8a4b34a45386948a6eb1f6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e06aca254b1e4a25979c61ff1d9b8355",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "18fc8311ee1b49d0a8c1e5028d6013ce",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "09adfe2d104945ab8ecde8e4bd22099e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2e09548ec7024546a2f9bc5b1f5ae810",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ecc8f6fe9257414583bbb0af78e3ea7c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 13
+    },
+    {
+      "rid": "0f60c70bdbb0464fb6ee57f64413aba4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 29
+    },
+    {
+      "rid": "a4460fcd30cb4f9fa61c420a26929116",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6e204b1c66584cf688e856ce1607b51a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3bf97b415f7f4354addbae4f0e0b2613",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 147
+    },
+    {
+      "rid": "2e0f0aaed8504347a2016e4af9113710",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 33
+    },
+    {
+      "rid": "55c08632baff4ffe9c6c3e2215021423",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 109
+    },
+    {
+      "rid": "adf54ea263ac4937979fc7641b6435ac",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ff31c60628bf415cade07a549700ccf8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a0d418eb90624ffab47c6b9ddb24b2ca",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "05896aa094134f3781ae0e08ccd448d9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "133d921d04314b7c8123daff1ed51cd4",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 20
+    },
+    {
+      "rid": "b97890de4cf3489495a1c193dc7016a9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ebe375888b3f4940af8c43b5654844e4",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 115
+    },
+    {
+      "rid": "8ecdfe63ce884fbba7cf7ddebe4c98eb",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c2c0e4861a674f8a97e139df42e52d02",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "de7ded824c974b91b5ddc789b78dd4ea",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 2
+    },
+    {
+      "rid": "756748534f9949b592dd0e5e9a021c79",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "f49d750e5b0d493eb15ae6b5fe6a5bea",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 40
+    },
+    {
+      "rid": "171c860d3228483aa3ba778fc697848b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "353e3fe9b7d84d67aa2bfa088abe814f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "adcd7d2aa0dc475f975bc87609533271",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "50dc21fd25124d96abbbd5ac1f1dd0e0",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 10
+    },
+    {
+      "rid": "ff68e05784b64e7a9a431cf40e71647e",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 15
+    },
+    {
+      "rid": "f3a25f58944e4b9098036e1d4c96ab9b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "c008cda6927e4c93b88c85d7417030f4",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 238
+    },
+    {
+      "rid": "453fb3fb98da4dfabc154b6a208aca7d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "069c0ca3950547f9872b08f442ba1d9b",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 236
+    },
+    {
+      "rid": "53937a563080482eb9abbade7ea49e04",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 38
+    },
+    {
+      "rid": "291d0f5106cf4441b5e3057c0173d0ff",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 1
+    },
+    {
+      "rid": "26790a6beb7c4789bca2dafa568cb662",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "23ec7d1b3d054b67944221957494ea1d",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 59
+    },
+    {
+      "rid": "8a9ec50769504f65bcd5928ce35b291a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "abdf1af4de114fa0ad461ea888286370",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 14
+    },
+    {
+      "rid": "976761e0809d47709741db695b1de1c5",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 15
+    },
+    {
+      "rid": "76ae87f532a64150a9a20348d36dacaa",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 128
+    },
+    {
+      "rid": "a49e005e84cf46179b90254a32bd9d4e",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 152
+    },
+    {
+      "rid": "e2d9c03bc86f4a2e95b29918469eabaa",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e91677b882fa46ff82444a8adb302b96",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 69
+    },
+    {
+      "rid": "601945c1845c4dd78951228644b0ff25",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "399026d88fe44fd9ba32b80e3e3d9072",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "324eec3e57e64dfa80b2a1d81a0691da",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4b338009c4124a0c9d8d7ed7e12449b4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "08176623fcfe461389b797346dc67f67",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5e76a72e82bc4177ab0a0086b527234a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "553906d2ba7c4f339f2652af16db62ec",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "fed9c23b158d43ddb0743f4fb7137a38",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 44
+    },
+    {
+      "rid": "e8fc87b32a8d4dd79a1a3538adedd671",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 19
+    },
+    {
+      "rid": "7665dc3cd029475dbda7ca60903ed9a0",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 331
+    },
+    {
+      "rid": "ef64a5505dca402d9e18f6d83558d549",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "81255d6c595e4b499fb0d650f99bb504",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 56
+    },
+    {
+      "rid": "d854b20fcf704e62928f7ed7f90c72ef",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "635808d2f9d248e1b3a4fe0af25e83c5",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 204
+    },
+    {
+      "rid": "213d11e963bd45fb9324b88fcd5cd8dc",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 19
+    },
+    {
+      "rid": "9abd4a66c85643ad87d22245e1d3a0fd",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "18a2ee3e88d94d41a90d9a20845d219a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "0a81b82138e74b2a9da34c09bff47cbf",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "467093c92f354654b612f9252eabe93b",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 232
+    },
+    {
+      "rid": "f9598443e8f746d785c98bb0e233689f",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "98cb385f6ebe405eb830355f13fd9f37",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 12
+    },
+    {
+      "rid": "65d5a1b65fc14bb994eb40ca23f027fc",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 69
+    },
+    {
+      "rid": "d6cf2a2b35fb4a1881e01be849bb0e96",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "41817ef3414c4698b27aafc3adff0308",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 11
+    },
+    {
+      "rid": "d69a741c3bef4949a44ed16b08db6cf4",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "be326e9ce81a4646b7a69795eb17fbf9",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 234
+    },
+    {
+      "rid": "1e5c43350a184e04bf5a507e91f4d29d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "fe04e438f7dd402f89ab21c81c244b41",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 53
+    },
+    {
+      "rid": "2f24d7e0ad5d49afacf83a77c4c623a7",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "a60095366ae64651a7653feb8ef67485",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 80
+    },
+    {
+      "rid": "0faa415487994032bd1c7f41cac22d5a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 33
+    },
+    {
+      "rid": "7d7a003a169b44c79524871a53afd4b8",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 133
+    },
+    {
+      "rid": "a78e1f758a5a4acfac956d1a98b4237d",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "b2546159e72d42d1905b44adda07adfb",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e0629f6242af466ebd32e6072ffcdc4c",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 126
+    },
+    {
+      "rid": "291bba9e0d1b48ad87bd9245efb9188b",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "40500ef2636648f091b2a7016d8c5cbe",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 52
+    },
+    {
+      "rid": "8c97858f500f49fd8f68f16850a438a2",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 27
+    },
+    {
+      "rid": "51de28ee82d349b9bb1851948a9777bf",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 173
+    },
+    {
+      "rid": "036c4ac6153045e9b4ff0e30e130026c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "89fb43284aa24ad18eda4f1ff03c5e99",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "5c88f6868be6442490ffb2dd7d6fd4d2",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 182
+    },
+    {
+      "rid": "1da3e75dd6544cf8886f2a4e0a6f24c2",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 346
+    },
+    {
+      "rid": "50e909f23cf74e2ebf37d35404a19489",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 10
+    },
+    {
+      "rid": "60e46c49e1564dbebb858e472f677a99",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "96f017532f7f4f41b16c701cacd1d03b",
+      "num_rollbacks": 5,
+      "tokens_rolled_back": 345
+    },
+    {
+      "rid": "7188241cea29440bade27561a96c3598",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "05ae1a7ebfab43e380ecd7aeea7809e4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "71f829e697eb443f83f1c67838c98c4e",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 80
+    },
+    {
+      "rid": "a0d60c9552044c00855021a89de7a2ed",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9a8487c408d04819a017bf0e0873f851",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 152
+    },
+    {
+      "rid": "8fdd4a5f06294b11b887d954daf6b7b8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "400758831621479791df87de8d01fd52",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "63f32d1822ee4484addbaeae3e6162be",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 292
+    },
+    {
+      "rid": "effce2c2f7a34e8582290f9e6ec40575",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 57
+    },
+    {
+      "rid": "47135791e1f14029bd0662c08b1399a8",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "7fc3ab0815e64f7eba8221227f2c39a1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "524087c4172146f29d62670d789008e4",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "135f6eba6607413ea86a31343fcdab71",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "703b2069c4084e4ebc35d3be06707827",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "74fc3532ee9241348f259b0742ba9dd8",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 30
+    },
+    {
+      "rid": "c6af6bc79f7e40ad8402afed59001a58",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 180
+    },
+    {
+      "rid": "2ff3296794c84c4f94eac5e35cf79ef4",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 99
+    },
+    {
+      "rid": "a6ada0a0872e45909473e3ea0d041fcb",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "4120e214daba4c93adfda13b4d2e91ce",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 169
+    },
+    {
+      "rid": "86223ec1f7f44ddd9b7706dcde38b79c",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 28
+    },
+    {
+      "rid": "1d6e5e1761104150bc7c3b126aa16fe0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e5d32e2ec1a0456ea385bdc6e1520e7b",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 27
+    },
+    {
+      "rid": "a0c6eb80aaf74b8fb1afb7687fbae8d7",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 51
+    },
+    {
+      "rid": "63966dc3116e42519ac6d6d64dc7759a",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 76
+    },
+    {
+      "rid": "c04bf693b0b045638868276715b0ac56",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 154
+    },
+    {
+      "rid": "a25cec6ce94844cd8d62e9eb438c94c1",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 17
+    },
+    {
+      "rid": "0a9d8cf37217487db5669a06fd0611b1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "6667391e8f5349aa9c348c79dff84f2f",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 51
+    },
+    {
+      "rid": "2861d6bab168405bbd6885919d5f19ff",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "32ea5ed9e57246879ff5f9a2fbc12565",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 88
+    },
+    {
+      "rid": "fa1620c726de4e7ca91a697125017e7b",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 26
+    },
+    {
+      "rid": "df2f46015e3442e6a55471e704b0f92b",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 34
+    },
+    {
+      "rid": "393dae1e392749318b4b1a756f92337a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "440c28562f3048929552bae331e88e91",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 57
+    },
+    {
+      "rid": "6164f87bc8c3429cb8ebc691eb240ead",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 85
+    },
+    {
+      "rid": "598fd7deb86242b296dabceac277962e",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 6
+    },
+    {
+      "rid": "c393723630b84fafa45975e54fb61a23",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 84
+    },
+    {
+      "rid": "b1f53ed14a784526a238a17dc6fd6275",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "65a553fdc98443bb9288bc2545de77d9",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 109
+    },
+    {
+      "rid": "7fb34a0abeb741b688ab5338d3c58706",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 63
+    },
+    {
+      "rid": "e0f9ea9bf0cb4970a5dbd037d442cb4e",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 89
+    },
+    {
+      "rid": "053dea7e65fd419fb1f3496c54cfada0",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "ab177eb579eb4afc927ba943059ecd76",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 108
+    },
+    {
+      "rid": "35eb0bf26b7c495e8ca8f701010c622f",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 189
+    },
+    {
+      "rid": "1d6f174ce1f24045b1833b5a765d8c50",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "91d054ef9c0a4a9c969e0fc84915d7b6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "04d859e6d38a4157b75ad0f72dcd88c1",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e406380d23c04bf49e725e23221cb042",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 19
+    },
+    {
+      "rid": "de248018957a46daa533d296f006ff6c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "efbcd5833d394f40a93eee608c2f95e5",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 19
+    },
+    {
+      "rid": "a6788f745acb4621999997afa4bc399c",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "379cf1c64787492a9ff43111bd88f4eb",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 273
+    },
+    {
+      "rid": "1c8c50873b1a4659854a96c1ead525b9",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "9fb3ec3e356b4864a5191fa73c0f02f0",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 83
+    },
+    {
+      "rid": "923dd0733ef1470aa4744bca43f5206a",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e48286dab8604306bff6319f10f71987",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "10350547c3444a3a98a1fbd7bf24a5ea",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "e8d84a7b53de4dd5b461bd759ffc9f79",
+      "num_rollbacks": 3,
+      "tokens_rolled_back": 267
+    },
+    {
+      "rid": "70bad859c1114ddeac1f549ab4ba9cfe",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "cc2e573957434c0e972814d9b5903eb1",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 94
+    },
+    {
+      "rid": "0afb5928301446229e3e76275edff337",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "30bece02881e4f1c9fadad2a1d14dbd2",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "370a525660a44cedb3716fa816a9ab4f",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 227
+    },
+    {
+      "rid": "5e0f4faaee4d482a8a826c49bd04f3fc",
+      "num_rollbacks": 1,
+      "tokens_rolled_back": 91
+    },
+    {
+      "rid": "8e8383907a6b421c813f41e619bc0aa6",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "386a6342a15e4aaca17ddfdb3f8f8e7e",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "3b195d5f8ea54ce7abe633f6849da65a",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 88
+    },
+    {
+      "rid": "393b293819b34ddab0d5f335449fb1dc",
+      "num_rollbacks": 0,
+      "tokens_rolled_back": 0
+    },
+    {
+      "rid": "2cc06bae1fa84db0ae19fdcefce89a2b",
+      "num_rollbacks": 4,
+      "tokens_rolled_back": 261
+    },
+    {
+      "rid": "1a0359e9f1ca45c081698818f94513d7",
+      "num_rollbacks": 2,
+      "tokens_rolled_back": 140
+    },
+    {
+      "rid": "ca9d0c47fb114a5880195363dfdd854f",
+      "num_rollbacks": 11,
+      "tokens_rolled_back": 920
+    }
+  ]
+}
