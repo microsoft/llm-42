@@ -41,14 +41,18 @@ class DeterministicVerificationWorker:
     - Compares outputs to detect any non-determinism
     """
 
-    def __init__(self, target_worker: TpModelWorker):
+    def __init__(self, target_worker: TpModelWorker, always_align: bool = True):
         """
         Initialize the deterministic verification worker.
         
         Args:
             target_worker: The underlying TpModelWorker to wrap
+            always_align: If True, pad verification batches to step_size with dummy tokens
+                         for finished requests that have fewer unverified tokens than step_size.
+                         This ensures consistent batch sizes for verification. Default: True.
         """
         self.target_worker = target_worker
+        self.always_align = always_align
         self.metrics_collector = getattr(target_worker, "metrics_collector", None)
 
     def forward_batch_generation(
@@ -116,14 +120,15 @@ class DeterministicVerificationWorker:
                 reqs_to_verify.append(req)
         
         if reqs_to_verify:
-            return self._verify_deterministic_requests(batch, reqs_to_verify)
+            return self._verify_deterministic_requests(batch, reqs_to_verify, self.always_align)
         return []
 
 
     def _verify_deterministic_requests(
         self, 
         original_batch: Union[ScheduleBatch, ModelWorkerBatch], 
-        reqs: List[Req]
+        reqs: List[Req],
+        always_align: bool = True,
     ) -> List[Tuple[Req, int]]:
         """
         Verify deterministic requests by re-running them.
@@ -132,12 +137,21 @@ class DeterministicVerificationWorker:
         Args:
             original_batch: Original batch context
             reqs: Requests to verify (tokens already appended)
+            always_align: If True, pad to step_size with dummy tokens for finished requests
             
         Returns:
             List of (req, tokens_rolled_back) tuples for requests that had rollback.
         """
         try:
-            det_verify_info = DetVerifyInfo.from_requests(reqs)
+            det_verify_info = DetVerifyInfo.from_requests(reqs, always_align=always_align)
+            logger.info(f"[DetVerifyWorker] Verifying {len(reqs)} requests with total padding cache slots {det_verify_info.total_padding_cache_slots}")
+            
+            # Allocate temporary KV cache for padding tokens (if any)
+            if det_verify_info.total_padding_cache_slots > 0:
+                det_verify_info.allocate_padding_kv_cache(
+                    original_batch.token_to_kv_pool_allocator
+                )
+            
             verify_batch = det_verify_info.prepare_verify_batch(original_batch, reqs)
             
             # Run verification forward pass (batch_invariant context is now managed in tp_worker)
@@ -199,9 +213,23 @@ class DeterministicVerificationWorker:
             verify_batch.req_to_token_pool = None
             verify_batch.token_to_kv_pool_allocator = None
             
+            # Free temporary KV cache allocated for padding tokens
+            if det_verify_info.total_padding_cache_slots > 0:
+                det_verify_info.free_padding_kv_cache(
+                    original_batch.token_to_kv_pool_allocator
+                )
+            
             return rollback_results
             
         except Exception as e:
+            # Make sure to free padding KV cache even on error
+            if 'det_verify_info' in locals() and det_verify_info.total_padding_cache_slots > 0:
+                try:
+                    det_verify_info.free_padding_kv_cache(
+                        original_batch.token_to_kv_pool_allocator
+                    )
+                except Exception:
+                    pass  # Best effort cleanup
             logger.error(f"Error during verification: {e}")
             raise
 

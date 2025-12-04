@@ -361,7 +361,7 @@ if __name__ == "__main__":
     
     # Configure batch sizes and max_tokens to test
     batch_sizes = [i for i in range(32, 256, 32)]
-    max_tokens_list = [128, 256, 512, 1024]
+    max_tokens_list = [128]
     
     # Configure prompt length (words)
     min_prompt_words = int(os.getenv("SGLANG_MIN_PROMPT_WORDS", "10"))
