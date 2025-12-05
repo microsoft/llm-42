@@ -1221,7 +1221,8 @@ class ServerArgs:
         # - enable_deterministic_inference: controls batch-invariant operations globally
         # - enable_det_infer: controls deterministic verification and forward-mode-based batch-invariant switching
         # - enable_selective_determinism: batch-composition-based switching
-        # Mode values: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
+        # Mode values: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm, 3=non-batch-invariant (default CUDA)
+        # Mode 3 is specifically for enable_det_infer to use non-batch-invariant kernels during verification
         """Handle settings related to deterministic inference."""
         if self.enable_selective_determinism or self.enable_deterministic_inference or self.enable_det_infer:
             # Check sampling backend

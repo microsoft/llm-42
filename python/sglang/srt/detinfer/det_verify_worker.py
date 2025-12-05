@@ -193,7 +193,7 @@ class DeterministicVerificationWorker:
         """
         try:
             det_verify_info = DetVerifyInfo.from_requests(reqs, always_align=always_align)
-            logger.info(f"[DetVerifyWorker] Verifying {len(reqs)} requests with total padding cache slots {det_verify_info.total_padding_cache_slots}")
+            # logger.info(f"[DetVerifyWorker] Verifying {len(reqs)} requests with total padding cache slots {det_verify_info.total_padding_cache_slots}")
             
             # Allocate temporary KV cache for padding tokens (if any)
             if det_verify_info.total_padding_cache_slots > 0:

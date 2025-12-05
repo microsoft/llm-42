@@ -44,9 +44,13 @@ $PYTHON_CMD -m sglang.launch_server \
     --disable-chunked-prefix-cache \
     --disable-overlap-schedule \
     --enable-metrics \
-    --min-det-step-size 10 \
-    --enable-det-infer 1 \
-    --max-det-verify-batch-size 10
+    --min-det-step-size 20 \
+    --enable-det-infer 3 \
+    --max-det-verify-batch-size 1
+    # Mode values for --enable-det-infer:
+    # 1 = bi_kernel + vllm_rmsnorm (batch-invariant during verification)
+    # 2 = batch_invariant + native_rmsnorm (batch-invariant during verification)
+    # 3 = non-batch-invariant (default CUDA kernels during verification)
     # --enable-selective-determinism 1 \
     # --enable-deterministic-inference 1 \
     # --min-det-step-size 10 \

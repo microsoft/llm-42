@@ -36,6 +36,7 @@ from sglang.srt.utils import (
     supports_custom_op,
 )
 from sglang.srt.batch_invariant_ops import rms_norm_batch_invariant
+from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
 
 _is_cuda = is_cuda()
 _is_flashinfer_available = is_flashinfer_available()
@@ -117,9 +118,7 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         with record_function("rmsnorm"):
-            if self.enable_selective_determinism or self.enable_det_infer:
-                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
-                
+            if self.enable_selective_determinism or (self.enable_det_infer == 1 or self.enable_det_infer == 2):
                 if is_batch_invariant_mode_enabled():
                     return self.forward_vllm(x, residual) if self.vllm_rmsnorm_mode else self.forward_native(x, residual)
 

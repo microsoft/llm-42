@@ -2032,12 +2032,14 @@ class ModelRunner:
         
         # enable_det_infer: Dynamic control based on forward mode
         # Global default is DISABLED. We enable only when needed:
-        # - TARGET_DET_VERIFY: always enabled (via is_verification_mode)
+        # - TARGET_DET_VERIFY: always enabled (via is_verification_mode), except mode 3
         # - EXTEND (prefill): enabled if is_any_deterministic
         # - DECODE: enabled if any req has force_deterministic_mode
+        # Mode 3: Use non-batch-invariant kernels during verification (skip enabling batch_invariant)
         if self.enable_det_infer_mode:
             if is_verification_mode:
-                # Verification mode: always enable
+                # Verification mode: enable batch_invariant unless mode 3 (non-batch-invariant mode)
+                # Mode 3 uses default CUDA kernels for matmul and RMSNorm during verification
                 should_enable_batch_invariant = True
             else:
                 is_decode_mode = forward_batch.forward_mode.is_decode()

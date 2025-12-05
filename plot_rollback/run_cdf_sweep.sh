@@ -124,7 +124,8 @@ run_experiment() {
         --disable-chunked-prefix-cache \
         --disable-overlap-schedule \
         --enable-metrics \
-        --enable-det-infer 1 \
+        --enable-det-infer 3 \
+        --max-det-verify-batch-size 1 \
         --min-det-step-size "$step_size" \
         2>&1 | tee "$LOG_FILE" &
     

@@ -654,10 +654,6 @@ def enable_batch_invariant_mode(mode: int = 1, _suppress_log: bool = False):
     if _batch_invariant_MODE and _mode == mode and _batch_invariant_LIB is not None:
         return
     
-    # Log when enabling from disabled state or changing mode (unless suppressed)
-    was_disabled = not _batch_invariant_MODE
-    mode_changed = _batch_invariant_MODE and _mode != mode
-    
     # Clean up old library if it exists (can't reuse destroyed Library objects)
     if _batch_invariant_LIB is not None:
         _batch_invariant_LIB._destroy()
@@ -667,6 +663,8 @@ def enable_batch_invariant_mode(mode: int = 1, _suppress_log: bool = False):
     _batch_invariant_MODE = True
     _batch_invariant_LIB = torch.library.Library("aten", "IMPL")
     _mode = mode
+
+    # logger.info(f"Enabling batch_invariant mode: {mode}")
     
     if mode == 1:
         _batch_invariant_LIB.impl("aten::mm", mm_bi_kernel, "CUDA")
@@ -674,8 +672,12 @@ def enable_batch_invariant_mode(mode: int = 1, _suppress_log: bool = False):
     elif mode == 2:
         _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
         _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
+    elif mode == 3:
+        # Mode 3: Use default CUDA matmul (non-batch-invariant) but still override log_softmax and mean
+        # No mm/addmm overrides - uses standard CUDA implementations for matmul
+        pass
     elif mode != 0:
-        raise ValueError(f"Unknown batch invariant mode: {mode}. Use 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm")
+        raise ValueError(f"Unknown batch invariant mode: {mode}. Use 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm, 3=non-batch-invariant (default CUDA)")
     
     _batch_invariant_LIB.impl(
         "aten::_log_softmax", _log_softmax_batch_invariant, "CUDA"

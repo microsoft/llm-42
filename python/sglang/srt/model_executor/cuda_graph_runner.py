@@ -222,8 +222,9 @@ class CudaGraphRunner:
         # batch_invariant_mode: True = deterministic, False = non-deterministic
         self.graphs = {}
         self.output_buffers = {}
-        # Enable dual graphs for both selective_determinism and det_infer modes
-        # Both need to dynamically switch between deterministic and non-deterministic behavior
+        # Enable dual graphs for both selective_determinism and det_infer modes (all modes 1, 2, 3)
+        # All modes need to dynamically switch between deterministic and non-deterministic behavior
+        # Mode 3 uses non-batch-invariant kernels but still needs dual graphs for attention configs
         self.enable_dual_graphs = (
             model_runner.enable_selective_determinism or model_runner.enable_det_infer_mode
         )
@@ -503,7 +504,10 @@ class CudaGraphRunner:
                             # First capture with batch_invariant enabled (deterministic)
                             from sglang.srt.batch_invariant_ops import set_batch_invariant_mode
                             
-                            with set_batch_invariant_mode(enabled=True):
+                            # Use the actual det_infer mode (1 or 2) for batch_invariant settings
+                            det_infer_mode = self.model_runner.enable_det_infer_mode
+                            logger.info(f"Capturing CUDA graph for bs={bs} with batch_invariant_mode=True (det_infer_mode={det_infer_mode})")
+                            with set_batch_invariant_mode(enabled=True, mode=det_infer_mode):
                                 (
                                     graph_det,
                                     output_buffers_det,
