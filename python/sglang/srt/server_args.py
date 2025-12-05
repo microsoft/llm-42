@@ -416,6 +416,7 @@ class ServerArgs:
     enable_selective_determinism: int = 0  # Batch-composition-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
     min_det_step_size: Optional[int] = None
     max_det_step_size: Optional[int] = None
+    max_det_verify_batch_size: Optional[int] = None  # Max requests per verification batch
 
     # Dynamic batch tokenizer
     enable_dynamic_batch_tokenizer: bool = False
@@ -2803,6 +2804,14 @@ class ServerArgs:
             type=int,
             default=ServerArgs.max_det_step_size,
             help="Maximum number of tokens before verification. Requests can adaptively adjust between min and max.",
+        )
+        parser.add_argument(
+            "--max-det-verify-batch-size",
+            type=int,
+            default=ServerArgs.max_det_verify_batch_size,
+            help="Maximum number of requests to verify in a single verification batch. "
+                 "If not set, all requests are verified together. "
+                 "For example, with max_det_verify_batch_size=10, 22 requests will be verified as 10+10+2.",
         )
 
         # Deprecated arguments

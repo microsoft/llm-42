@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import torch
 
@@ -41,7 +41,12 @@ class DeterministicVerificationWorker:
     - Compares outputs to detect any non-determinism
     """
 
-    def __init__(self, target_worker: TpModelWorker, always_align: bool = True):
+    def __init__(
+        self, 
+        target_worker: TpModelWorker, 
+        always_align: bool = True,
+        max_requests_per_verify: Optional[int] = None,
+    ):
         """
         Initialize the deterministic verification worker.
         
@@ -50,9 +55,14 @@ class DeterministicVerificationWorker:
             always_align: If True, pad verification batches to step_size with dummy tokens
                          for finished requests that have fewer unverified tokens than step_size.
                          This ensures consistent batch sizes for verification. Default: True.
+            max_requests_per_verify: Maximum number of requests to verify in a single batch.
+                         If None, all requests are verified together. If set, requests are
+                         verified in chunks of this size (e.g., 20 requests with max=10
+                         will be verified as 10+10). Default: None.
         """
         self.target_worker = target_worker
         self.always_align = always_align
+        self.max_requests_per_verify = max_requests_per_verify
         self.metrics_collector = getattr(target_worker, "metrics_collector", None)
 
     def forward_batch_generation(
@@ -120,8 +130,47 @@ class DeterministicVerificationWorker:
                 reqs_to_verify.append(req)
         
         if reqs_to_verify:
-            return self._verify_deterministic_requests(batch, reqs_to_verify, self.always_align)
+            return self._verify_deterministic_requests_batched(
+                batch, reqs_to_verify, self.always_align, self.max_requests_per_verify
+            )
         return []
+
+    def _verify_deterministic_requests_batched(
+        self,
+        original_batch: Union[ScheduleBatch, ModelWorkerBatch],
+        reqs: List[Req],
+        always_align: bool = True,
+        max_requests: Optional[int] = None,
+    ) -> List[Tuple[Req, int]]:
+        """
+        Verify deterministic requests in batches.
+        
+        If max_requests is set, requests are verified in chunks of that size.
+        For example, 22 requests with max_requests=10 will be verified as 10+10+2.
+        
+        Args:
+            original_batch: Original batch context
+            reqs: All requests to verify
+            always_align: If True, pad to step_size with dummy tokens
+            max_requests: Maximum requests per verification batch. None means all at once.
+            
+        Returns:
+            List of (req, tokens_rolled_back) tuples for all requests that had rollback.
+        """
+        if max_requests is None or len(reqs) <= max_requests:
+            # No batching needed, verify all at once
+            return self._verify_deterministic_requests(original_batch, reqs, always_align)
+        
+        # Split into batches and verify each
+        all_rollback_results = []
+        for i in range(0, len(reqs), max_requests):
+            batch_reqs = reqs[i:i + max_requests]
+            rollback_results = self._verify_deterministic_requests(
+                original_batch, batch_reqs, always_align
+            )
+            all_rollback_results.extend(rollback_results)
+        
+        return all_rollback_results
 
 
     def _verify_deterministic_requests(

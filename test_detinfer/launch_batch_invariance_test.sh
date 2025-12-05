@@ -45,7 +45,8 @@ $PYTHON_CMD -m sglang.launch_server \
     --disable-overlap-schedule \
     --enable-metrics \
     --min-det-step-size 10 \
-    --enable-det-infer 1
+    --enable-det-infer 1 \
+    --max-det-verify-batch-size 10
     # --enable-selective-determinism 1 \
     # --enable-deterministic-inference 1 \
     # --min-det-step-size 10 \
