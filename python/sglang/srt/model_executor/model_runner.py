@@ -431,12 +431,19 @@ class ModelRunner:
             # For enable_det_infer, we keep batch_invariant DISABLED by default globally
             # It will be dynamically enabled only when needed (prefill/verification) via context manager
             # This avoids the toggle overhead during decode passes
-            logger.info(
-                f"Det infer mode enabled (mode={server_args.enable_det_infer}). "
-                "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
-                "one without (non-deterministic). Decode passes will dynamically select based on "
-                "force_deterministic_mode flag."
-            )
+            if server_args.enable_det_infer == 3:
+                logger.info(
+                    f"Det infer mode enabled (mode={server_args.enable_det_infer}). "
+                    "Using non-batch-invariant kernels with single CUDA graph set. "
+                    "Deterministic requests will be isolated (batch_size=1)."
+                )
+            else:
+                logger.info(
+                    f"Det infer mode enabled (mode={server_args.enable_det_infer}). "
+                    "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
+                    "one without (non-deterministic). Decode passes will dynamically select based on "
+                    "force_deterministic_mode flag."
+                )
 
         # Store configuration for selective determinism
         # Switches batch_invariant dynamically based on whether ANY request in batch is deterministic

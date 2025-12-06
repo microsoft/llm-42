@@ -222,11 +222,12 @@ class CudaGraphRunner:
         # batch_invariant_mode: True = deterministic, False = non-deterministic
         self.graphs = {}
         self.output_buffers = {}
-        # Enable dual graphs for both selective_determinism and det_infer modes (all modes 1, 2, 3)
-        # All modes need to dynamically switch between deterministic and non-deterministic behavior
-        # Mode 3 uses non-batch-invariant kernels but still needs dual graphs for attention configs
+        # Enable dual graphs for selective_determinism and det_infer modes 1 and 2 only
+        # Mode 3 uses non-batch-invariant kernels so it doesn't need dual graphs
+        # (Mode 3 uses default CUDA matmul without batch-invariant switching)
         self.enable_dual_graphs = (
-            model_runner.enable_selective_determinism or model_runner.enable_det_infer_mode
+            model_runner.enable_selective_determinism or 
+            (model_runner.enable_det_infer_mode and model_runner.enable_det_infer_mode != 3)
         )
         self.enable_torch_compile = model_runner.server_args.enable_torch_compile
         self.disable_padding = model_runner.server_args.disable_cuda_graph_padding

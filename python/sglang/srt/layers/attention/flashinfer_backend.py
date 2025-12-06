@@ -420,10 +420,15 @@ class FlashInferAttnBackend(AttentionBackend):
         spec_info: Optional[SpecInput],
     ):
         if forward_mode.is_decode_or_idle():
-            # For det_infer mode, apply different settings for each graph
+            # For det_infer mode (except mode 3), apply different settings for each graph
             # based on is_batch_invariant_mode_enabled() during capture
             # For selective_determinism, self.enable_deterministic is already set correctly
-            if self.enable_det_infer_mode > 0 or self.enable_selective_determinism > 0:
+            # Mode 3 uses non-batch-invariant kernels so it doesn't need dual graphs
+            uses_dual_graphs = (
+                self.enable_selective_determinism > 0 or 
+                (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3)
+            )
+            if uses_dual_graphs:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_deterministic_graph = is_batch_invariant_mode_enabled()
                 
@@ -471,8 +476,12 @@ class FlashInferAttnBackend(AttentionBackend):
                 disable_split_kv=disable_split_kv,
             )
             # Store with tuple key (bs, is_deterministic) for dual graphs
-            # Both det_infer and selective_determinism modes use dual graphs
-            if self.enable_det_infer_mode > 0 or self.enable_selective_determinism > 0:
+            # Mode 3 uses non-batch-invariant kernels so it doesn't need dual graphs
+            uses_dual_graphs = (
+                self.enable_selective_determinism > 0 or 
+                (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3)
+            )
+            if uses_dual_graphs:
                 storage_key = (bs, is_deterministic_graph)
             else:
                 storage_key = bs
@@ -563,8 +572,12 @@ class FlashInferAttnBackend(AttentionBackend):
     ):
         if forward_mode.is_decode_or_idle():
             # Determine which wrappers to use based on deterministic mode
-            # Both det_infer and selective_determinism modes use tuple keys for dual graphs
-            if (self.enable_det_infer_mode > 0 or self.enable_selective_determinism > 0) and use_deterministic is not None:
+            # Mode 3 uses non-batch-invariant kernels so it doesn't need dual graphs
+            uses_dual_graphs = (
+                self.enable_selective_determinism > 0 or 
+                (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3)
+            )
+            if uses_dual_graphs and use_deterministic is not None:
                 storage_key = (bs, use_deterministic)
                 # Match the settings used during capture for this graph
                 disable_split_kv = use_deterministic

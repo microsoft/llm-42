@@ -770,8 +770,8 @@ class SchedulerOutputProcessorMixin:
                 req.log_time_stats()
 
             # Log deterministic rollback stats when request finishes
-            if req.finished() and self.tp_rank == 0 and req.is_deterministic:
-                req.log_det_rollback_stats()
+            # if req.finished() and self.tp_rank == 0 and req.is_deterministic:
+            #     req.log_det_rollback_stats()
 
         # Send to detokenizer
         if rids:
