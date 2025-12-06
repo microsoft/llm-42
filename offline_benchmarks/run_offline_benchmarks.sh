@@ -19,7 +19,7 @@ RESULTS_FILE="${OUTPUT_DIR}/benchmark_results_${TIMESTAMP}.jsonl"
 
 # Benchmark parameters
 INPUT_LENS=(512 1024 2048)
-OUTPUT_LENS=(128 256 512 1024)
+OUTPUT_LENS=(128 256)
 MIN_DET_STEP_SIZES=(16 64 128)
 
 # Determine Python command
@@ -78,7 +78,7 @@ run_benchmark() {
         --random-output-len "$output_len" \
         --num-prompts "$NUM_PROMPTS" \
         --result-filename "$temp_result" \
-        --extra-request-body '{"is_deterministic": true}'
+        --extra-request-body '{"is_deterministic": true, "ignore_eos": true}'
     
     # Add metadata and append to results file
     if [ -f "$temp_result" ]; then

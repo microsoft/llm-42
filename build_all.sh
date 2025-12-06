@@ -63,6 +63,7 @@ build_sgl_kernel() {
     # Install dependencies first
     print_status "Installing build dependencies..."
     pip install scikit-build-core uv
+    pip install uvloop==0.21.0
     
     # Build wheel (similar to make build)
     print_status "Building sgl-kernel wheel..."

@@ -96,7 +96,8 @@ class DetVerifyInfo:
             seq_lens.append(len(req.origin_input_ids) + len(req.output_ids))
             
             # Determine if padding is needed
-            is_finished = req.finished_output is not None or req.finished_reason is not None
+            # Note: finished_output is a boolean (False initially), so use truthiness check, not "is not None"
+            is_finished = req.finished_reason is not None
             step_size = getattr(req, 'det_step_size', None)
             
             if always_align and is_finished and step_size is not None and actual_len < step_size:
@@ -465,7 +466,7 @@ class DetVerifyInfo:
                     req.output_token_logprobs_idx.extend(verify_output[:mismatch_pos])
                 
                 req.finished_reason = None
-                req.finished_output = None
+                # req.finished_output = None
                 
                 if mismatch_pos < len(verify_output):
                     req.output_ids.append(verify_output[mismatch_pos])

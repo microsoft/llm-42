@@ -123,7 +123,12 @@ class DeterministicVerificationWorker:
                 continue
             
             # Verify finished requests with unverified tokens
-            is_finished = req.finished_output is not None or req.finished_reason is not None
+            # Note: finished_output is a boolean (False initially), so use truthiness check, not "is not None"
+            is_finished = req.finished_reason is not None
+
+            # logger.info(f"[DetVerifyWorker] Req id={req.rid} unverified_tokens={unverified_tokens}"
+            #             f" det_verified_tokens={req.det_verified_tokens}, output_len={output_len}"
+            #             f" is_finished={is_finished} det_step_size={req.det_step_size}")
             
             # Verify if: finished OR reached step size boundary
             if is_finished or (req.det_step_size is not None and unverified_tokens >= req.det_step_size):

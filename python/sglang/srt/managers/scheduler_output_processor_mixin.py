@@ -94,6 +94,10 @@ class SchedulerOutputProcessorMixin:
                     req.check_finished()
 
                     if req.finished():
+                        # For deterministic requests finishing during prefill, mark tokens as verified
+                        # since prefill runs deterministically in mode 3 (no batching interference)
+                        if req.is_deterministic and self.server_args.enable_det_infer:
+                            req.det_verified_tokens = len(req.output_ids)
                         self.tree_cache.cache_finished_req(req)
                         req.time_stats.completion_time = time.perf_counter()
                     elif not batch.decoding_reqs or req not in batch.decoding_reqs:
@@ -276,7 +280,13 @@ class SchedulerOutputProcessorMixin:
         if self.server_args.enable_det_infer:
             rollback_results = self.model_worker.check_and_verify_deterministic_requests(batch)
             # Free KV cache slots for rolled back tokens (inside free_group for proper batching)
+            # logger.info(
+            #     f" rollback_results: {[ (req.rid, tokens_rolled_back) for req, tokens_rolled_back in rollback_results ]}"
+            # )
             for req, tokens_rolled_back in rollback_results:
+                # logger.info(
+                #     f"Request {req.rid} rolled back {tokens_rolled_back} tokens for deterministic verification."
+                # )
                 # Get the KV cache indices for the slots to free
                 # After rollback, output_ids has been truncated and corrected token appended
                 # The corrected token is at position (origin + output_len - 1), so we start freeing AFTER that
