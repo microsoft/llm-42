@@ -1609,6 +1609,7 @@ async def benchmark(
     use_trace_timestamps: bool = False,
     mooncake_slowdown_factor=1.0,
     mooncake_num_rounds=1,
+    deterministic_ratio: float = 0.0,
 ):
     if backend in ASYNC_REQUEST_FUNCS:
         request_func = ASYNC_REQUEST_FUNCS[backend]
@@ -1725,13 +1726,27 @@ async def benchmark(
     else:
         request_generator = get_request(input_requests, request_rate)
 
+    # Pre-compute which requests will be deterministic (exact count)
+    num_requests = len(input_requests) if args.dataset_name != "mooncake" else len(input_requests) * mooncake_num_rounds
+    num_deterministic = int(num_requests * deterministic_ratio)
+    deterministic_indices = set(random.sample(range(num_requests), num_deterministic)) if num_deterministic > 0 else set()
+    if deterministic_ratio > 0:
+        print(f"Deterministic requests: {num_deterministic}/{num_requests} ({deterministic_ratio*100:.1f}%)")
+
     pbar = None if disable_tqdm else tqdm(total=pbar_total)
+    request_idx = 0
     async for request in request_generator:
         if lora_names is not None and len(lora_names) != 0:
             idx = random.randint(0, len(lora_names) - 1)
             lora_name = lora_names[idx]
         else:
             lora_name = None
+
+        # Apply deterministic flag based on pre-computed indices
+        req_extra_body = extra_request_body.copy()
+        if request_idx in deterministic_indices:
+            req_extra_body["is_deterministic"] = True
+        request_idx += 1
 
         request_func_input = RequestFuncInput(
             model=model_id,
@@ -1741,7 +1756,7 @@ async def benchmark(
             output_len=request.output_len,
             lora_name=lora_name,
             image_data=request.image_data,
-            extra_request_body=extra_request_body,
+            extra_request_body=req_extra_body,
             timestamp=request.timestamp,
         )
 
@@ -2120,6 +2135,7 @@ def run_benchmark(args_: argparse.Namespace):
             use_trace_timestamps=args.use_trace_timestamps,
             mooncake_slowdown_factor=args.mooncake_slowdown_factor,
             mooncake_num_rounds=args.mooncake_num_rounds,
+            deterministic_ratio=args.deterministic_ratio,
         )
     )
 
@@ -2302,6 +2318,13 @@ if __name__ == "__main__":
         type=str,
         help="Append given JSON object to the request payload. You can use this to specify"
         "additional generate params like sampling params.",
+    )
+    parser.add_argument(
+        "--deterministic-ratio",
+        type=float,
+        default=0.0,
+        help="Ratio of requests to send with is_deterministic=True (0.0 to 1.0). "
+        "Default is 0.0 (no deterministic requests). Set to 0.1 for 10%% deterministic requests.",
     )
     parser.add_argument(
         "--apply-chat-template",

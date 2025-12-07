@@ -27,11 +27,11 @@ def load_results(filepath: str) -> List[Dict[str, Any]]:
     return results
 
 
-def group_results(results: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-    """Group results by configuration name."""
+def group_results(results: List[Dict[str, Any]], group_by: str = 'config_name') -> Dict[str, List[Dict[str, Any]]]:
+    """Group results by a specified key."""
     grouped = defaultdict(list)
     for r in results:
-        grouped[r['config_name']].append(r)
+        grouped[r[group_by]].append(r)
     return grouped
 
 
@@ -281,63 +281,68 @@ def plot_step_size_comparison(results: List[Dict], output_dir: str):
 
 
 def plot_total_throughput_bars(results: List[Dict], output_dir: str):
-    """Plot total throughput as grouped bar chart with (input_len, output_len) on x-axis."""
-    grouped = group_results(results)
+    """Plot total throughput as grouped bar chart with (input_len, output_len) on x-axis.
+    Creates one plot per deterministic_ratio."""
+    # Group by deterministic_ratio first
+    ratio_grouped = group_results(results, group_by='deterministic_ratio')
     
-    # Get all unique (input_len, output_len) combinations
-    combinations = sorted(set((r['input_len'], r['output_len']) for r in results))
-    x_labels = [f"({il}, {ol})" for il, ol in combinations]
-    
-    # Get all config names
-    config_names = sorted(grouped.keys())
-    
-    # Build throughput data for each config
-    throughput_data = {}
-    for config_name in config_names:
-        config_results = grouped[config_name]
-        throughputs = []
-        for (input_len, output_len) in combinations:
-            matching = [r for r in config_results 
-                       if r['input_len'] == input_len and r['output_len'] == output_len]
-            if matching:
-                throughputs.append(matching[0]['total_throughput'])
-            else:
-                throughputs.append(0)
-        throughput_data[config_name] = throughputs
-    
-    # Create grouped bar chart
-    plt.figure(figsize=(14, 8))
-    
-    n_configs = len(config_names)
-    n_combinations = len(combinations)
-    bar_width = 0.8 / n_configs
-    x = np.arange(n_combinations)
-    
-    colors = plt.cm.tab10(np.linspace(0, 1, n_configs))
-    
-    for idx, config_name in enumerate(config_names):
-        offset = (idx - n_configs / 2 + 0.5) * bar_width
-        bars = plt.bar(x + offset, throughput_data[config_name], bar_width, 
-                      label=get_config_display_name(config_name), color=colors[idx], alpha=0.8)
+    for det_ratio, ratio_results in sorted(ratio_grouped.items()):
+        grouped = group_results(ratio_results, group_by='config_name')
         
-        # Add value labels on bars
-        for bar, val in zip(bars, throughput_data[config_name]):
-            if val > 0:
-                plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 50, 
-                        f'{val:.0f}', ha='center', va='bottom', fontsize=8, rotation=90)
-    
-    plt.xlabel('(Input Length, Output Length)', fontsize=12)
-    plt.ylabel('Total Throughput (tokens/s)', fontsize=12)
-    plt.title('Total Throughput by Configuration', fontsize=14)
-    plt.xticks(x, x_labels, rotation=45, ha='right')
-    plt.legend(loc='best', fontsize=9)
-    plt.grid(True, alpha=0.3, axis='y')
-    plt.tight_layout()
-    
-    filepath = os.path.join(output_dir, 'total_throughput_bars.png')
-    plt.savefig(filepath, dpi=150)
-    plt.close()
-    print(f"Saved: {filepath}")
+        # Get all unique (input_len, output_len) combinations
+        combinations = sorted(set((r['input_len'], r['output_len']) for r in ratio_results))
+        x_labels = [f"({il}, {ol})" for il, ol in combinations]
+        
+        # Get all config names
+        config_names = sorted(grouped.keys())
+        
+        # Build throughput data for each config
+        throughput_data = {}
+        for config_name in config_names:
+            config_results = grouped[config_name]
+            throughputs = []
+            for (input_len, output_len) in combinations:
+                matching = [r for r in config_results 
+                           if r['input_len'] == input_len and r['output_len'] == output_len]
+                if matching:
+                    throughputs.append(matching[0]['total_throughput'])
+                else:
+                    throughputs.append(0)
+            throughput_data[config_name] = throughputs
+        
+        # Create grouped bar chart
+        plt.figure(figsize=(14, 8))
+        
+        n_configs = len(config_names)
+        n_combinations = len(combinations)
+        bar_width = 0.8 / n_configs
+        x = np.arange(n_combinations)
+        
+        colors = plt.cm.tab10(np.linspace(0, 1, n_configs))
+        
+        for idx, config_name in enumerate(config_names):
+            offset = (idx - n_configs / 2 + 0.5) * bar_width
+            bars = plt.bar(x + offset, throughput_data[config_name], bar_width, 
+                          label=get_config_display_name(config_name), color=colors[idx], alpha=0.8)
+            
+            # Add value labels on bars
+            for bar, val in zip(bars, throughput_data[config_name]):
+                if val > 0:
+                    plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 50, 
+                            f'{val:.0f}', ha='center', va='bottom', fontsize=8, rotation=90)
+        
+        plt.xlabel('(Input Length, Output Length)', fontsize=12)
+        plt.ylabel('Total Throughput (tokens/s)', fontsize=12)
+        plt.title(f'Total Throughput by Configuration (Deterministic Ratio = {det_ratio})', fontsize=14)
+        plt.xticks(x, x_labels, rotation=45, ha='right')
+        plt.legend(loc='upper left', bbox_to_anchor=(1.02, 1), fontsize=9, borderaxespad=0)
+        plt.grid(True, alpha=0.3, axis='y')
+        plt.tight_layout(rect=[0, 0, 0.85, 1])  # Leave space for legend on the right
+        
+        filepath = os.path.join(output_dir, f'total_throughput_bars_detratio{det_ratio}.pdf')
+        plt.savefig(filepath, dpi=150, bbox_inches='tight')
+        plt.close()
+        print(f"Saved: {filepath}")
 
 
 def generate_summary_table(results: List[Dict], output_dir: str):
@@ -393,11 +398,11 @@ def main():
     
     # Generate plots
     print("\nGenerating plots...")
-    plot_throughput_by_input_len(results, args.output_dir)
-    plot_throughput_by_output_len(results, args.output_dir)
-    plot_throughput_heatmaps(results, args.output_dir)
-    plot_overhead_comparison(results, args.output_dir)
-    plot_step_size_comparison(results, args.output_dir)
+    # plot_throughput_by_input_len(results, args.output_dir)
+    # plot_throughput_by_output_len(results, args.output_dir)
+    # plot_throughput_heatmaps(results, args.output_dir)
+    # plot_overhead_comparison(results, args.output_dir)
+    # plot_step_size_comparison(results, args.output_dir)
     plot_total_throughput_bars(results, args.output_dir)
     
     # Generate summary

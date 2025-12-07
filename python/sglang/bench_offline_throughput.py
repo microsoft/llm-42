@@ -55,6 +55,7 @@ class BenchArgs:
     seed: int = 1
     disable_ignore_eos: bool = False
     extra_request_body: Optional[str] = None
+    deterministic_ratio: float = 1.0
     apply_chat_template: bool = False
     profile: bool = False
     skip_warmup: bool = False
@@ -161,6 +162,13 @@ class BenchArgs:
             "additional generate params like sampling params.",
         )
         parser.add_argument(
+            "--deterministic-ratio",
+            type=float,
+            default=BenchArgs.deterministic_ratio,
+            help="Ratio of requests to send with is_deterministic=True (0.0 to 1.0). "
+            "Default is 1.0 (all requests are deterministic). Set to 0.1 for 10%% deterministic requests.",
+        )
+        parser.add_argument(
             "--apply-chat-template",
             action="store_true",
             help="Apply chat template",
@@ -201,6 +209,7 @@ def throughput_test_once(
     ignore_eos: bool,
     extra_request_body: Dict,
     profile: bool,
+    deterministic_ratio: float = 1.0,
 ):
     measurement_results = {
         "backend": backend_name,
@@ -215,14 +224,21 @@ def throughput_test_once(
     }
 
     prompt = [r.prompt for r in reqs]
+    
+    # Pre-compute which requests will be deterministic (exact count)
+    num_deterministic = int(len(reqs) * deterministic_ratio)
+    deterministic_indices = set(random.sample(range(len(reqs)), num_deterministic)) if num_deterministic > 0 else set()
+    deterministic_flags = [i in deterministic_indices for i in range(len(reqs))]
+    
     sampling_params = [
         {
             "temperature": 0,
             "max_new_tokens": r.output_len,
             "ignore_eos": ignore_eos,
             **extra_request_body,
+            "is_deterministic": is_det,
         }
-        for r in reqs
+        for r, is_det in zip(reqs, deterministic_flags)
     ]
 
     if profile:
@@ -355,6 +371,7 @@ def throughput_test(
             ignore_eos=not bench_args.disable_ignore_eos,
             extra_request_body=extra_request_body,
             profile=False,
+            deterministic_ratio=bench_args.deterministic_ratio,
         )
         time.sleep(0.5)
 
@@ -366,6 +383,7 @@ def throughput_test(
         ignore_eos=not bench_args.disable_ignore_eos,
         extra_request_body=extra_request_body,
         profile=bench_args.profile,
+        deterministic_ratio=bench_args.deterministic_ratio,
     )
     backend.shutdown()
 

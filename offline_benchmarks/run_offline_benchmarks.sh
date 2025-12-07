@@ -13,14 +13,15 @@ NUM_PROMPTS="${NUM_PROMPTS:-1000}"
 
 # Output directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT_DIR="${SCRIPT_DIR}/results"
+OUTPUT_DIR="${SCRIPT_DIR}/new_results"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 RESULTS_FILE="${OUTPUT_DIR}/benchmark_results_${TIMESTAMP}.jsonl"
 
 # Benchmark parameters
-INPUT_LENS=(512 1024 2048)
-OUTPUT_LENS=(128 256)
-MIN_DET_STEP_SIZES=(16 64 128)
+INPUT_LENS=(256 512 1024 2048)
+OUTPUT_LENS=(128 256 512 1024)
+MIN_DET_STEP_SIZES=(16 64 128 256 512)
+DETERMINISTIC_RATIOS=(0.01 0.02 0.05 0.1 0.2 0.5 1.0)
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -59,17 +60,19 @@ run_benchmark() {
     local server_args="$2"
     local input_len="$3"
     local output_len="$4"
-    local extra_info="$5"
+    local det_ratio="$5"
+    local extra_info="$6"
     
     echo "----------------------------------------------"
     echo "Config: $config_name"
     echo "Input Len: $input_len, Output Len: $output_len"
+    echo "Deterministic Ratio: $det_ratio"
     echo "Extra: $extra_info"
     echo "----------------------------------------------"
     
     local temp_result="${OUTPUT_DIR}/temp_result.json"
     
-    # Run the benchmark with is_deterministic=True in extra request body
+    # Run the benchmark with deterministic ratio
     $PYTHON_CMD -m sglang.bench_offline_throughput \
         --model-path "$MODEL_PATH" \
         $server_args \
@@ -78,7 +81,8 @@ run_benchmark() {
         --random-output-len "$output_len" \
         --num-prompts "$NUM_PROMPTS" \
         --result-filename "$temp_result" \
-        --extra-request-body '{"is_deterministic": true, "ignore_eos": true}'
+        --deterministic-ratio "$det_ratio" \
+        --extra-request-body '{"ignore_eos": true}'
     
     # Add metadata and append to results file
     if [ -f "$temp_result" ]; then
@@ -93,6 +97,7 @@ if line:
     result['config_name'] = '$config_name'
     result['input_len'] = $input_len
     result['output_len'] = $output_len
+    result['deterministic_ratio'] = $det_ratio
     result['extra_info'] = '$extra_info'
     result['model_path'] = '$MODEL_PATH'
     result['tp_size'] = $TP_SIZE
@@ -109,14 +114,18 @@ if line:
 # Configuration 1: Default (baseline)
 # ============================================
 echo "========== Configuration 1: Default (Baseline) =========="
-for input_len in "${INPUT_LENS[@]}"; do
-    for output_len in "${OUTPUT_LENS[@]}"; do
-        run_benchmark \
-            "default" \
-            "$COMMON_ARGS" \
-            "$input_len" \
-            "$output_len" \
-            "baseline"
+for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
+    echo "--- Deterministic Ratio: $det_ratio ---"
+    for input_len in "${INPUT_LENS[@]}"; do
+        for output_len in "${OUTPUT_LENS[@]}"; do
+            run_benchmark \
+                "default" \
+                "$COMMON_ARGS" \
+                "$input_len" \
+                "$output_len" \
+                "$det_ratio" \
+                "baseline"
+        done
     done
 done
 
@@ -124,14 +133,18 @@ done
 # Configuration 2: enable-deterministic-inference 2
 # ============================================
 echo "========== Configuration 2: enable-deterministic-inference 2 =========="
-for input_len in "${INPUT_LENS[@]}"; do
-    for output_len in "${OUTPUT_LENS[@]}"; do
-        run_benchmark \
-            "det_inference_2" \
-            "$COMMON_ARGS --enable-deterministic-inference 2" \
-            "$input_len" \
-            "$output_len" \
-            "global_deterministic"
+for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
+    echo "--- Deterministic Ratio: $det_ratio ---"
+    for input_len in "${INPUT_LENS[@]}"; do
+        for output_len in "${OUTPUT_LENS[@]}"; do
+            run_benchmark \
+                "det_inference_2" \
+                "$COMMON_ARGS --enable-deterministic-inference 2" \
+                "$input_len" \
+                "$output_len" \
+                "$det_ratio" \
+                "global_deterministic"
+        done
     done
 done
 
@@ -139,16 +152,20 @@ done
 # Configuration 3: enable-det-infer 3 with varying min-det-step-size
 # ============================================
 echo "========== Configuration 3: enable-det-infer 3 =========="
-for min_det_step in "${MIN_DET_STEP_SIZES[@]}"; do
-    echo "--- min-det-step-size: $min_det_step ---"
-    for input_len in "${INPUT_LENS[@]}"; do
-        for output_len in "${OUTPUT_LENS[@]}"; do
-            run_benchmark \
-                "det_infer_3_step${min_det_step}" \
-                "$COMMON_ARGS --enable-det-infer 3 --max-det-verify-batch-size 1 --min-det-step-size $min_det_step" \
-                "$input_len" \
-                "$output_len" \
-                "min_det_step_size=$min_det_step"
+for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
+    echo "--- Deterministic Ratio: $det_ratio ---"
+    for min_det_step in "${MIN_DET_STEP_SIZES[@]}"; do
+        echo "--- min-det-step-size: $min_det_step ---"
+        for input_len in "${INPUT_LENS[@]}"; do
+            for output_len in "${OUTPUT_LENS[@]}"; do
+                run_benchmark \
+                    "det_infer_3_step${min_det_step}" \
+                    "$COMMON_ARGS --enable-det-infer 3 --max-det-verify-batch-size 1 --min-det-step-size $min_det_step" \
+                    "$input_len" \
+                    "$output_len" \
+                    "$det_ratio" \
+                    "min_det_step_size=$min_det_step"
+            done
         done
     done
 done

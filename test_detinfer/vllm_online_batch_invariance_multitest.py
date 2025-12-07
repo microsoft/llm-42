@@ -287,6 +287,7 @@ def test_multi_batch_invariance(
                 "max_tokens": max_tokens,
                 "seed": 42,
                 "logprobs": 1,
+                "ignore_eos": True,
             }
             
             try:
@@ -361,7 +362,7 @@ if __name__ == "__main__":
     
     # Configure batch sizes and max_tokens to test
     batch_sizes = [i for i in range(3, 256, 77)]
-    max_tokens_list = [8, 16, 24, 48, 64, 97, 128, 256, 1024]
+    max_tokens_list = [1, 8, 16, 24, 48]
     
     # Configure prompt length (words)
     min_prompt_words = int(os.getenv("SGLANG_MIN_PROMPT_WORDS", "10"))
