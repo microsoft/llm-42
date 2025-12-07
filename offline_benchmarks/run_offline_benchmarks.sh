@@ -2,6 +2,7 @@
 
 # Offline Throughput Benchmarking Script
 # Runs multiple configurations and saves results for plotting
+# Supports parallel execution across multiple GPUs
 
 set -e
 
@@ -10,6 +11,7 @@ MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 NUM_PROMPTS="${NUM_PROMPTS:-1000}"
+NUM_GPUS="${NUM_GPUS:-4}"  # Number of GPUs to use in parallel
 
 # Output directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,6 +38,40 @@ fi
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
 
+# Lock file for thread-safe writes to results file
+LOCK_FILE="${OUTPUT_DIR}/.results_lock"
+
+# Track background jobs for each GPU
+declare -A GPU_PIDS
+for ((i=0; i<NUM_GPUS; i++)); do
+    GPU_PIDS[$i]=""
+done
+
+# Function to get an available GPU
+get_available_gpu() {
+    while true; do
+        for ((i=0; i<NUM_GPUS; i++)); do
+            if [ -z "${GPU_PIDS[$i]}" ] || ! kill -0 "${GPU_PIDS[$i]}" 2>/dev/null; then
+                GPU_PIDS[$i]=""
+                echo $i
+                return
+            fi
+        done
+        # All GPUs busy, wait a bit
+        sleep 5
+    done
+}
+
+# Function to wait for all GPU jobs to complete
+wait_all_gpus() {
+    for ((i=0; i<NUM_GPUS; i++)); do
+        if [ -n "${GPU_PIDS[$i]}" ]; then
+            wait "${GPU_PIDS[$i]}" 2>/dev/null || true
+            GPU_PIDS[$i]=""
+        fi
+    done
+}
+
 echo "=============================================="
 echo "Offline Throughput Benchmark Suite"
 echo "=============================================="
@@ -43,38 +79,36 @@ echo "Model: $MODEL_PATH"
 echo "TP Size: $TP_SIZE"
 echo "Attention Backend: $ATTENTION_BACKEND"
 echo "Num Prompts: $NUM_PROMPTS"
+echo "Num GPUs (parallel): $NUM_GPUS"
 echo "Results File: $RESULTS_FILE"
 echo "=============================================="
 echo ""
 
-# Common server args
-COMMON_ARGS="--tp-size $TP_SIZE \
-    --attention-backend $ATTENTION_BACKEND \
+# Common server args (without tp-size, will be added per-GPU)
+BASE_ARGS="--attention-backend $ATTENTION_BACKEND \
     --disable-radix-cache \
     --disable-chunked-prefix-cache \
-    --disable-overlap-schedule "
+    --disable-overlap-schedule"
 
-# Function to run a single benchmark
-run_benchmark() {
-    local config_name="$1"
-    local server_args="$2"
-    local input_len="$3"
-    local output_len="$4"
-    local det_ratio="$5"
-    local extra_info="$6"
+# Function to run a single benchmark on a specific GPU
+run_benchmark_on_gpu() {
+    local gpu_id="$1"
+    local config_name="$2"
+    local server_args="$3"
+    local input_len="$4"
+    local output_len="$5"
+    local det_ratio="$6"
+    local extra_info="$7"
     
-    echo "----------------------------------------------"
-    echo "Config: $config_name"
-    echo "Input Len: $input_len, Output Len: $output_len"
-    echo "Deterministic Ratio: $det_ratio"
-    echo "Extra: $extra_info"
-    echo "----------------------------------------------"
+    local temp_result="${OUTPUT_DIR}/temp_result_gpu${gpu_id}_$$.json"
+    local log_file="${OUTPUT_DIR}/log_gpu${gpu_id}_$$.log"
     
-    local temp_result="${OUTPUT_DIR}/temp_result.json"
+    echo "[GPU $gpu_id] Starting: $config_name, input=$input_len, output=$output_len, det_ratio=$det_ratio"
     
-    # Run the benchmark with deterministic ratio
-    $PYTHON_CMD -m sglang.bench_offline_throughput \
+    # Run the benchmark with deterministic ratio on specific GPU
+    CUDA_VISIBLE_DEVICES=$gpu_id $PYTHON_CMD -m sglang.bench_offline_throughput \
         --model-path "$MODEL_PATH" \
+        --tp-size $TP_SIZE \
         $server_args \
         --dataset-name random \
         --random-input-len "$input_len" \
@@ -82,12 +116,14 @@ run_benchmark() {
         --num-prompts "$NUM_PROMPTS" \
         --result-filename "$temp_result" \
         --deterministic-ratio "$det_ratio" \
-        --extra-request-body '{"ignore_eos": true}'
+        --extra-request-body '{"ignore_eos": true}' \
+        > "$log_file" 2>&1
     
-    # Add metadata and append to results file
+    # Add metadata and append to results file (with lock for thread safety)
     if [ -f "$temp_result" ]; then
-        # Read the last line (most recent result) and add metadata
-        tail -1 "$temp_result" | $PYTHON_CMD -c "
+        (
+            flock -x 200
+            tail -1 "$temp_result" | $PYTHON_CMD -c "
 import sys
 import json
 
@@ -102,12 +138,30 @@ if line:
     result['model_path'] = '$MODEL_PATH'
     result['tp_size'] = $TP_SIZE
     result['attention_backend'] = '$ATTENTION_BACKEND'
+    result['gpu_id'] = $gpu_id
     print(json.dumps(result))
 " >> "$RESULTS_FILE"
+        ) 200>"$LOCK_FILE"
         rm -f "$temp_result"
     fi
     
-    echo ""
+    rm -f "$log_file"
+    echo "[GPU $gpu_id] Completed: $config_name, input=$input_len, output=$output_len"
+}
+
+# Function to schedule a benchmark on the next available GPU
+schedule_benchmark() {
+    local config_name="$1"
+    local server_args="$2"
+    local input_len="$3"
+    local output_len="$4"
+    local det_ratio="$5"
+    local extra_info="$6"
+    
+    local gpu_id=$(get_available_gpu)
+    
+    run_benchmark_on_gpu "$gpu_id" "$config_name" "$server_args" "$input_len" "$output_len" "$det_ratio" "$extra_info" &
+    GPU_PIDS[$gpu_id]=$!
 }
 
 # ============================================
@@ -118,9 +172,9 @@ for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
     echo "--- Deterministic Ratio: $det_ratio ---"
     for input_len in "${INPUT_LENS[@]}"; do
         for output_len in "${OUTPUT_LENS[@]}"; do
-            run_benchmark \
+            schedule_benchmark \
                 "default" \
-                "$COMMON_ARGS" \
+                "$BASE_ARGS" \
                 "$input_len" \
                 "$output_len" \
                 "$det_ratio" \
@@ -128,6 +182,9 @@ for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
         done
     done
 done
+
+# Wait for all baseline benchmarks to complete before next config
+wait_all_gpus
 
 # ============================================
 # Configuration 2: enable-deterministic-inference 2
@@ -137,9 +194,9 @@ for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
     echo "--- Deterministic Ratio: $det_ratio ---"
     for input_len in "${INPUT_LENS[@]}"; do
         for output_len in "${OUTPUT_LENS[@]}"; do
-            run_benchmark \
+            schedule_benchmark \
                 "det_inference_2" \
-                "$COMMON_ARGS --enable-deterministic-inference 2" \
+                "$BASE_ARGS --enable-deterministic-inference 2" \
                 "$input_len" \
                 "$output_len" \
                 "$det_ratio" \
@@ -147,6 +204,9 @@ for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
         done
     done
 done
+
+# Wait for all det_inference_2 benchmarks to complete before next config
+wait_all_gpus
 
 # ============================================
 # Configuration 3: enable-det-infer 3 with varying min-det-step-size
@@ -158,9 +218,9 @@ for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
         echo "--- min-det-step-size: $min_det_step ---"
         for input_len in "${INPUT_LENS[@]}"; do
             for output_len in "${OUTPUT_LENS[@]}"; do
-                run_benchmark \
+                schedule_benchmark \
                     "det_infer_3_step${min_det_step}" \
-                    "$COMMON_ARGS --enable-det-infer 3 --max-det-verify-batch-size 1 --min-det-step-size $min_det_step" \
+                    "$BASE_ARGS --enable-det-infer 3 --max-det-verify-batch-size 1 --min-det-step-size $min_det_step" \
                     "$input_len" \
                     "$output_len" \
                     "$det_ratio" \
@@ -169,6 +229,12 @@ for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
         done
     done
 done
+
+# Wait for all remaining benchmarks to complete
+wait_all_gpus
+
+# Cleanup lock file
+rm -f "$LOCK_FILE"
 
 echo "=============================================="
 echo "Benchmarking Complete!"

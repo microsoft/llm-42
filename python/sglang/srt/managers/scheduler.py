@@ -1902,9 +1902,9 @@ class Scheduler(
                 break
             
             # In det_infer mode 3, if we already have non-deterministic requests in the batch,
-            # don't add a deterministic request (isolate deterministic requests)
+            # skip this deterministic request but continue adding non-deterministic ones
             if enable_det_infer_mode_3 and len(adder.can_run_list) > 0 and req.is_deterministic:
-                break
+                continue
 
             if self.enable_lora and not self.tp_worker.can_run_lora_batch(
                 lora_set
