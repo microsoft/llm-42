@@ -5,9 +5,26 @@ Plot CDF curves for TTFT, TPOT, and E2E latency from per-request latency files.
 Usage:
     python plot_cdf.py results/latencies/ --output-dir plots/
 
-Creates plots like: cdf_ttft_detratio_0.1.pdf
-Each plot has rows for each rate (1, 4, 8, 16, 32) and columns for datasets (sharegpt, arxiv).
-Each subplot has 8 config lines (baseline, global_det, det_infer_step*).
+Creates directory structure:
+    plots/
+        sharegpt/
+            qps_6/
+                step_16/
+                    ttft.pdf
+                    tpot.pdf
+                    e2e.pdf
+                step_32/...
+                ...
+        arxiv/
+            qps_6/...
+
+Each plot shows CDF lines for:
+- SGLang (Non-Deterministic): baseline with det_ratio=0.0
+- SGLang (Deterministic): global_det with det_ratio=0.0
+- Ours (1% Deterministic): det_infer with det_ratio=0.01
+- Ours (5% Deterministic): det_infer with det_ratio=0.05
+- Ours (10% Deterministic): det_infer with det_ratio=0.10
+- Ours (100% Deterministic): det_infer with det_ratio=1.0
 """
 
 import argparse
@@ -19,44 +36,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-# Config display settings
-CONFIG_ORDER = [
-    "baseline",
-    "global_det",
-    "det_infer_step512",
-    "det_infer_step256",
-    "det_infer_step128",
-    "det_infer_step64",
-    "det_infer_step32",
-    "det_infer_step16",
+# Line display settings for each configuration
+LINE_CONFIGS = [
+    {"label": "SGLang (Non-Deterministic)", "config": "baseline", "det_ratio": "0.0", "color": "#1f77b4", "linestyle": "-"},
+    {"label": "SGLang (Deterministic)", "config": "global_det", "det_ratio": "0.0", "color": "#ff7f0e", "linestyle": "-"},
+    {"label": "Ours (1% Deterministic)", "config": None, "det_ratio": "0.01", "color": "#2ca02c", "linestyle": "-"},
+    {"label": "Ours (5% Deterministic)", "config": None, "det_ratio": "0.05", "color": "#d62728", "linestyle": "--"},
+    {"label": "Ours (10% Deterministic)", "config": None, "det_ratio": "0.10", "color": "#9467bd", "linestyle": "-."},
+    {"label": "Ours (100% Deterministic)", "config": None, "det_ratio": "1.0", "color": "#8c564b", "linestyle": ":"},
 ]
 
-CONFIG_COLORS = {
-    "baseline": "#1f77b4",           # blue
-    "global_det": "#ff7f0e",         # orange
-    "det_infer_step512": "#2ca02c",  # green
-    "det_infer_step256": "#d62728",  # red
-    "det_infer_step128": "#9467bd",  # purple
-    "det_infer_step64": "#8c564b",   # brown
-    "det_infer_step32": "#e377c2",   # pink
-    "det_infer_step16": "#7f7f7f",   # gray
-}
-
-CONFIG_LABELS = {
-    "baseline": "Baseline",
-    "global_det": "Global Det",
-    "det_infer_step512": "DetInfer-512",
-    "det_infer_step256": "DetInfer-256",
-    "det_infer_step128": "DetInfer-128",
-    "det_infer_step64": "DetInfer-64",
-    "det_infer_step32": "DetInfer-32",
-    "det_infer_step16": "DetInfer-16",
-}
-
 METRICS = [
-    ("ttft_ms", "TTFT", "Time to First Token (ms)"),
-    ("tpot_ms", "TPOT", "Time per Output Token (ms)"),
-    ("e2e_latency_ms", "E2E", "End-to-End Latency (ms)"),
+    ("ttft_ms", "ttft", "TTFT (ms)"),
+    ("tpot_ms", "tpot", "TPOT (ms)"),
+    ("e2e_latency_ms", "e2e", "E2E Latency (ms)"),
 ]
 
 
@@ -121,81 +114,87 @@ def load_latency_files(latency_dir: str) -> dict[str, dict]:
     return all_data
 
 
-def plot_cdf_grid(all_data: dict, output_dir: str):
+def plot_cdf_for_step(all_data: dict, dataset: str, rate: str, step: str, output_dir: str):
     """
-    Plot CDF grids from latency data.
-
-    Creates one PDF per metric/det_ratio combination.
-    Each PDF has rows for rates and columns for datasets.
-    Each subplot has lines for all 8 configs.
+    Plot CDF for a specific dataset/rate/step combination.
+    Creates one plot per metric showing all configuration lines.
     """
-    os.makedirs(output_dir, exist_ok=True)
+    # Create output directory: plots/dataset/qps_rate/step_step/
+    plot_dir = os.path.join(output_dir, dataset, f"qps_{rate}", f"step_{step}")
+    os.makedirs(plot_dir, exist_ok=True)
 
-    # Get unique values
-    det_ratios = sorted(
-        set(d["info"]["det"] for d in all_data.values()),
-        key=lambda x: float(x) if x else 0
-    )
+    for metric_key, metric_file, metric_label in METRICS:
+        fig, ax = plt.subplots(figsize=(8, 6))
 
-    for metric_key, metric_short, metric_label in METRICS:
-        for det in det_ratios:
-            # Filter data for this det_ratio
-            subset = {k: v for k, v in all_data.items() if v["info"]["det"] == det}
-            if not subset:
-                continue
+        # Plot each line configuration
+        for line_cfg in LINE_CONFIGS:
+            # For "Ours" lines, find any det_infer_step config matching this step and det_ratio
+            if line_cfg["config"] is None:
+                # Search for det_infer_step matching the current step size
+                found = False
+                for config_name in [f"det_infer_step{step}"]:
+                    key = f"{config_name}_{dataset}_rate{rate}_det{line_cfg['det_ratio']}"
+                    if key in all_data:
+                        data = np.array(all_data[key][metric_key])
+                        found = True
+                        break
+                
+                if not found:
+                    continue
+            else:
+                # Specific config (baseline or global_det)
+                key = f"{line_cfg['config']}_{dataset}_rate{rate}_det{line_cfg['det_ratio']}"
+                if key not in all_data:
+                    continue
+                data = np.array(all_data[key][metric_key])
 
-            # Get rates and datasets present
-            rates = sorted(
-                set(v["info"]["rate"] for v in subset.values()),
-                key=lambda x: float(x) if x else 0
-            )
-            datasets = sorted(set(v["info"]["dataset"] for v in subset.values()))
+            if len(data) > 0:
+                sorted_data = np.sort(data)
+                cdf = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
+                ax.plot(
+                    sorted_data, cdf,
+                    label=line_cfg["label"],
+                    color=line_cfg["color"],
+                    linestyle=line_cfg["linestyle"],
+                    linewidth=2.5,
+                    alpha=0.85
+                )
 
-            if not rates or not datasets:
-                continue
+        ax.set_xlabel(metric_label, fontsize=12)
+        ax.set_ylabel("CDF", fontsize=12)
+        ax.set_title(f"{dataset.capitalize()} - {rate} QPS - Step {step}", fontsize=13, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        ax.set_ylim(0, 1.02)
+        ax.set_xlim(left=0)
+        ax.legend(fontsize=9, loc="lower right")
 
-            n_rows, n_cols = len(rates), len(datasets)
-            fig, axes = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 4 * n_rows), squeeze=False)
+        output_file = os.path.join(plot_dir, f"{metric_file}.pdf")
+        plt.savefig(output_file, dpi=150, bbox_inches="tight")
+        print(f"Saved: {output_file}")
+        plt.close()
 
-            for row_idx, rate in enumerate(rates):
-                for col_idx, dataset in enumerate(datasets):
-                    ax = axes[row_idx, col_idx]
 
-                    # Plot each config
-                    for config in CONFIG_ORDER:
-                        key = f"{config}_{dataset}_rate{rate}_det{det}"
-                        if key not in subset:
-                            continue
+def plot_all_cdfs(all_data: dict, output_dir: str):
+    """
+    Generate all CDF plots organized by dataset/qps/step.
+    """
+    # Extract unique combinations of dataset, rate, and step
+    combinations = set()
+    for key, value in all_data.items():
+        info = value["info"]
+        # Extract step size from config name if it's a det_infer config
+        if "det_infer_step" in info["config"]:
+            step = info["config"].replace("det_infer_step", "")
+            combinations.add((info["dataset"], info["rate"], step))
 
-                        data = np.array(subset[key][metric_key])
-                        if len(data) > 0:
-                            sorted_data = np.sort(data)
-                            cdf = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
-                            ax.plot(
-                                sorted_data, cdf,
-                                label=CONFIG_LABELS.get(config, config),
-                                color=CONFIG_COLORS.get(config, "gray"),
-                                linewidth=2, alpha=0.8
-                            )
+    if not combinations:
+        print("No det_infer configurations found in data")
+        return
 
-                    ax.set_xlabel(metric_label)
-                    ax.set_ylabel("CDF")
-                    ax.set_title(f"{dataset.capitalize()} @ {rate} QPS")
-                    ax.grid(True, alpha=0.3)
-                    ax.set_ylim(0, 1.02)
-                    ax.set_xlim(left=0)
-
-                    # Legend on top-right subplot only
-                    if row_idx == 0 and col_idx == n_cols - 1:
-                        ax.legend(fontsize=7, loc="lower right")
-
-            fig.suptitle(f"{metric_short} CDF - Det Ratio: {det}", fontsize=14, fontweight='bold')
-            plt.tight_layout()
-
-            output_file = os.path.join(output_dir, f"cdf_{metric_short.lower()}_detratio_{det}.pdf")
-            plt.savefig(output_file, dpi=150, bbox_inches="tight")
-            print(f"Saved: {output_file}")
-            plt.close()
+    # Generate plots for each combination
+    for dataset, rate, step in sorted(combinations):
+        print(f"\nGenerating plots for {dataset} @ {rate} QPS, step {step}")
+        plot_cdf_for_step(all_data, dataset, rate, step, output_dir)
 
 
 def main():
@@ -216,7 +215,7 @@ def main():
         return
 
     print(f"Loaded {len(all_data)} latency files")
-    plot_cdf_grid(all_data, args.output_dir)
+    plot_all_cdfs(all_data, args.output_dir)
     print(f"\nPlots saved to: {args.output_dir}")
 
 
