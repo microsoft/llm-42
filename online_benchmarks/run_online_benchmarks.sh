@@ -107,8 +107,8 @@ wait_for_gpu_cleanup() {
 get_rollback_metrics() {
     local url=$1
     local metrics=$(curl -s "${url}/metrics" 2>/dev/null || echo "")
-    local rollbacks=$(echo "$metrics" | grep 'sglang:num_rollbacks_total' | grep -v '^#' | awk '{print $2}' | tail -1)
-    local tokens_rolled=$(echo "$metrics" | grep 'sglang:tokens_rolled_back_total' | grep -v '^#' | awk '{print $2}' | tail -1)
+    local rollbacks=$(echo "$metrics" | grep 'sglang:num_rollbacks_total' | grep -v '^#' | awk '{printf "%d", $2}' | tail -1)
+    local tokens_rolled=$(echo "$metrics" | grep 'sglang:tokens_rolled_back_total' | grep -v '^#' | awk '{printf "%d", $2}' | tail -1)
     echo "${rollbacks:-0} ${tokens_rolled:-0}"
 }
 
@@ -121,8 +121,8 @@ run_bench() {
     
     # Get metrics BEFORE benchmark
     local before=($(get_rollback_metrics "$url"))
-    local rollbacks_before=${before[0]}
-    local tokens_before=${before[1]}
+    local rollbacks_before=${before[0]:-0}
+    local tokens_before=${before[1]:-0}
     
     $PYTHON_CMD -m sglang.bench_serving --backend sglang --base-url "$url" --model "$MODEL" \
         --dataset-name "$dataset" --num-prompts "$NUM_PROMPTS" --request-rate "$rate" \
@@ -131,8 +131,10 @@ run_bench() {
     
     # Get metrics AFTER benchmark and compute delta
     local after=($(get_rollback_metrics "$url"))
-    local rollbacks_delta=$((${after[0]} - rollbacks_before))
-    local tokens_delta=$((${after[1]} - tokens_before))
+    local rollbacks_after=${after[0]:-0}
+    local tokens_after=${after[1]:-0}
+    local rollbacks_delta=$((rollbacks_after - rollbacks_before))
+    local tokens_delta=$((tokens_after - tokens_before))
     
     mkdir -p "${OUTPUT_DIR}/metrics"
     echo "{\"config\":\"$config\",\"dataset\":\"$dataset\",\"rate\":$rate,\"det_ratio\":$det,\"num_rollbacks\":$rollbacks_delta,\"tokens_recomputed\":$tokens_delta}" >> "${OUTPUT_DIR}/rollback_metrics.jsonl"
@@ -153,8 +155,8 @@ run_arxiv() {
     
     # Get metrics BEFORE benchmark
     local before=($(get_rollback_metrics "$url"))
-    local rollbacks_before=${before[0]}
-    local tokens_before=${before[1]}
+    local rollbacks_before=${before[0]:-0}
+    local tokens_before=${before[1]:-0}
     
     $PYTHON_CMD "$(dirname "$0")/run_arxiv_benchmark.py" --base-url "$url" --model "$MODEL" \
         --num-prompts "$NUM_PROMPTS" --request-rate "$rate" --deterministic-ratio "$det" \
@@ -162,8 +164,10 @@ run_arxiv() {
     
     # Get metrics AFTER benchmark and compute delta
     local after=($(get_rollback_metrics "$url"))
-    local rollbacks_delta=$((${after[0]} - rollbacks_before))
-    local tokens_delta=$((${after[1]} - tokens_before))
+    local rollbacks_after=${after[0]:-0}
+    local tokens_after=${after[1]:-0}
+    local rollbacks_delta=$((rollbacks_after - rollbacks_before))
+    local tokens_delta=$((tokens_after - tokens_before))
     
     mkdir -p "${OUTPUT_DIR}/metrics"
     echo "{\"config\":\"$config\",\"dataset\":\"arxiv\",\"rate\":$rate,\"det_ratio\":$det,\"num_rollbacks\":$rollbacks_delta,\"tokens_recomputed\":$tokens_delta}" >> "${OUTPUT_DIR}/rollback_metrics.jsonl"
