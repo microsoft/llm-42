@@ -66,6 +66,7 @@ db.sqlite3-journal
 
 # Log files
 *.log
+*.pid
 bench.log
 server*.log
 

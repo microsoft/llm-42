@@ -47,24 +47,46 @@ python -m sglang.launch_server \
 ### 2. Forward-Mode-Based Switching
 
 ```bash
---enable-det-infer [0|1|2]
+--enable-det-infer [0|1|2|3]
 ```
 
 **Purpose**: Dynamically switches batch-invariant operations based on the forward mode.
 
-**Behavior**:
+**Mode Values**:
+- **`0`**: Disabled (default)
+- **`1`**: Use `bi_kernel` (CUTLASS matmul) + `vllm_rmsnorm` with dual CUDA graphs
+- **`2`**: Use `batch_invariant` (Triton matmul) + `native_rmsnorm` with dual CUDA graphs
+- **`3`**: Request isolation mode - uses standard (non-batch-invariant) kernels with single CUDA graph set. Deterministic requests are isolated with `batch_size=1`.
+
+**Behavior (Modes 1-2)**:
 - **DECODE mode**: Batch-invariant is **disabled** (uses faster non-deterministic operations)
 - **EXTEND/VERIFY modes**: Batch-invariant is **enabled**
 - Optimizes for performance during decode while maintaining determinism during prefill
-- Uses standard CUDA graphs (no dual graphs needed - switching is based on forward mode)
+- Uses dual CUDA graphs (one deterministic, one non-deterministic)
 
-**Use Case**: Deterministic verification workflows where you want to trade off performance during decode for determinism during verification.
+**Behavior (Mode 3)**:
+- Uses **non-batch-invariant kernels** for all operations
+- Single CUDA graph set (no dual graphs needed)
+- Deterministic requests are **isolated** (processed with `batch_size=1`)
+- Lower memory overhead than modes 1-2, but may have different performance characteristics
+
+**Use Case**: 
+- Modes 1-2: Deterministic verification workflows where you want to trade off performance during decode for determinism during verification.
+- Mode 3: When you want request isolation without batch-invariant kernel overhead.
 
 **Example**:
 ```bash
+# Mode 2: Batch-invariant with dual CUDA graphs
 python -m sglang.launch_server \
     --model-path meta-llama/Llama-3.1-8B-Instruct \
     --enable-det-infer 2
+
+# Mode 3: Request isolation with single CUDA graph set
+python -m sglang.launch_server \
+    --model-path meta-llama/Llama-3.1-8B-Instruct \
+    --enable-det-infer 3 \
+    --min-det-step-size 64 \
+    --max-det-verify-batch-size 1
 ```
 
 **Forward Modes**:

@@ -91,13 +91,16 @@ class SchedulerOutputProcessorMixin:
                 if req.is_chunked <= 0:
                     # req output_ids are set here
                     req.output_ids.append(next_token_id)
+                    
+                    # For deterministic requests, mark the first token as verified after prefill
+                    # since prefill runs deterministically (no batching interference)
+                    if (req.is_deterministic and self.server_args.enable_det_infer 
+                        and len(req.output_ids) == 1):
+                        req.det_verified_tokens = 1
+                    
                     req.check_finished()
 
                     if req.finished():
-                        # For deterministic requests finishing during prefill, mark tokens as verified
-                        # since prefill runs deterministically in mode 3 (no batching interference)
-                        if req.is_deterministic and self.server_args.enable_det_infer:
-                            req.det_verified_tokens = len(req.output_ids)
                         self.tree_cache.cache_finished_req(req)
                         req.time_stats.completion_time = time.perf_counter()
                     elif not batch.decoding_reqs or req not in batch.decoding_reqs:

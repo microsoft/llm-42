@@ -61,14 +61,29 @@ class BenchmarkResults:
             "request_throughput": len(self.metrics) / duration if duration > 0 else 0,
             "mean_ttft_ms": np.mean(ttfts),
             "median_ttft_ms": np.median(ttfts),
+            "std_ttft_ms": np.std(ttfts),
             "p99_ttft_ms": np.percentile(ttfts, 99),
             "mean_tpot_ms": np.mean(tpots) if tpots else 0,
             "median_tpot_ms": np.median(tpots) if tpots else 0,
+            "std_tpot_ms": np.std(tpots) if tpots else 0,
             "p99_tpot_ms": np.percentile(tpots, 99) if tpots else 0,
             "mean_e2e_latency_ms": np.mean(e2es),
             "median_e2e_latency_ms": np.median(e2es),
+            "std_e2e_latency_ms": np.std(e2es),
             "p99_e2e_latency_ms": np.percentile(e2es, 99),
         }
+    
+    def per_request_details(self) -> list[dict]:
+        """Return per-request details for CDF plotting."""
+        return [
+            {
+                "ttft_ms": m.ttft * 1000,
+                "tpot_ms": m.tpot * 1000,
+                "e2e_latency_ms": m.e2e * 1000,
+                "output_tokens": m.output_tokens,
+            }
+            for m in self.metrics
+        ]
 
 
 def load_arxiv_dataset(
@@ -126,13 +141,14 @@ async def send_request(
 ) -> RequestMetrics:
     """Send single request and measure TTFT, E2E, output tokens."""
     url = f"{base_url}/generate"
+    sampling_params = {"max_new_tokens": max_tokens, "temperature": 0, "ignore_eos": True}
+    if is_deterministic:
+        sampling_params["is_deterministic"] = True
     payload = {
         "text": prompt,
-        "sampling_params": {"max_new_tokens": max_tokens, "temperature": 0, "ignore_eos": True},
+        "sampling_params": sampling_params,
         "stream": True,
     }
-    if is_deterministic:
-        payload["is_deterministic"] = True
     
     metrics = RequestMetrics()
     start = time.perf_counter()
@@ -197,6 +213,8 @@ def main():
     parser.add_argument('--request-rate', type=float, default=8.0, help='Requests per second (QPS)')
     parser.add_argument('--deterministic-ratio', type=float, default=0.0, help='Fraction of requests that are deterministic (0.0-1.0)')
     parser.add_argument('--output-file')
+    parser.add_argument('--output-details', action='store_true', help='Output per-request details for CDF plotting')
+    parser.add_argument('--output-latencies', type=str, default=None, help='Output per-request latencies (TTFT, TPOT, E2E) to JSONL file')
     parser.add_argument('--context-len', type=int, default=8192, help='Max context length (prompt + output)')
     args = parser.parse_args()
     
@@ -229,6 +247,28 @@ def main():
         with open(args.output_file, 'a') as f:
             f.write(json.dumps(summary) + '\n')
         print(f"Saved to {args.output_file}")
+        
+        # Save per-request details if requested
+        if args.output_details:
+            details_file = args.output_file.replace('.jsonl', '_details.jsonl').replace('.json', '_details.jsonl')
+            with open(details_file, 'w') as f:
+                for detail in results.per_request_details():
+                    f.write(json.dumps(detail) + '\n')
+            print(f"Saved details to {details_file}")
+    
+    # Save minimal latency data for CDF plotting
+    if args.output_latencies:
+        from pathlib import Path
+        Path(args.output_latencies).parent.mkdir(parents=True, exist_ok=True)
+        with open(args.output_latencies, 'w') as f:
+            for m in results.metrics:
+                latency_record = {
+                    "ttft_ms": m.ttft * 1000,
+                    "tpot_ms": m.tpot * 1000,
+                    "e2e_latency_ms": m.e2e * 1000,
+                }
+                f.write(json.dumps(latency_record) + '\n')
+        print(f"Saved latencies to {args.output_latencies}")
 
 
 if __name__ == '__main__':

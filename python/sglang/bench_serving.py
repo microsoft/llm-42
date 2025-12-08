@@ -496,18 +496,27 @@ async def async_request_sglang_generate(
     prompt = request_func_input.prompt
 
     async with _create_bench_client_session() as session:
+        # Separate sampling params from other extra body fields
+        extra_body = request_func_input.extra_request_body.copy()
+        extra_sampling_params = {}
+        # Move sampling-related fields into sampling_params
+        for key in ["is_deterministic", "det_step_size", "sampling_seed"]:
+            if key in extra_body:
+                extra_sampling_params[key] = extra_body.pop(key)
+        
         payload = {
             ("text" if isinstance(prompt, str) else "input_ids"): prompt,
             "sampling_params": {
                 "temperature": 0.0,
                 "max_new_tokens": request_func_input.output_len,
                 "ignore_eos": not args.disable_ignore_eos,
+                **extra_sampling_params,
             },
             "stream": not args.disable_stream,
             "lora_path": request_func_input.lora_name,
             "return_logprob": args.return_logprob,
             "logprob_start_len": -1,
-            **request_func_input.extra_request_body,
+            **extra_body,
         }
 
         # Add image data if available (list of image urls/base64)
@@ -1952,6 +1961,25 @@ async def benchmark(
             result_for_dump = result
         file.write(json.dumps(result_for_dump) + "\n")
 
+    # Output per-request latencies for CDF plotting
+    if args.output_latencies:
+        with open(args.output_latencies, "w") as latency_file:
+            for i, output in enumerate(outputs):
+                if output.success:
+                    output_len = output.output_len  # Use output.output_len directly
+                    tpot_ms = (
+                        (output.latency - output.ttft) / (output_len - 1) * 1000
+                        if output_len > 1
+                        else 0.0
+                    )
+                    latency_record = {
+                        "ttft_ms": output.ttft * 1000,
+                        "tpot_ms": tpot_ms,
+                        "e2e_latency_ms": output.latency * 1000,
+                        "output_len": output_len,
+                    }
+                    latency_file.write(json.dumps(latency_record) + "\n")
+
     return result | result_details
 
 
@@ -1984,6 +2012,9 @@ def run_benchmark(args_: argparse.Namespace):
 
     if not hasattr(args, "output_details"):
         args.output_details = False
+
+    if not hasattr(args, "output_latencies"):
+        args.output_latencies = None
 
     if not hasattr(args, "tokenize_prompt"):
         args.tokenize_prompt = False
@@ -2290,6 +2321,12 @@ if __name__ == "__main__":
     parser.add_argument("--output-file", type=str, help="Output JSONL file name.")
     parser.add_argument(
         "--output-details", action="store_true", help="Output details of benchmarking."
+    )
+    parser.add_argument(
+        "--output-latencies",
+        type=str,
+        default=None,
+        help="Output per-request latencies (TTFT, TPOT, E2E) to a separate JSONL file for CDF plotting.",
     )
     parser.add_argument(
         "--disable-tqdm",

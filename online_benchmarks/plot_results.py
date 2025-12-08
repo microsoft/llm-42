@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot online benchmark results: TTFT, TPOT, E2E latency across configurations."""
+"""Plot online benchmark results: TTFT, TPOT, E2E latency, and throughput across configurations."""
 
 import argparse
 import json
@@ -9,18 +9,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-# Color scheme for configurations
-CONFIG_COLORS = {
-    'baseline': 'steelblue',
-    'global_det': 'coral',
-    'det_infer': 'forestgreen',
-}
-CONFIG_MARKERS = {
-    'baseline': 'o',
-    'global_det': 's',
-    'det_infer': '^',
-}
 
 
 def load_results(path: str) -> list[dict]:
@@ -44,123 +32,170 @@ def group_by(results: list[dict], key: str) -> dict[str, list[dict]]:
     return grouped
 
 
-def plot_metrics_vs_rate_by_config(results: list[dict], output_dir: str):
-    """Plot TTFT, TPOT, E2E vs request rate, comparing configurations."""
-    by_dataset = group_by(results, 'dataset')
-    
+def plot_latency_bars(results: list[dict], output_dir: str):
+    """Plot TTFT, TPOT, E2E as bar chart subplots, grouped by (dataset, rate) and det_ratio.
+    Creates one figure per (det_ratio, metric) with a grid of subplots."""
     metrics = [
-        ('median_ttft_ms', 'TTFT'),
-        ('median_tpot_ms', 'TPOT'),
-        ('median_e2e_latency_ms', 'E2E Latency'),
+        ('median_ttft_ms', 'TTFT', 'ms'),
+        ('median_tpot_ms', 'TPOT', 'ms'),
+        ('median_e2e_latency_ms', 'E2E Latency', 'ms'),
     ]
     
-    for dataset, data in by_dataset.items():
-        by_det = group_by(data, 'det_ratio')
+    # Group by det_ratio first
+    ratio_grouped = group_by(results, 'det_ratio')
+    
+    for det_ratio, ratio_results in sorted(ratio_grouped.items(), key=lambda x: float(x[0]) if x[0] else 0):
+        grouped = group_by(ratio_results, 'config_name')
         
-        for det_ratio, det_data in sorted(by_det.items(), key=lambda x: float(x[0]) if x[0] else 0):
-            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-            by_config = group_by(det_data, 'config_name')
+        # Get all unique datasets and request rates
+        datasets = sorted(set(r.get('dataset', 'unknown') for r in ratio_results))
+        rates = sorted(set(float(r.get('rate', 0)) for r in ratio_results if r.get('rate') != 'inf'))
+        
+        # Get all config names
+        config_names = sorted(grouped.keys())
+        n_configs = len(config_names)
+        
+        if not datasets or not rates:
+            continue
+        
+        # Create one figure per metric
+        for metric_key, metric_name, metric_unit in metrics:
+            # Create subplot grid: rows = datasets, cols = rates
+            n_rows = len(datasets)
+            n_cols = len(rates)
             
-            for ax, (metric, title) in zip(axes, metrics):
-                for config_name, config_data in sorted(by_config.items()):
-                    sorted_data = sorted(config_data, key=lambda x: float(x.get('rate', 0)) if x.get('rate') != 'inf' else 1e9)
-                    rates = [float(r['rate']) for r in sorted_data if r.get('rate') != 'inf']
-                    vals = [r.get(metric, 0) for r in sorted_data if r.get('rate') != 'inf']
-                    if rates:
-                        color = CONFIG_COLORS.get(config_name, 'gray')
-                        marker = CONFIG_MARKERS.get(config_name, 'o')
-                        ax.plot(rates, vals, f'{marker}-', label=config_name, color=color, linewidth=2, markersize=6)
+            fig, axes = plt.subplots(n_rows, n_cols, figsize=(3 * n_cols, 4 * n_rows), 
+                                      squeeze=False)
+            
+            colors = plt.cm.tab10(np.linspace(0, 1, n_configs))
+            
+            for i, dataset in enumerate(datasets):
+                for j, rate in enumerate(rates):
+                    ax = axes[i, j]
+                    
+                    # Get metric value for each config at this (dataset, rate)
+                    values = []
+                    for config_name in config_names:
+                        config_results = grouped[config_name]
+                        matching = [r for r in config_results 
+                                   if r.get('dataset') == dataset and float(r.get('rate', 0)) == rate]
+                        if matching:
+                            values.append(matching[0].get(metric_key, 0) or 0)
+                        else:
+                            values.append(0)
+                    
+                    # Create bar chart
+                    x = np.arange(n_configs)
+                    bars = ax.bar(x, values, color=colors, alpha=0.8)
+                    
+                    # Add value labels on bars
+                    for bar, val in zip(bars, values):
+                        if val > 0:
+                            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height(), 
+                                   f'{val:.1f}', ha='center', va='bottom', fontsize=7)
+                    
+                    ax.set_title(f'{dataset}, rate={rate:.0f}', fontsize=10)
+                    ax.set_xticks(x)
+                    ax.set_xticklabels([])  # Hide x-tick labels, use legend instead
+                    ax.grid(True, alpha=0.3, axis='y')
+                    
+                    # Add y-label only for leftmost column
+                    if j == 0:
+                        ax.set_ylabel(f'{metric_name} ({metric_unit})', fontsize=9)
+            
+            # Create legend with config names
+            legend_labels = config_names
+            fig.legend(bars, legend_labels, loc='lower center', ncol=min(4, n_configs), 
+                       fontsize=9, bbox_to_anchor=(0.5, 0.02))
+            
+            fig.suptitle(f'{metric_name} by Configuration (det_ratio = {det_ratio})', 
+                         fontsize=14, fontweight='bold')
+            plt.tight_layout(rect=[0, 0.08, 1, 0.96])
+            
+            # Sanitize metric name for filename
+            metric_filename = metric_key.replace('median_', '').replace('_ms', '')
+            filepath = os.path.join(output_dir, f'{metric_filename}_bars_detratio{det_ratio}.pdf')
+            plt.savefig(filepath, dpi=150, bbox_inches='tight')
+            plt.close()
+            print(f"Saved: {filepath}")
+
+
+def plot_total_throughput_bars(results: list[dict], output_dir: str):
+    """Plot total throughput as bar chart subplots, grouped by (dataset, rate) and det_ratio.
+    Creates one figure per det_ratio with a grid of subplots."""
+    # Group by det_ratio first
+    ratio_grouped = group_by(results, 'det_ratio')
+    
+    for det_ratio, ratio_results in sorted(ratio_grouped.items(), key=lambda x: float(x[0]) if x[0] else 0):
+        grouped = group_by(ratio_results, 'config_name')
+        
+        # Get all unique datasets and request rates
+        datasets = sorted(set(r.get('dataset', 'unknown') for r in ratio_results))
+        rates = sorted(set(float(r.get('rate', 0)) for r in ratio_results if r.get('rate') != 'inf'))
+        
+        # Get all config names
+        config_names = sorted(grouped.keys())
+        n_configs = len(config_names)
+        
+        if not datasets or not rates:
+            continue
+        
+        # Create subplot grid: rows = datasets, cols = rates
+        n_rows = len(datasets)
+        n_cols = len(rates)
+        
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(3 * n_cols, 4 * n_rows), 
+                                  squeeze=False)
+        
+        colors = plt.cm.tab10(np.linspace(0, 1, n_configs))
+        
+        for i, dataset in enumerate(datasets):
+            for j, rate in enumerate(rates):
+                ax = axes[i, j]
                 
-                ax.set_xlabel('Request Rate (req/s)')
-                ax.set_ylabel(f'{title} (ms)')
-                ax.set_title(f'{title}')
-                ax.legend()
-                ax.grid(True, alpha=0.3)
-                ax.set_xscale('log')
-            
-            plt.suptitle(f'{dataset} - det_ratio={det_ratio}', fontsize=14)
-            plt.tight_layout()
-            plt.savefig(f'{output_dir}/latency_{dataset}_det{det_ratio}.png', dpi=150)
-            plt.close()
-            print(f"Saved: {output_dir}/latency_{dataset}_det{det_ratio}.png")
-
-
-def plot_throughput_by_config(results: list[dict], output_dir: str):
-    """Plot throughput vs request rate, comparing configurations."""
-    by_dataset = group_by(results, 'dataset')
-    
-    for dataset, data in by_dataset.items():
-        by_det = group_by(data, 'det_ratio')
+                # Get throughput for each config at this (dataset, rate)
+                throughputs = []
+                for config_name in config_names:
+                    config_results = grouped[config_name]
+                    matching = [r for r in config_results 
+                               if r.get('dataset') == dataset and float(r.get('rate', 0)) == rate]
+                    if matching:
+                        throughputs.append(matching[0].get('output_throughput', 0))
+                    else:
+                        throughputs.append(0)
+                
+                # Create bar chart
+                x = np.arange(n_configs)
+                bars = ax.bar(x, throughputs, color=colors, alpha=0.8)
+                
+                # Add value labels on bars
+                for bar, val in zip(bars, throughputs):
+                    if val > 0:
+                        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height(), 
+                               f'{val:.0f}', ha='center', va='bottom', fontsize=7)
+                
+                ax.set_title(f'{dataset}, rate={rate:.0f}', fontsize=10)
+                ax.set_xticks(x)
+                ax.set_xticklabels([])  # Hide x-tick labels, use legend instead
+                ax.grid(True, alpha=0.3, axis='y')
+                
+                # Add y-label only for leftmost column
+                if j == 0:
+                    ax.set_ylabel('Throughput (tok/s)', fontsize=9)
         
-        for det_ratio, det_data in sorted(by_det.items(), key=lambda x: float(x[0]) if x[0] else 0):
-            fig, ax = plt.subplots(figsize=(8, 6))
-            by_config = group_by(det_data, 'config_name')
-            
-            for config_name, config_data in sorted(by_config.items()):
-                sorted_data = sorted(config_data, key=lambda x: float(x.get('rate', 0)) if x.get('rate') != 'inf' else 1e9)
-                rates = [float(r['rate']) for r in sorted_data if r.get('rate') != 'inf']
-                vals = [r.get('output_throughput', 0) for r in sorted_data if r.get('rate') != 'inf']
-                if rates:
-                    color = CONFIG_COLORS.get(config_name, 'gray')
-                    marker = CONFIG_MARKERS.get(config_name, 'o')
-                    ax.plot(rates, vals, f'{marker}-', label=config_name, color=color, linewidth=2, markersize=6)
-            
-            ax.set_xlabel('Request Rate (req/s)')
-            ax.set_ylabel('Throughput (tokens/s)')
-            ax.set_title(f'Throughput - {dataset} (det_ratio={det_ratio})')
-            ax.legend()
-            ax.grid(True, alpha=0.3)
-            ax.set_xscale('log')
-            
-            plt.tight_layout()
-            plt.savefig(f'{output_dir}/throughput_{dataset}_det{det_ratio}.png', dpi=150)
-            plt.close()
-            print(f"Saved: {output_dir}/throughput_{dataset}_det{det_ratio}.png")
-
-
-def plot_config_comparison_bars(results: list[dict], output_dir: str):
-    """Bar chart comparing configurations at fixed rate."""
-    target_rate = '8'
-    filtered = [r for r in results if str(r.get('rate')) == target_rate]
-    if not filtered:
-        return
-    
-    by_det = group_by(filtered, 'det_ratio')
-    
-    for det_ratio, det_data in sorted(by_det.items(), key=lambda x: float(x[0]) if x[0] else 0):
-        by_config = group_by(det_data, 'config_name')
-        configs = sorted(by_config.keys())
+        # Create legend with config names
+        legend_labels = config_names
+        fig.legend(bars, legend_labels, loc='lower center', ncol=min(4, n_configs), 
+                   fontsize=9, bbox_to_anchor=(0.5, 0.02))
         
-        fig, axes = plt.subplots(1, 3, figsize=(14, 5))
-        metrics = [('median_ttft_ms', 'TTFT'), ('median_tpot_ms', 'TPOT'), ('median_e2e_latency_ms', 'E2E')]
+        fig.suptitle(f'Total Throughput by Configuration (det_ratio = {det_ratio})', 
+                     fontsize=14, fontweight='bold')
+        plt.tight_layout(rect=[0, 0.08, 1, 0.96])
         
-        x = np.arange(len(configs))
-        
-        for ax, (metric, title) in zip(axes, metrics):
-            vals = []
-            colors = []
-            for config in configs:
-                config_data = by_config[config]
-                vals.append(np.mean([r.get(metric, 0) for r in config_data if r.get(metric)]))
-                colors.append(CONFIG_COLORS.get(config, 'gray'))
-            
-            ax.bar(x, vals, color=colors)
-            ax.set_ylabel(f'{title} (ms)')
-            ax.set_title(f'{title}')
-            ax.set_xticks(x)
-            ax.set_xticklabels(configs, rotation=15)
-            ax.grid(True, alpha=0.3, axis='y')
-            
-            # Add value labels
-            for i, v in enumerate(vals):
-                if v > 0:
-                    ax.text(i, v, f'{v:.1f}', ha='center', va='bottom', fontsize=9)
-        
-        plt.suptitle(f'Configuration Comparison @ rate={target_rate}, det_ratio={det_ratio}', fontsize=14)
-        plt.tight_layout()
-        plt.savefig(f'{output_dir}/config_comparison_det{det_ratio}.png', dpi=150)
+        filepath = os.path.join(output_dir, f'total_throughput_bars_detratio{det_ratio}.pdf')
+        plt.savefig(filepath, dpi=150, bbox_inches='tight')
         plt.close()
-        print(f"Saved: {output_dir}/config_comparison_det{det_ratio}.png")
+        print(f"Saved: {filepath}")
 
 
 def generate_summary(results: list[dict], output_dir: str):
@@ -204,9 +239,8 @@ def main():
         return
     
     print(f"Loaded {len(results)} results")
-    plot_metrics_vs_rate_by_config(results, args.output_dir)
-    plot_throughput_by_config(results, args.output_dir)
-    plot_config_comparison_bars(results, args.output_dir)
+    plot_latency_bars(results, args.output_dir)
+    plot_total_throughput_bars(results, args.output_dir)
     generate_summary(results, args.output_dir)
 
 
