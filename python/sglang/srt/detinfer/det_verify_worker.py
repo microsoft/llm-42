@@ -46,6 +46,7 @@ class DeterministicVerificationWorker:
         target_worker: TpModelWorker, 
         always_align: bool = True,
         max_requests_per_verify: Optional[int] = None,
+        metrics_collector = None,
     ):
         """
         Initialize the deterministic verification worker.
@@ -59,11 +60,12 @@ class DeterministicVerificationWorker:
                          If None, all requests are verified together. If set, requests are
                          verified in chunks of this size (e.g., 20 requests with max=10
                          will be verified as 10+10). Default: None.
+            metrics_collector: Optional metrics collector for tracking rollback stats.
         """
         self.target_worker = target_worker
         self.always_align = always_align
         self.max_requests_per_verify = max_requests_per_verify
-        self.metrics_collector = getattr(target_worker, "metrics_collector", None)
+        self.metrics_collector = metrics_collector
 
     def forward_batch_generation(
         self,

@@ -459,6 +459,7 @@ class Scheduler(
                 self.model_worker,
                 always_align=True,
                 max_requests_per_verify=server_args.max_det_verify_batch_size,
+                metrics_collector=getattr(self, 'metrics_collector', None),
             )
             logger.info(
                 f"Deterministic verification worker enabled with min_det_step_size={server_args.min_det_step_size}, "
