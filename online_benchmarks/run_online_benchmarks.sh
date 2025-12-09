@@ -11,19 +11,19 @@ MODEL="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 NUM_PROMPTS="${NUM_PROMPTS:-1000}"
-NUM_GPUS="${NUM_GPUS:-4}"
+NUM_GPUS="${NUM_GPUS:-8}"
 PORT_BASE=30006
 
-OUTPUT_DIR="$(dirname "$0")/arxiv_results"
+OUTPUT_DIR="$(dirname "$0")/final_results"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 RESULTS_FILE="${OUTPUT_DIR}/results_${TIMESTAMP}.jsonl"
 ROLLBACK_FILE="${OUTPUT_DIR}/rollback_metrics_${TIMESTAMP}.jsonl"
 DATASET_FILE="${OUTPUT_DIR}/arxiv_dataset_${NUM_PROMPTS}.json"
 
 # Benchmark parameters
-SHAREGPT_RATES=(4 6 8 10)
-ARXIV_RATES=(0.5 1)
-DET_RATIOS=(0.0 1.0 0.10 0.05 0.01)
+SHAREGPT_RATES=(5 5.5 6 6.5 7)
+ARXIV_RATES=(0.8 0.9 1 1.1 1.2)
+DET_RATIOS=(1.0 0.10 0.05 0.01 0.0)
 
 # All configurations - separate arrays for names and args
 CONFIG_NAMES=(
@@ -31,10 +31,10 @@ CONFIG_NAMES=(
     "global_det"
     "det_infer_step128"
     "det_infer_step256"
-    # "det_infer_step64"
-    # "det_infer_step32"
-    # "det_infer_step16"
-    # "det_infer_step512"
+    "det_infer_step64"
+    "det_infer_step32"
+    "det_infer_step16"
+    "det_infer_step512"
 )
 
 CONFIG_ARGS=(
@@ -42,10 +42,10 @@ CONFIG_ARGS=(
     "--enable-deterministic-inference 2"
     "--enable-det-infer 3 --min-det-step-size 128 --max-det-verify-batch-size 1"
     "--enable-det-infer 3 --min-det-step-size 256 --max-det-verify-batch-size 1"
-    # "--enable-det-infer 3 --min-det-step-size 64 --max-det-verify-batch-size 1"
-    # "--enable-det-infer 3 --min-det-step-size 32 --max-det-verify-batch-size 1"
-    # "--enable-det-infer 3 --min-det-step-size 16 --max-det-verify-batch-size 1"
-    # "--enable-det-infer 3 --min-det-step-size 512 --max-det-verify-batch-size 1"
+    "--enable-det-infer 3 --min-det-step-size 64 --max-det-verify-batch-size 1"
+    "--enable-det-infer 3 --min-det-step-size 32 --max-det-verify-batch-size 1"
+    "--enable-det-infer 3 --min-det-step-size 16 --max-det-verify-batch-size 1"
+    "--enable-det-infer 3 --min-det-step-size 512 --max-det-verify-batch-size 1"
 )
 
 PYTHON_CMD=$(command -v python || command -v python3) || { echo "Error: Python not found"; exit 1; }
@@ -85,6 +85,7 @@ launch_server() {
         --model-path "$MODEL" --host "$HOST" --port "$port" --tp 1 \
         --attention-backend "$ATTENTION_BACKEND" \
         --disable-radix-cache --disable-chunked-prefix-cache \
+        --chunked-prefill-size -1 \
         --disable-overlap-schedule --enable-metrics $extra_args \
         > "${OUTPUT_DIR}/server_${name}.log" 2>&1 &
     echo $! > "${OUTPUT_DIR}/server_${name}.pid"
@@ -195,7 +196,7 @@ run_bench() {
     
     $PYTHON_CMD -m sglang.bench_serving --backend sglang --base-url "$url" --model "$MODEL" \
         --dataset-name "$dataset" --num-prompts "$NUM_PROMPTS" --request-rate "$rate" \
-        --deterministic-ratio "$det" --warmup-requests 0 \
+        --deterministic-ratio "$det" --warmup-requests 0 --sharegpt-context-len 16384 \
         --output-file "$tmp" --output-latencies "$latency_file" 2>&1 | tail -3
     
     # Get metrics AFTER benchmark and compute delta
@@ -274,12 +275,12 @@ run_benchmarks_for_config() {
     fi
     
     # Run ShareGPT benchmarks
-    # for rate in "${SHAREGPT_RATES[@]}"; do 
-    #     for det in "${det_ratios_to_use[@]}"; do
-    #         run_bench "$config" "$url" sharegpt "$rate" "$det"
-    #         sleep 2  # Allow metrics to stabilize between runs
-    #     done
-    # done
+    for rate in "${SHAREGPT_RATES[@]}"; do 
+        for det in "${det_ratios_to_use[@]}"; do
+            run_bench "$config" "$url" sharegpt "$rate" "$det"
+            sleep 2  # Allow metrics to stabilize between runs
+        done
+    done
     
     # Run arXiv benchmarks
     for rate in "${ARXIV_RATES[@]}"; do 

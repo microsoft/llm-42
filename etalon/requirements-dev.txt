@@ -1,6 +1,0 @@
-# For lints
-autoflake
-black
-codespell
-isort
-pyright

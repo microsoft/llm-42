@@ -132,7 +132,7 @@ def load_dataset_from_file(filepath: str) -> List[DatasetRow]:
 def load_arxiv_dataset(
     tokenizer,
     num_samples: int,
-    context_len: int = 32768,
+    context_len: int = 16384,
 ) -> List[DatasetRow]:
     """Load arxiv articles, tokenize prompts and abstracts to get actual lengths."""
     print("Loading ccdv/arxiv-summarization from HuggingFace...")

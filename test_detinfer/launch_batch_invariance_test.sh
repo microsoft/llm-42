@@ -42,9 +42,10 @@ $PYTHON_CMD -m sglang.launch_server \
     --attention-backend "$ATTENTION_BACKEND" \
     --disable-radix-cache \
     --disable-chunked-prefix-cache \
+    --chunked-prefill-size -1 \
     --disable-overlap-schedule \
     --enable-metrics \
-    --min-det-step-size 16 \
+    --min-det-step-size 64 \
     --enable-det-infer 3 \
     --max-det-verify-batch-size 1
     # Mode values for --enable-det-infer:
