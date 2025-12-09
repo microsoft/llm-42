@@ -14,15 +14,38 @@ NUM_PROMPTS="${NUM_PROMPTS:-1000}"
 NUM_GPUS="${NUM_GPUS:-4}"
 PORT_BASE=30006
 
-OUTPUT_DIR="$(dirname "$0")/online_results"
+OUTPUT_DIR="$(dirname "$0")/arxiv_results"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 RESULTS_FILE="${OUTPUT_DIR}/results_${TIMESTAMP}.jsonl"
+ROLLBACK_FILE="${OUTPUT_DIR}/rollback_metrics_${TIMESTAMP}.jsonl"
 
 # Benchmark parameters
 SHAREGPT_RATES=(4 6 8 10)
-ARXIV_RATES=(1 2 3 4)
+ARXIV_RATES=(0.5 1)
 DET_RATIOS=(0.0 1.0 0.10 0.05 0.01)
-STEP_SIZES=(128 256 64 32 16 512)
+
+# All configurations - separate arrays for names and args
+CONFIG_NAMES=(
+    "baseline"
+    "global_det"
+    "det_infer_step128"
+    "det_infer_step256"
+    # "det_infer_step64"
+    # "det_infer_step32"
+    # "det_infer_step16"
+    # "det_infer_step512"
+)
+
+CONFIG_ARGS=(
+    ""
+    "--enable-deterministic-inference 2"
+    "--enable-det-infer 3 --min-det-step-size 128 --max-det-verify-batch-size 1"
+    "--enable-det-infer 3 --min-det-step-size 256 --max-det-verify-batch-size 1"
+    # "--enable-det-infer 3 --min-det-step-size 64 --max-det-verify-batch-size 1"
+    # "--enable-det-infer 3 --min-det-step-size 32 --max-det-verify-batch-size 1"
+    # "--enable-det-infer 3 --min-det-step-size 16 --max-det-verify-batch-size 1"
+    # "--enable-det-infer 3 --min-det-step-size 512 --max-det-verify-batch-size 1"
+)
 
 PYTHON_CMD=$(command -v python || command -v python3) || { echo "Error: Python not found"; exit 1; }
 mkdir -p "$OUTPUT_DIR" "${OUTPUT_DIR}/latencies"
@@ -31,74 +54,89 @@ mkdir -p "$OUTPUT_DIR" "${OUTPUT_DIR}/latencies"
 # Server Functions
 # ============================================
 launch_server() {
-    local name=$1 port=$2 gpu=$3; shift 3
+    local name=$1
+    local port=$2
+    local gpu=$3
+    shift 3
+    local extra_args="$*"
+    
     echo "Launching $name on GPU $gpu, port $port..."
     CUDA_VISIBLE_DEVICES=$gpu $PYTHON_CMD -m sglang.launch_server \
         --model-path "$MODEL" --host "$HOST" --port "$port" --tp 1 \
         --attention-backend "$ATTENTION_BACKEND" \
         --disable-radix-cache --disable-chunked-prefix-cache \
-        --disable-overlap-schedule --enable-metrics $@ \
+        --disable-overlap-schedule --enable-metrics $extra_args \
         > "${OUTPUT_DIR}/server_${name}.log" 2>&1 &
     echo $! > "${OUTPUT_DIR}/server_${name}.pid"
 }
 
 wait_for_server() {
-    local url=$1 name=$2 waited=0
+    local url=$1
+    local name=$2
+    local waited=0
+    echo "Waiting for $name..."
     while [ $waited -lt 300 ]; do
-        curl -s "${url}/health" > /dev/null 2>&1 && echo "  $name ready" && return 0
-        sleep 5; waited=$((waited + 5))
+        if curl -s "${url}/health" > /dev/null 2>&1; then
+            echo "  $name ready"
+            return 0
+        fi
+        sleep 5
+        waited=$((waited + 5))
     done
-    echo "ERROR: $name failed to start"; return 1
+    echo "ERROR: $name failed to start"
+    return 1
 }
 
 stop_server() {
-    local name=$1 pidfile="${OUTPUT_DIR}/server_${name}.pid"
+    local name=$1
+    local pidfile="${OUTPUT_DIR}/server_${name}.pid"
     if [ -f "$pidfile" ]; then
         local pid=$(cat "$pidfile")
-        # First try graceful shutdown
+        echo "Stopping $name (PID $pid)..."
         kill "$pid" 2>/dev/null || true
-        # Wait up to 10 seconds for process to terminate
         local waited=0
-        while kill -0 "$pid" 2>/dev/null && [ $waited -lt 10 ]; do
-            sleep 1; waited=$((waited + 1))
+        # Increase timeout to 120 seconds to allow requests to drain properly
+        while kill -0 "$pid" 2>/dev/null && [ $waited -lt 120 ]; do
+            sleep 1
+            waited=$((waited + 1))
         done
-        # Force kill if still running
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "WARNING: $name did not stop gracefully after ${waited}s, force killing..."
+        fi
         kill -9 "$pid" 2>/dev/null || true
         rm -f "$pidfile"
     fi
 }
 
 stop_all() {
-    # Kill all tracked servers
+    echo "Stopping all servers..."
     for f in "${OUTPUT_DIR}"/server_*.pid; do
-        [ -f "$f" ] && { kill $(cat "$f") 2>/dev/null || true; kill -9 $(cat "$f") 2>/dev/null || true; rm -f "$f"; }
+        if [ -f "$f" ]; then
+            local pid=$(cat "$f")
+            kill "$pid" 2>/dev/null || true
+            kill -9 "$pid" 2>/dev/null || true
+            rm -f "$f"
+        fi
     done
-    # Also kill any stray sglang processes on our ports
     pkill -9 -f "sglang.launch_server" 2>/dev/null || true
-    # Wait for GPU memory to be released (check every 2 seconds, max 30 seconds)
-    echo "Waiting for GPU memory to be released..."
-    local waited=0
-    while [ $waited -lt 30 ]; do
-        local gpu_procs=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | wc -l)
-        [ "$gpu_procs" -eq 0 ] && echo "  GPU memory released" && break
-        sleep 2; waited=$((waited + 2))
-    done
-    [ $waited -ge 30 ] && echo "  WARNING: GPU processes may still be running"
-    sleep 3  # Extra buffer for CUDA cleanup
+    sleep 3
 }
 trap 'stop_all' EXIT
 
 wait_for_gpu_cleanup() {
-    # Wait for GPU memory to be released (check every 2 seconds, max 30 seconds)
     echo "Waiting for GPU memory to be released..."
     local waited=0
     while [ $waited -lt 30 ]; do
         local gpu_procs=$(nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | wc -l)
-        [ "$gpu_procs" -eq 0 ] && echo "  GPU memory released" && return 0
-        sleep 2; waited=$((waited + 2))
+        if [ "$gpu_procs" -eq 0 ]; then
+            echo "  GPU memory released"
+            return 0
+        fi
+        sleep 2
+        waited=$((waited + 2))
     done
     echo "  WARNING: GPU processes may still be running after 30s"
-    sleep 5  # Extra buffer
+    sleep 5
 }
 
 # ============================================
@@ -107,15 +145,26 @@ wait_for_gpu_cleanup() {
 get_rollback_metrics() {
     local url=$1
     local metrics=$(curl -s "${url}/metrics" 2>/dev/null || echo "")
-    local rollbacks=$(echo "$metrics" | grep 'sglang:num_rollbacks_total' | grep -v '^#' | awk '{printf "%d", $2}' | tail -1)
-    local tokens_rolled=$(echo "$metrics" | grep 'sglang:tokens_rolled_back_total' | grep -v '^#' | awk '{printf "%d", $2}' | tail -1)
+    # Use awk to sum all values for the metric (handles multiple label variants)
+    local rollbacks=$(echo "$metrics" | grep 'sglang:num_rollbacks_total' | grep -v '^#' | awk '{sum += $2} END {printf "%d", sum}')
+    local tokens_rolled=$(echo "$metrics" | grep 'sglang:tokens_rolled_back_total' | grep -v '^#' | awk '{sum += $2} END {printf "%d", sum}')
+    # Debug: log raw metrics for investigation
+    if [[ -n "${DEBUG_ROLLBACKS:-}" ]]; then
+        echo "[DEBUG] Raw rollback lines:" >&2
+        echo "$metrics" | grep -E 'sglang:num_rollbacks_total|sglang:tokens_rolled_back_total' >&2
+        echo "[DEBUG] Parsed: rollbacks=${rollbacks:-0}, tokens=${tokens_rolled:-0}" >&2
+    fi
     echo "${rollbacks:-0} ${tokens_rolled:-0}"
 }
 
 run_bench() {
-    local config=$1 url=$2 dataset=$3 rate=$4 det=$5
+    local config=$1
+    local url=$2
+    local dataset=$3
+    local rate=$4
+    local det=$5
     local latency_file="${OUTPUT_DIR}/latencies/${config}_${dataset}_rate${rate}_det${det}.jsonl"
-    local tmp="${OUTPUT_DIR}/.tmp_${RANDOM}.json"
+    local tmp="${OUTPUT_DIR}/.tmp_${config}_${RANDOM}.json"
     
     echo ">>> $config | $dataset | rate=$rate | det=$det"
     
@@ -136,20 +185,25 @@ run_bench() {
     local rollbacks_delta=$((rollbacks_after - rollbacks_before))
     local tokens_delta=$((tokens_after - tokens_before))
     
-    mkdir -p "${OUTPUT_DIR}/metrics"
-    echo "{\"config\":\"$config\",\"dataset\":\"$dataset\",\"rate\":$rate,\"det_ratio\":$det,\"num_rollbacks\":$rollbacks_delta,\"tokens_recomputed\":$tokens_delta}" >> "${OUTPUT_DIR}/rollback_metrics.jsonl"
+    echo "{\"config\":\"$config\",\"dataset\":\"$dataset\",\"rate\":$rate,\"det_ratio\":$det,\"num_rollbacks\":$rollbacks_delta,\"tokens_recomputed\":$tokens_delta}" >> "$ROLLBACK_FILE"
     
-    [ -f "$tmp" ] && $PYTHON_CMD -c "
+    if [ -f "$tmp" ]; then
+        $PYTHON_CMD -c "
 import json
 with open('$tmp') as f: r = json.load(f)
 r.update({'config':'$config','dataset':'$dataset','rate':$rate,'det_ratio':$det})
-print(json.dumps(r))" >> "$RESULTS_FILE" && rm -f "$tmp"
+print(json.dumps(r))" >> "$RESULTS_FILE"
+        rm -f "$tmp"
+    fi
 }
 
 run_arxiv() {
-    local config=$1 url=$2 rate=$3 det=$4
+    local config=$1
+    local url=$2
+    local rate=$3
+    local det=$4
     local latency_file="${OUTPUT_DIR}/latencies/${config}_arxiv_rate${rate}_det${det}.jsonl"
-    local tmp="${OUTPUT_DIR}/.tmp_${RANDOM}.jsonl"
+    local tmp="${OUTPUT_DIR}/.tmp_arxiv_${config}_${RANDOM}.jsonl"
     
     echo ">>> $config | arxiv | rate=$rate | det=$det"
     
@@ -169,105 +223,134 @@ run_arxiv() {
     local rollbacks_delta=$((rollbacks_after - rollbacks_before))
     local tokens_delta=$((tokens_after - tokens_before))
     
-    mkdir -p "${OUTPUT_DIR}/metrics"
-    echo "{\"config\":\"$config\",\"dataset\":\"arxiv\",\"rate\":$rate,\"det_ratio\":$det,\"num_rollbacks\":$rollbacks_delta,\"tokens_recomputed\":$tokens_delta}" >> "${OUTPUT_DIR}/rollback_metrics.jsonl"
+    echo "{\"config\":\"$config\",\"dataset\":\"arxiv\",\"rate\":$rate,\"det_ratio\":$det,\"num_rollbacks\":$rollbacks_delta,\"tokens_recomputed\":$tokens_delta}" >> "$ROLLBACK_FILE"
     
-    [ -f "$tmp" ] && $PYTHON_CMD -c "
+    if [ -f "$tmp" ]; then
+        $PYTHON_CMD -c "
 import json
 with open('$tmp') as f:
     for line in f:
         if line.strip():
-            r = json.loads(line); r['config'] = '$config'
-            print(json.dumps(r))" >> "$RESULTS_FILE" && rm -f "$tmp"
+            r = json.loads(line)
+            r['config'] = '$config'
+            print(json.dumps(r))" >> "$RESULTS_FILE"
+        rm -f "$tmp"
+    fi
 }
 
-# ============================================
-# Rate Distribution (one-to-one across GPUs)
-# ============================================
-distribute_rates() {
-    local -n sg=$1 ax=$2; local n=$3
-    for ((g=0; g<n; g++)); do 
-        sg[$g]=""
-        ax[$g]=""
-        # Assign one ShareGPT rate per GPU
-        if [ $g -lt ${#SHAREGPT_RATES[@]} ]; then
-            sg[$g]="${SHAREGPT_RATES[$g]}"
-        fi
-        # Assign one arXiv rate per GPU
-        if [ $g -lt ${#ARXIV_RATES[@]} ]; then
-            ax[$g]="${ARXIV_RATES[$g]}"
-        fi
-    done
-}
-
-# ============================================
-# Run Phase (baseline/global_det)
-# ============================================
-run_phase() {
-    local name=$1 config=$2 args=$3
-    echo -e "\n===== Phase: $name ($NUM_GPUS GPUs) ====="
+run_benchmarks_for_config() {
+    local config=$1
+    local url=$2
     
-    declare -a SG AX; distribute_rates SG AX $NUM_GPUS
+    # Determine which det_ratios to use
+    local det_ratios_to_use
+    if [[ "$config" == det_infer_* ]]; then
+        det_ratios_to_use=("${DET_RATIOS[@]}")
+    else
+        det_ratios_to_use=("1.0")
+    fi
     
-    for ((g=0; g<NUM_GPUS; g++)); do launch_server "${config}_g$g" $((PORT_BASE+g)) $g $args; done
-    for ((g=0; g<NUM_GPUS; g++)); do wait_for_server "http://localhost:$((PORT_BASE+g))" "${config}_g$g"; done
+    # Run ShareGPT benchmarks
+    # for rate in "${SHAREGPT_RATES[@]}"; do 
+    #     for det in "${det_ratios_to_use[@]}"; do
+    #         run_bench "$config" "$url" sharegpt "$rate" "$det"
+    #         sleep 2  # Allow metrics to stabilize between runs
+    #     done
+    # done
     
-    # Run all benchmarks (each GPU runs its sharegpt + arxiv rates independently in parallel)
-    PIDS=()
-    for ((g=0; g<NUM_GPUS; g++)); do
-        url="http://localhost:$((PORT_BASE+g))"
-        ( 
-            for rate in ${SG[$g]}; do run_bench "$config" "$url" sharegpt "$rate" "0.0"; done
-            for rate in ${AX[$g]}; do run_arxiv "$config" "$url" "$rate" "0.0"; done
-        ) & PIDS+=($!)
-    done
-    for p in "${PIDS[@]}"; do wait $p; done
-    
-    for ((g=0; g<NUM_GPUS; g++)); do stop_server "${config}_g$g"; done
-    wait_for_gpu_cleanup
-}
-
-# ============================================
-# Run DetInfer Batch
-# ============================================
-run_detinfer_batch() {
-    local -a steps=("$@"); local n=${#steps[@]}
-    echo -e "\n===== DetInfer: ${steps[*]} ====="
-    
-    declare -a SG AX; distribute_rates SG AX $NUM_GPUS
-    declare -a CONFIGS=(); local g=0
-    
-    # Launch servers - distribute GPUs evenly across configs
-    for ((j=0; j<n; j++)); do
-        local step=${steps[$j]} gpus=$(( (NUM_GPUS - g) / (n - j) ))
-        for ((r=0; r<gpus; r++)); do
-            launch_server "det${step}_g$g" $((PORT_BASE+g)) $g \
-                "--enable-det-infer 3 --min-det-step-size $step --max-det-verify-batch-size 1"
-            CONFIGS+=("det_infer_step${step}:$g"); g=$((g+1))
+    # Run arXiv benchmarks
+    for rate in "${ARXIV_RATES[@]}"; do 
+        for det in "${det_ratios_to_use[@]}"; do
+            run_arxiv "$config" "$url" "$rate" "$det"
+            sleep 2  # Allow metrics to stabilize between runs
         done
     done
+}
+
+# ============================================
+# Run All Configurations in Batches
+# ============================================
+run_all_configs() {
+    echo -e "\n===== Running All Configurations in Batches of $NUM_GPUS GPUs ====="
     
-    for ((g=0; g<NUM_GPUS; g++)); do wait_for_server "http://localhost:$((PORT_BASE+g))" "gpu$g"; done
+    local total_configs=${#CONFIG_NAMES[@]}
     
-    # Run benchmarks (each GPU independently processes all its work in parallel)
-    PIDS=()
-    for entry in "${CONFIGS[@]}"; do
-        config="${entry%:*}"; g="${entry#*:}"
-        url="http://localhost:$((PORT_BASE+g))"
-        ( 
-          for rate in ${SG[$g]}; do for det in "${DET_RATIOS[@]}"; do run_bench "$config" "$url" sharegpt "$rate" "$det"; done; done
-          for rate in ${AX[$g]}; do for det in "${DET_RATIOS[@]}"; do run_arxiv "$config" "$url" "$rate" "$det"; done; done
-        ) & PIDS+=($!)
+    echo "Total configurations: $total_configs"
+    echo "Configurations: ${CONFIG_NAMES[*]}"
+    
+    # Process configs in batches of NUM_GPUS
+    for ((i=0; i<total_configs; i+=NUM_GPUS)); do
+        local batch_num=$(((i/NUM_GPUS) + 1))
+        local batch_end=$((i+NUM_GPUS < total_configs ? i+NUM_GPUS : total_configs))
+        
+        echo -e "\n=============================================="
+        echo "Batch $batch_num: Configs $((i+1))-${batch_end} of $total_configs"
+        echo "=============================================="
+        
+        # Track what we launch in this batch
+        local batch_configs=()
+        local batch_urls=()
+        local batch_gpus=()
+        
+        # Launch servers for this batch
+        for ((j=0; j<NUM_GPUS; j++)); do
+            local idx=$((i + j))
+            if [ $idx -ge $total_configs ]; then
+                break
+            fi
+            
+            local gpu=$j
+            local config="${CONFIG_NAMES[$idx]}"
+            local args="${CONFIG_ARGS[$idx]}"
+            local port=$((PORT_BASE + gpu))
+            local url="http://localhost:$port"
+            local server_name="${config}_g${gpu}"
+            
+            echo "GPU $gpu -> $config (port $port)"
+            launch_server "$server_name" "$port" "$gpu" $args
+            
+            batch_configs+=("$config")
+            batch_urls+=("$url")
+            batch_gpus+=("$gpu")
+        done
+        
+        # Wait for all servers to be ready
+        for ((j=0; j<${#batch_configs[@]}; j++)); do
+            local config="${batch_configs[$j]}"
+            local url="${batch_urls[$j]}"
+            local gpu="${batch_gpus[$j]}"
+            wait_for_server "$url" "${config}_g${gpu}"
+        done
+        
+        # Run benchmarks in parallel across GPUs
+        local pids=()
+        for ((j=0; j<${#batch_configs[@]}; j++)); do
+            local config="${batch_configs[$j]}"
+            local url="${batch_urls[$j]}"
+            
+            run_benchmarks_for_config "$config" "$url" &
+            pids+=($!)
+        done
+        
+        # Wait for all benchmarks to complete
+        echo "Running benchmarks in parallel on ${#batch_configs[@]} GPUs..."
+        for pid in "${pids[@]}"; do
+            wait $pid
+        done
+        echo "Batch $batch_num benchmarks complete."
+        
+        # Stop all servers
+        for ((j=0; j<${#batch_configs[@]}; j++)); do
+            local config="${batch_configs[$j]}"
+            local gpu="${batch_gpus[$j]}"
+            stop_server "${config}_g${gpu}"
+        done
+        
+        # Wait for GPU cleanup before next batch
+        wait_for_gpu_cleanup
+        echo "Waiting additional 20 seconds for complete cleanup..."
+        sleep 20
     done
-    for p in "${PIDS[@]}"; do wait $p; done
-    
-    # Stop servers
-    g=0
-    for ((j=0; j<n; j++)); do
-        local step=${steps[$j]} gpus=$(( (NUM_GPUS - g) / (n - j) ))
-        for ((r=0; r<gpus; r++)); do stop_server "det${step}_g$g"; g=$((g+1)); done
-    done
-    wait_for_gpu_cleanup
 }
 
 # ============================================
@@ -280,13 +363,7 @@ echo "=============================================="
 
 [[ "$1" != "--start-servers" ]] && { echo "Usage: NUM_GPUS=4 $0 --start-servers"; exit 1; }
 
-run_phase "Baseline" "baseline" ""
-run_phase "GlobalDet" "global_det" "--enable-deterministic-inference 2"
-
-for ((i=0; i<${#STEP_SIZES[@]}; i+=NUM_GPUS)); do
-    batch=("${STEP_SIZES[@]:$i:$NUM_GPUS}")
-    run_detinfer_batch "${batch[@]}"
-done
+run_all_configs
 
 echo -e "\n=============================================="
 echo "Complete! Results: $RESULTS_FILE"

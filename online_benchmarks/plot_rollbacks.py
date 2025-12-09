@@ -61,12 +61,14 @@ METRIC_LABELS = {
     'tokens_recomputed': 'Tokens Recomputed'
 }
 COLORS = {
+    0.0:  '#808080',  # Gray (baseline)
     0.01: '#1f77b4',  # Blue
     0.05: '#2ca02c',  # Green
     0.10: '#ff7f0e',  # Orange
     1.0:  '#d62728',  # Red
 }
 MARKERS = {
+    0.0:  'x',  # X (baseline)
     0.01: 'o',  # Circle
     0.05: 's',  # Square
     0.10: '^',  # Triangle up
@@ -107,7 +109,7 @@ def organize_data(data: list) -> dict:
     organized = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
     
     for record in data:
-        step_size = extract_step_size(record.get('config_name', ''))
+        step_size = extract_step_size(record.get('config', ''))
         if step_size is None:
             continue
         
@@ -116,7 +118,7 @@ def organize_data(data: list) -> dict:
         rate = record.get('rate', 0)
         
         organized[dataset][det_ratio][rate][step_size] = {
-            'rollbacks': record.get('rollbacks', 0),
+            'rollbacks': record.get('num_rollbacks', 0),
             'tokens_recomputed': record.get('tokens_recomputed', 0)
         }
     
@@ -326,7 +328,8 @@ def main():
                 for step_size in organized[dataset][det_ratio][rate]:
                     all_step_sizes.add(step_size)
     
-    det_ratios = sorted(all_det_ratios)
+    # Filter out 0.0 (baseline) and keep only 1%, 5%, 10%, 100%
+    det_ratios = sorted([d for d in all_det_ratios if d != 0.0])
     step_sizes = sorted(all_step_sizes)
     
     print(f"Found det_ratios: {det_ratios}")

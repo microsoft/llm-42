@@ -12,13 +12,6 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON="${SCRIPT_DIR}/../.venv/bin/python"
-
-if [ ! -f "$PYTHON" ]; then
-    echo "Error: Python not found at $PYTHON"
-    echo "Please ensure the virtual environment exists."
-    exit 1
-fi
 
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <input_jsonl> [output_dir] [options]"
@@ -65,4 +58,4 @@ done
 echo "Input file: $INPUT_FILE"
 echo "Output directory: $OUTPUT_DIR"
 
-$PYTHON "${SCRIPT_DIR}/plot_rollbacks_publication.py" "$INPUT_FILE" --output-dir "$OUTPUT_DIR" $EXTRA_ARGS
+$PYTHON "${SCRIPT_DIR}/plot_rollbacks.py" "$INPUT_FILE" --output-dir "$OUTPUT_DIR" $EXTRA_ARGS

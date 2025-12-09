@@ -189,7 +189,9 @@ async def run_benchmark(
     num_det = int(len(data) * deterministic_ratio)
     det_indices = set(random.sample(range(len(data)), num_det))
     
-    async with aiohttp.ClientSession() as session:
+    # Set a very long timeout to avoid timing out slow requests
+    timeout = aiohttp.ClientTimeout(total=None, connect=60, sock_read=3600)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         tasks = []
         for i, row in enumerate(data):
             is_det = i in det_indices
