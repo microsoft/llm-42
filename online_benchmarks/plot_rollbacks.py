@@ -13,10 +13,10 @@ Y-axis: Metric value (rollbacks or tokens recomputed)
 
 Usage:
     # Generate per-dataset plots only
-    python plot_rollbacks_publication.py data.jsonl --output-dir ./plots
+    python plot_rollbacks.py data.jsonl --output-dir ./plots
 
     # Generate cross-dataset plots with specified QPS
-    python plot_rollbacks_publication.py data.jsonl --cross-dataset --sharegpt-qps 6 --arxiv-qps 4
+    python plot_rollbacks.py data.jsonl --cross-dataset --sharegpt-qps 6 --arxiv-qps 4
 """
 
 import argparse

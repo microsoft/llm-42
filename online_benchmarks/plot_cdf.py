@@ -19,8 +19,8 @@ Creates directory structure:
             qps_6/...
 
 Each plot shows CDF lines for:
-- SGLang (Non-Deterministic): baseline with det_ratio=0.0
-- SGLang (Deterministic): global_det with det_ratio=0.0
+- SGLang (Non-Deterministic): baseline with det_ratio=1.0
+- SGLang (Deterministic): global_det with det_ratio=1.0
 - Ours (1% Deterministic): det_infer with det_ratio=0.01
 - Ours (5% Deterministic): det_infer with det_ratio=0.05
 - Ours (10% Deterministic): det_infer with det_ratio=0.10
@@ -38,8 +38,8 @@ import numpy as np
 
 # Line display settings for each configuration
 LINE_CONFIGS = [
-    {"label": "SGLang (Non-Deterministic)", "config": "baseline", "det_ratio": "0.0", "color": "#1f77b4", "linestyle": "-"},
-    {"label": "SGLang (Deterministic)", "config": "global_det", "det_ratio": "0.0", "color": "#ff7f0e", "linestyle": "-"},
+    {"label": "SGLang (Non-Deterministic)", "config": "baseline", "det_ratio": "1.0", "color": "#1f77b4", "linestyle": "-"},
+    {"label": "SGLang (Deterministic)", "config": "global_det", "det_ratio": "1.0", "color": "#ff7f0e", "linestyle": "-"},
     {"label": "Ours (1% Deterministic)", "config": None, "det_ratio": "0.01", "color": "#2ca02c", "linestyle": "-"},
     {"label": "Ours (5% Deterministic)", "config": None, "det_ratio": "0.05", "color": "#d62728", "linestyle": "--"},
     {"label": "Ours (10% Deterministic)", "config": None, "det_ratio": "0.10", "color": "#9467bd", "linestyle": "-."},

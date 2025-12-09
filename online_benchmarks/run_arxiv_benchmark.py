@@ -295,7 +295,12 @@ def main():
     parser.add_argument('--context-len', type=int, default=32768, help='Max context length (prompt + output)')
     parser.add_argument('--dataset-file', type=str, default=None, help='Path to load/save preprocessed dataset JSON')
     parser.add_argument('--save-dataset-only', action='store_true', help='Only save the dataset without running benchmark')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed for reproducibility (default: 42)')
     args = parser.parse_args()
+    
+    # Set random seeds for reproducibility
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     
     # Load or create dataset
     if args.dataset_file and os.path.exists(args.dataset_file):
