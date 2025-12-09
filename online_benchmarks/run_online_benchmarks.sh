@@ -10,7 +10,7 @@ set -e
 MODEL="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
-NUM_PROMPTS="${NUM_PROMPTS:-1000}"
+NUM_PROMPTS="${NUM_PROMPTS:-256}"
 NUM_GPUS="${NUM_GPUS:-4}"
 PORT_BASE=30006
 
@@ -18,6 +18,7 @@ OUTPUT_DIR="$(dirname "$0")/arxiv_results"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 RESULTS_FILE="${OUTPUT_DIR}/results_${TIMESTAMP}.jsonl"
 ROLLBACK_FILE="${OUTPUT_DIR}/rollback_metrics_${TIMESTAMP}.jsonl"
+DATASET_FILE="${OUTPUT_DIR}/arxiv_dataset_${NUM_PROMPTS}.json"
 
 # Benchmark parameters
 SHAREGPT_RATES=(4 6 8 10)
@@ -49,6 +50,25 @@ CONFIG_ARGS=(
 
 PYTHON_CMD=$(command -v python || command -v python3) || { echo "Error: Python not found"; exit 1; }
 mkdir -p "$OUTPUT_DIR" "${OUTPUT_DIR}/latencies"
+
+# ============================================
+# Dataset Preparation
+# ============================================
+prepare_dataset() {
+    if [ ! -f "$DATASET_FILE" ]; then
+        echo "=============================================="
+        echo "Preparing dataset (first time only)..."
+        echo "=============================================="
+        $PYTHON_CMD "$(dirname "$0")/run_arxiv_benchmark.py" \
+            --model "$MODEL" \
+            --num-prompts "$NUM_PROMPTS" \
+            --dataset-file "$DATASET_FILE" \
+            --save-dataset-only
+        echo "Dataset saved to $DATASET_FILE"
+    else
+        echo "Using existing dataset: $DATASET_FILE"
+    fi
+}
 
 # ============================================
 # Server Functions
@@ -212,9 +232,12 @@ run_arxiv() {
     local rollbacks_before=${before[0]:-0}
     local tokens_before=${before[1]:-0}
     
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting arxiv benchmark: $config"
     $PYTHON_CMD "$(dirname "$0")/run_arxiv_benchmark.py" --base-url "$url" --model "$MODEL" \
         --num-prompts "$NUM_PROMPTS" --request-rate "$rate" --deterministic-ratio "$det" \
-        --output-file "$tmp" --output-latencies "$latency_file" 2>&1 | tail -3
+        --dataset-file "$DATASET_FILE" \
+        --output-file "$tmp" --output-latencies "$latency_file" 2>&1 | tee "${OUTPUT_DIR}/.arxiv_${config}_rate${rate}_det${det}.log" | tail -3
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Finished arxiv benchmark: $config"
     
     # Get metrics AFTER benchmark and compute delta
     local after=($(get_rollback_metrics "$url"))
@@ -362,6 +385,8 @@ echo "Model: $MODEL | GPUs: $NUM_GPUS | Prompts: $NUM_PROMPTS"
 echo "=============================================="
 
 [[ "$1" != "--start-servers" ]] && { echo "Usage: NUM_GPUS=4 $0 --start-servers"; exit 1; }
+
+prepare_dataset
 
 run_all_configs
 

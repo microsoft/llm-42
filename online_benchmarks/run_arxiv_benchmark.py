@@ -10,6 +10,7 @@ Usage:
 import argparse
 import asyncio
 import json
+import os
 import random
 import time
 from dataclasses import dataclass, field
@@ -86,20 +87,67 @@ class BenchmarkResults:
         ]
 
 
+def save_dataset(data: List[DatasetRow], filepath: str):
+    """Save processed dataset to JSON file."""
+    from pathlib import Path
+    Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+    with open(filepath, 'w') as f:
+        dataset_dict = [
+            {
+                "prompt": row.prompt,
+                "prompt_len": row.prompt_len,
+                "output_len": row.output_len,
+            }
+            for row in data
+        ]
+        json.dump(dataset_dict, f, indent=2)
+    print(f"Saved dataset to {filepath}")
+
+
+def load_dataset_from_file(filepath: str) -> List[DatasetRow]:
+    """Load processed dataset from JSON file."""
+    print(f"Loading dataset from {filepath}...")
+    with open(filepath, 'r') as f:
+        dataset_dict = json.load(f)
+    
+    samples = [
+        DatasetRow(
+            prompt=item["prompt"],
+            prompt_len=item["prompt_len"],
+            output_len=item["output_len"],
+        )
+        for item in dataset_dict
+    ]
+    
+    total_input = sum(s.prompt_len for s in samples)
+    total_output = sum(s.output_len for s in samples)
+    avg_input = total_input / len(samples) if samples else 0
+    avg_output = total_output / len(samples) if samples else 0
+    print(f"Loaded {len(samples)} samples")
+    print(f"#Input tokens: {total_input} (avg: {avg_input:.0f})")
+    print(f"#Output tokens: {total_output} (avg: {avg_output:.0f})")
+    return samples
+
+
 def load_arxiv_dataset(
     tokenizer,
     num_samples: int,
-    context_len: int = 8192,
+    context_len: int = 32768,
 ) -> List[DatasetRow]:
     """Load arxiv articles, tokenize prompts and abstracts to get actual lengths."""
     print("Loading ccdv/arxiv-summarization from HuggingFace...")
-    ds = load_dataset("ccdv/arxiv-summarization", split="test", trust_remote_code=True)
+    # Use streaming=True to avoid loading entire dataset into memory
+    ds = load_dataset("ccdv/arxiv-summarization", split="test")
     
     samples = []
-    for item in ds:
+    # Process at most 3x num_samples to account for filtering
+    max_items_to_process = num_samples * 3
+    print(f"Processing up to {max_items_to_process} items to collect {num_samples} samples...")
+    
+    for i, item in enumerate(ds):
         if len(samples) >= num_samples:
             break
-        
+                
         article = item['article']
         abstract = item['abstract']
         prompt = f"Summarize the following article:\n\n{article}\n\nSummary:"
@@ -119,6 +167,10 @@ def load_arxiv_dataset(
             continue
         
         samples.append(DatasetRow(prompt=prompt, prompt_len=prompt_len, output_len=output_len))
+        
+        # Progress indicator
+        if (i + 1) % 100 == 0:
+            print(f"  Processed {i + 1} items, collected {len(samples)} valid samples...")
     
     random.shuffle(samples)
     
@@ -130,6 +182,25 @@ def load_arxiv_dataset(
     print(f"#Input tokens: {total_input} (avg: {avg_input:.0f})")
     print(f"#Output tokens: {total_output} (avg: {avg_output:.0f})")
     return samples
+
+
+async def get_request(
+    input_requests: List[DatasetRow],
+    request_rate: float,
+):
+    """Generate requests with Poisson arrival rate."""
+    input_requests_iter = iter(input_requests)
+    for request in input_requests_iter:
+        yield request
+
+        if request_rate == float("inf"):
+            # If the request rate is infinity, then we don't need to wait.
+            continue
+
+        # Sample the request interval from the exponential distribution.
+        interval = np.random.exponential(1.0 / request_rate)
+        # The next request will be sent after the interval.
+        await asyncio.sleep(interval)
 
 
 async def send_request(
@@ -185,21 +256,25 @@ async def run_benchmark(
     results = BenchmarkResults()
     results.start_time = time.perf_counter()
     
-    # Determine which requests are deterministic
-    num_det = int(len(data) * deterministic_ratio)
-    det_indices = set(random.sample(range(len(data)), num_det))
+    # Pre-compute which requests will be deterministic (exact count)
+    num_deterministic = int(len(data) * deterministic_ratio)
+    deterministic_indices = set(random.sample(range(len(data)), num_deterministic)) if num_deterministic > 0 else set()
     
     # Set a very long timeout to avoid timing out slow requests
     timeout = aiohttp.ClientTimeout(total=None, connect=60, sock_read=3600)
     async with aiohttp.ClientSession(timeout=timeout) as session:
         tasks = []
-        for i, row in enumerate(data):
-            is_det = i in det_indices
-            tasks.append(send_request(session, base_url, row.prompt, row.output_len, is_det))
+        request_generator = get_request(data, request_rate)
+        request_idx = 0
+        async for row in request_generator:
+            is_det = request_idx in deterministic_indices
+            request_idx += 1
             
-            # Poisson inter-arrival time
-            if request_rate < float('inf'):
-                await asyncio.sleep(random.expovariate(request_rate))
+            tasks.append(
+                asyncio.create_task(
+                    send_request(session, base_url, row.prompt, row.output_len, is_det)
+                )
+            )
         
         results.metrics = await asyncio.gather(*tasks)
     
@@ -217,13 +292,27 @@ def main():
     parser.add_argument('--output-file')
     parser.add_argument('--output-details', action='store_true', help='Output per-request details for CDF plotting')
     parser.add_argument('--output-latencies', type=str, default=None, help='Output per-request latencies (TTFT, TPOT, E2E) to JSONL file')
-    parser.add_argument('--context-len', type=int, default=8192, help='Max context length (prompt + output)')
+    parser.add_argument('--context-len', type=int, default=32768, help='Max context length (prompt + output)')
+    parser.add_argument('--dataset-file', type=str, default=None, help='Path to load/save preprocessed dataset JSON')
+    parser.add_argument('--save-dataset-only', action='store_true', help='Only save the dataset without running benchmark')
     args = parser.parse_args()
     
-    print(f"Loading tokenizer: {args.model}")
-    tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
+    # Load or create dataset
+    if args.dataset_file and os.path.exists(args.dataset_file):
+        data = load_dataset_from_file(args.dataset_file)
+    else:
+        print(f"Loading tokenizer: {args.model}")
+        tokenizer = AutoTokenizer.from_pretrained(args.model)
+        data = load_arxiv_dataset(tokenizer, args.num_prompts, args.context_len)
+        
+        # Save dataset if requested
+        if args.dataset_file:
+            save_dataset(data, args.dataset_file)
     
-    data = load_arxiv_dataset(tokenizer, args.num_prompts, args.context_len)
+    # Exit if only saving dataset
+    if args.save_dataset_only:
+        print("Dataset saved. Exiting without running benchmark.")
+        return
     
     print(f"Running benchmark: rate={args.request_rate} QPS, det_ratio={args.deterministic_ratio}")
     results = asyncio.run(run_benchmark(
