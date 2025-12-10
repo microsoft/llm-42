@@ -171,10 +171,7 @@ class FlashInferAttnBackend(AttentionBackend):
             )
             self.disable_cuda_graph_kv_split = True
             # Increased workspace size for deterministic inference with larger prefill batches
-            # Default: 4096 MB, increased to 8192 MB for smaller split tile sizes
-            global_config.flashinfer_workspace_size = 4096 * 1024 * 1024
-            if self.prefill_split_tile_size < 4096:
-                global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
+            global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
 
         # Allocate buffers
         global global_workspace_buffer

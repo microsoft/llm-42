@@ -62,6 +62,7 @@ prepare_dataset() {
         $PYTHON_CMD "$(dirname "$0")/run_arxiv_benchmark.py" \
             --model "$MODEL" \
             --num-prompts "$NUM_PROMPTS" \
+            --context-len 16384 \
             --dataset-file "$DATASET_FILE" \
             --save-dataset-only
         echo "Dataset saved to $DATASET_FILE"
@@ -274,18 +275,18 @@ run_benchmarks_for_config() {
         det_ratios_to_use=("1.0")
     fi
     
-    # Run ShareGPT benchmarks
-    for rate in "${SHAREGPT_RATES[@]}"; do 
+    # Run arXiv benchmarks first
+    for rate in "${ARXIV_RATES[@]}"; do 
         for det in "${det_ratios_to_use[@]}"; do
-            run_bench "$config" "$url" sharegpt "$rate" "$det"
+            run_arxiv "$config" "$url" "$rate" "$det"
             sleep 2  # Allow metrics to stabilize between runs
         done
     done
     
-    # Run arXiv benchmarks
-    for rate in "${ARXIV_RATES[@]}"; do 
+    # Run ShareGPT benchmarks
+    for rate in "${SHAREGPT_RATES[@]}"; do 
         for det in "${det_ratios_to_use[@]}"; do
-            run_arxiv "$config" "$url" "$rate" "$det"
+            run_bench "$config" "$url" sharegpt "$rate" "$det"
             sleep 2  # Allow metrics to stabilize between runs
         done
     done
