@@ -235,10 +235,13 @@ class DeterministicVerificationWorker:
                         self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
                         self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
                     rollback_results.append((req, info[1]))
+                else:
+                    # No rollback for this request
+                    req.det_verified_tokens = len(req.output_ids)
             
             # Update verified token counts
-            for req in reqs:
-                req.det_verified_tokens = len(req.output_ids)
+            # for req in reqs:
+            #     req.det_verified_tokens = len(req.output_ids)
             
             # Update batch state if there was any rollback
             # (need to sync seq_lens with the new req.output_ids length)
