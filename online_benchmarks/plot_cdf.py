@@ -156,20 +156,20 @@ def plot_cdf_for_step(all_data: dict, dataset: str, rate: str, step: str, output
                     label=line_cfg["label"],
                     color=line_cfg["color"],
                     linestyle=line_cfg["linestyle"],
-                    linewidth=2.5,
+                    linewidth=1.5,
                     alpha=0.85
                 )
 
-        ax.set_xlabel(metric_label, fontsize=12)
-        ax.set_ylabel("CDF", fontsize=12)
-        ax.set_title(f"{dataset.capitalize()} - {rate} QPS - Step {step}", fontsize=13, fontweight='bold')
+        ax.set_xlabel(metric_label, fontsize=16)
+        ax.set_ylabel("CDF", fontsize=16)
+        ax.set_title(f"{dataset.capitalize()} - {rate} QPS - Step {step}", fontsize=20, fontweight='bold')
         ax.grid(True, alpha=0.3)
         ax.set_ylim(0, 1.02)
         ax.set_xlim(left=0)
-        ax.legend(fontsize=9, loc="lower right")
+        ax.legend(fontsize=16, loc="lower right")
 
         output_file = os.path.join(plot_dir, f"{metric_file}.pdf")
-        plt.savefig(output_file, dpi=150, bbox_inches="tight")
+        plt.savefig(output_file, dpi=1200, bbox_inches="tight")
         print(f"Saved: {output_file}")
         plt.close()
 
