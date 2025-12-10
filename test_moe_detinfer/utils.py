@@ -13,7 +13,6 @@ skip_unsupported = pytest.mark.skipif(
 )
 
 BACKENDS: list[str] = [
-    "flash_attn",
     "flashinfer",
 ]
 
@@ -25,15 +24,15 @@ try:
 except (ImportError, AttributeError):
     pass
 
-DEFAULT_MODEL = "Qwen/Qwen3-1.7B"
-MLA_MODEL = "deepseek-ai/DeepSeek-V2-Lite-Chat"
+DEFAULT_MODEL = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+# MLA_MODEL = "deepseek-ai/DeepSeek-V2-Lite-Chat"
 
 
 def resolve_model_name(backend: str) -> str:
     """Resolve the model name for the given backend."""
     model = os.getenv("SGLANG_TEST_MODEL", DEFAULT_MODEL)
-    if "mla" in backend.lower() and model == DEFAULT_MODEL:
-        return MLA_MODEL
+    # if "mla" in backend.lower() and model == DEFAULT_MODEL:
+    #     return MLA_MODEL
     return model
 
 

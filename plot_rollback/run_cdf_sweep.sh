@@ -21,7 +21,7 @@
 set -e
 
 MODEL="${MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
-PORT="${PORT:-30003}"
+PORT="${PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 
@@ -35,10 +35,10 @@ DATASET="${DATASET:-random}"
 DATASET_PATH="${DATASET_PATH:-}"
 
 # QPS configuration (0 = synchronous)
-QPS="${QPS:-0}"
+QPS="${QPS:-6}"
 
 # Step sizes to sweep
-STEP_SIZES=(10 20 50 100)
+STEP_SIZES=(16 32 64 128 256 512)
 
 OUTPUT_DIR="cdf_results"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -123,6 +123,7 @@ run_experiment() {
         --disable-radix-cache \
         --disable-chunked-prefix-cache \
         --disable-overlap-schedule \
+        --chunked-prefill-size -1 \
         --enable-metrics \
         --enable-det-infer 3 \
         --max-det-verify-batch-size 1 \
@@ -251,9 +252,9 @@ for step_size in "${STEP_SIZES[@]}"; do
 done
 echo ""
 echo "Plots:"
-echo "  - rollback_cdf_rollbacks.png: CDF of rollbacks per request"
-echo "  - rollback_cdf_tokens.png: CDF of tokens rolled back per request"
-echo "  - rollback_cdf_combined.png: Both CDFs side by side"
-echo "  - rollback_summary.png: Bar chart summary"
+echo "  - rollback_cdf_rollbacks.pdf: CDF of rollbacks per request"
+echo "  - rollback_cdf_tokens.pdf: CDF of tokens rolled back per request"
+echo "  - rollback_cdf_combined.pdf: Both CDFs side by side"
+echo "  - rollback_summary.pdf: Bar chart summary"
 echo ""
 ls -la "$RUN_DIR"

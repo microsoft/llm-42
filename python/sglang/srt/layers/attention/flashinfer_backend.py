@@ -160,7 +160,7 @@ class FlashInferAttnBackend(AttentionBackend):
         # is_batch_invariant_mode_enabled() in init_forward_metadata_capture_cuda_graph.
         # This allows the deterministic graph to use deterministic settings and the
         # non-deterministic graph to use non-deterministic settings.
-        if self.enable_deterministic > 0 or self.enable_det_infer_mode > 0 or self.enable_selective_determinism > 0:
+        if self.enable_deterministic > 0 or (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3) or self.enable_selective_determinism > 0:
             # Static deterministic mode: always use deterministic settings
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
@@ -171,6 +171,14 @@ class FlashInferAttnBackend(AttentionBackend):
             )
             self.disable_cuda_graph_kv_split = True
             # Increased workspace size for deterministic inference with larger prefill batches
+            global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
+        
+        if self.enable_det_infer_mode > 0 and self.enable_det_infer_mode == 3:
+            # Non-batch-invariant mode: use original settings
+            self.decode_use_tensor_cores = self.original_decode_use_tensor_cores
+            self.prefill_split_tile_size = get_int_env_var(
+                "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
+            )
             global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
 
         # Allocate buffers
@@ -266,7 +274,7 @@ class FlashInferAttnBackend(AttentionBackend):
             # Use self.enable_deterministic which is now True for both enable_deterministic_inference
             # and enable_selective_determinism (both have batch_invariant globally enabled)
             enable_deterministic_current = self.enable_deterministic
-            if self.enable_selective_determinism > 0 or self.enable_det_infer_mode > 0:
+            if self.enable_selective_determinism > 0 or (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3):
                 # Only det_infer mode needs dynamic checking (not selective_determinism)
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 enable_deterministic_current = is_batch_invariant_mode_enabled()

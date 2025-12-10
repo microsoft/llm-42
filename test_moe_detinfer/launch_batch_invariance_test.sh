@@ -6,10 +6,10 @@
 set -e
 
 # Model and server configuration
-MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
+MODEL_PATH="${SGLANG_TEST_MODEL:-Qwen/Qwen3-30B-A3B}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
-PORT="${SGLANG_PORT:-30000}"
-TP_SIZE="${SGLANG_TP_SIZE:-1}"
+PORT="${SGLANG_PORT:-30005}"
+TP_SIZE="${SGLANG_TP_SIZE:-4}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 
 # Determine Python command
@@ -42,7 +42,14 @@ $PYTHON_CMD -m sglang.launch_server \
     --attention-backend "$ATTENTION_BACKEND" \
     --disable-radix-cache \
     --disable-chunked-prefix-cache \
+    --chunked-prefill-size -1 \
     --disable-overlap-schedule \
+    --enable-metrics \
+    # --min-det-step-size 64 \
+    # --enable-det-infer 3 \
+    # --max-det-verify-batch-size 1
+    # --enable-selective-determinism 1 \
+    # --enable-deterministic-inference 2 \
     # --min-det-step-size 10 \
     # --enable-det-infer 1
     # --enable-selective-determinism 1 \

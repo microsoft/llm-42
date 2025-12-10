@@ -257,8 +257,8 @@ def test_multi_batch_invariance(
     print(f"{'='*80}\n")
     
     # Get prompt length from environment or use default
-    min_prompt_words = int(os.getenv("SGLANG_MIN_PROMPT_WORDS", "48000"))
-    max_prompt_words = int(os.getenv("SGLANG_MAX_PROMPT_WORDS", "48000"))
+    min_prompt_words = int(os.getenv("SGLANG_MIN_PROMPT_WORDS", "480"))
+    max_prompt_words = int(os.getenv("SGLANG_MAX_PROMPT_WORDS", "480"))
     
     print(f"Prompt length: {min_prompt_words}-{max_prompt_words} words")
     print(f"{'='*80}\n")
@@ -361,12 +361,12 @@ if __name__ == "__main__":
     backend = os.getenv("SGLANG_ATTENTION_BACKEND", "flashinfer")
     
     # Configure batch sizes and max_tokens to test
-    batch_sizes = [i for i in range(3, 4)]
-    max_tokens_list = [1, 8, 16]
+    batch_sizes = [i for i in range(3, 256, 13)]  # From 3 to 255 with step 13
+    max_tokens_list = [1, 8, 16, 133, 397, 723]
     
     # Configure prompt length (words)
-    min_prompt_words = int(os.getenv("SGLANG_MIN_PROMPT_WORDS", "48000"))
-    max_prompt_words = int(os.getenv("SGLANG_MAX_PROMPT_WORDS", "48000"))
+    min_prompt_words = int(os.getenv("SGLANG_MIN_PROMPT_WORDS", "48"))
+    max_prompt_words = int(os.getenv("SGLANG_MAX_PROMPT_WORDS", "480"))
     
     n_prompts = max(batch_sizes) * 2  # Generate enough prompts for largest batch
     

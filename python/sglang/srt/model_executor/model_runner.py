@@ -2044,27 +2044,30 @@ class ModelRunner:
         # - DECODE: enabled if any req has force_deterministic_mode
         # Mode 3: Use non-batch-invariant kernels during verification (skip enabling batch_invariant)
         if self.enable_det_infer_mode:
-            if is_verification_mode:
-                # Verification mode: enable batch_invariant unless mode 3 (non-batch-invariant mode)
-                # Mode 3 uses default CUDA kernels for matmul and RMSNorm during verification
-                should_enable_batch_invariant = True
+            if self.enable_det_infer_mode == 3:
+                should_enable_batch_invariant = is_verification_mode
             else:
-                is_decode_mode = forward_batch.forward_mode.is_decode()
-                if is_decode_mode:
-                    # DECODE: Enable if any request has force_deterministic_mode flag
-                    has_force_deterministic = any(
-                        getattr(req, 'force_deterministic_mode', False) 
-                        for req in forward_batch.reqs
-                    )
-                    should_enable_batch_invariant = has_force_deterministic
+                if is_verification_mode:
+                    # Verification mode: enable batch_invariant unless mode 3 (non-batch-invariant mode)
+                    # Mode 3 uses default CUDA kernels for matmul and RMSNorm during verification
+                    should_enable_batch_invariant = True
                 else:
-                    # Others (EXTEND, etc.): enable if any request needs determinism
-                    if forward_batch.sampling_info is not None:
-                        is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
-                        should_enable_batch_invariant = is_any_deterministic
+                    is_decode_mode = forward_batch.forward_mode.is_decode()
+                    if is_decode_mode:
+                        # DECODE: Enable if any request has force_deterministic_mode flag
+                        has_force_deterministic = any(
+                            getattr(req, 'force_deterministic_mode', False) 
+                            for req in forward_batch.reqs
+                        )
+                        should_enable_batch_invariant = has_force_deterministic
                     else:
-                        # No sampling info, default to disabled
-                        should_enable_batch_invariant = False
+                        # Others (EXTEND, etc.): enable if any request needs determinism
+                        if forward_batch.sampling_info is not None:
+                            is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
+                            should_enable_batch_invariant = is_any_deterministic
+                        else:
+                            # No sampling info, default to disabled
+                            should_enable_batch_invariant = False
         elif self.enable_selective_determinism and not is_verification_mode:
             # Selective determinism: check if ANY request in batch needs deterministic behavior
             if forward_batch.sampling_info is not None:
