@@ -382,7 +382,10 @@ class DetVerifyInfo:
                 f"{len(out_cache_locs)} cache locations. This will cause memory corruption."
             )
         
-        verify_batch.out_cache_loc = torch.tensor(out_cache_locs, dtype=torch.int32, device=device)
+        # Downstream fused RoPE kernel requires int64 cache indices
+        verify_batch.out_cache_loc = torch.tensor(
+            out_cache_locs, dtype=torch.int64, device=device
+        )
         
         return verify_batch
 
