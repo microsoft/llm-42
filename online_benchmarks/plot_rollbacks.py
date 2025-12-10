@@ -32,14 +32,14 @@ import matplotlib as mpl
 plt.rcParams.update({
     'font.family': 'serif',
     'font.serif': ['Times New Roman', 'DejaVu Serif', 'serif'],
-    'font.size': 11,
-    'axes.labelsize': 12,
-    'axes.titlesize': 13,
-    'legend.fontsize': 9,
-    'xtick.labelsize': 10,
-    'ytick.labelsize': 10,
-    'figure.dpi': 300,
-    'savefig.dpi': 300,
+    'font.size': 16,
+    'axes.labelsize': 24,
+    'axes.titlesize': 24,
+    'legend.fontsize': 16,
+    'xtick.labelsize': 20,
+    'ytick.labelsize': 20,
+    'figure.dpi': 1200,
+    'savefig.dpi': 1200,
     'savefig.bbox': 'tight',
     'savefig.pad_inches': 0.1,
     'axes.linewidth': 0.8,
@@ -57,8 +57,8 @@ plt.rcParams.update({
 DATASETS = ['sharegpt', 'arxiv']
 DATASET_LABELS = {'sharegpt': 'ShareGPT', 'arxiv': 'Arxiv'}
 METRIC_LABELS = {
-    'rollbacks': 'Number of Rollbacks',
-    'tokens_recomputed': 'Tokens Recomputed'
+    'rollbacks': 'Rollbacks',
+    'tokens_recomputed': 'Recomputed Tokens'
 }
 COLORS = {
     0.0:  '#808080',  # Gray (baseline)
@@ -149,8 +149,10 @@ def setup_axes(ax, step_sizes: list):
         ax.get_xaxis().set_major_formatter(mpl.ticker.ScalarFormatter())
     else:
         ax.set_xticks(sorted(step_sizes))
+
+    ax.set_yscale('log')
     
-    ax.set_ylim(bottom=0)
+    # ax.set_ylim(bottom=0)
     ax.grid(True, which='major', linestyle='-', alpha=0.3)
     ax.grid(True, which='minor', linestyle=':', alpha=0.2)
 
@@ -181,7 +183,7 @@ def create_per_dataset_plots(organized: dict, step_sizes: list,
             continue
         
         for rate in rates_per_dataset[dataset]:
-            fig, ax = plt.subplots(figsize=(8, 5))
+            fig, ax = plt.subplots(figsize=(8, 6))
             
             for det_ratio in det_ratios:
                 x_vals, y_vals = [], []
@@ -203,17 +205,17 @@ def create_per_dataset_plots(organized: dict, step_sizes: list,
             
             ax.set_xlabel('Step Size')
             ax.set_ylabel(METRIC_LABELS[metric])
-            ax.set_title(f'{DATASET_LABELS[dataset]} - {METRIC_LABELS[metric]} (QPS = {rate})')
+            # ax.set_title(f'{DATASET_LABELS[dataset]} - {METRIC_LABELS[metric]} (QPS = {rate})')
             
             setup_axes(ax, step_sizes)
             
-            ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15), 
-                      ncol=len(det_ratios), frameon=True, fancybox=True)
+            ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.22), 
+                      ncol=len(det_ratios) // 2, frameon=False, fancybox=False)
             
             plt.tight_layout()
             
             output_path = os.path.join(output_dir, f'{metric}_{dataset}_qps{rate}.pdf')
-            plt.savefig(output_path, format='pdf', bbox_inches='tight')
+            plt.savefig(output_path, format='pdf', bbox_inches='tight', dpi=1200)
             plt.close()
             print(f"Saved: {output_path}")
 
@@ -282,7 +284,7 @@ def create_cross_dataset_plots(organized: dict, step_sizes: list, det_ratios: li
     sharegpt_q = dataset_qps.get('sharegpt', 0)
     arxiv_q = dataset_qps.get('arxiv', 0)
     output_path = os.path.join(output_dir, f'{metric}_cross_dataset_sharegpt{sharegpt_q}_arxiv{arxiv_q}.pdf')
-    plt.savefig(output_path, format='pdf', bbox_inches='tight')
+    plt.savefig(output_path, format='pdf', bbox_inches='tight', dpi=1200)
     plt.close()
     print(f"Saved: {output_path}")
 
