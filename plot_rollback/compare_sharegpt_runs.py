@@ -50,11 +50,9 @@ def first_two_mismatches(a: Sequence[int], b: Sequence[int]) -> Tuple[int, int]:
 
 def build_base_args(cli_args: argparse.Namespace) -> dict:
     # Populate the fields run_benchmark expects; values mirror bench_serving CLI defaults.
-    return {
+    base_dict = {
         "backend": cli_args.backend,
         "base_url": cli_args.base_url,
-        "host": cli_args.host,
-        "port": cli_args.port,
         "dataset_name": "sharegpt",
         "dataset_path": cli_args.dataset_path,
         "model": cli_args.model,
@@ -97,6 +95,16 @@ def build_base_args(cli_args: argparse.Namespace) -> dict:
         "mooncake_num_rounds": 1,
         "mooncake_workload": "conversation",
     }
+    
+    # Only set host/port if base_url is not provided
+    if cli_args.base_url is None:
+        base_dict["host"] = cli_args.host
+        base_dict["port"] = cli_args.port
+    else:
+        base_dict["host"] = None
+        base_dict["port"] = None
+    
+    return base_dict
 
 
 def run_once(base: dict, request_rate: float, max_concurrency: int | None, output_file: Path) -> tuple[SimpleNamespace, dict]:
