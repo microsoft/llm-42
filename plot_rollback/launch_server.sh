@@ -47,4 +47,5 @@ $PYTHON_CMD -m sglang.launch_server \
     --min-det-step-size 128 \
     --enable-det-infer 3 \
     --max-det-verify-batch-size 1 \
-    # --chunked-prefill-size -1 \
+    --chunked-prefill-size -1 \
+    --page-size 16

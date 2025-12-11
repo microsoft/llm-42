@@ -56,13 +56,15 @@ class DetVerifyInfo:
         self.padding_counts = padding_counts  # number of padding predictions per request
         
         # Calculate KV cache slots needed for padding
-        # For each padded request: input = [context] + [actual_len tokens] + [padding_count - 1 dummies]
+        # Input construction adds (padded_len - 1 - actual_len) dummy tokens
+        # For each padded request: input = [context] + [actual_len tokens] + [(padding_count - 1) dummies]
         # So we need (padding_count - 1) cache slots per padded request
         self.padding_cache_slots = [max(0, p - 1) for p in padding_counts]
         self.total_padding_cache_slots = sum(self.padding_cache_slots)
         
         # Will be set after KV cache allocation for padding
         self.padding_cache_locs: Optional[torch.Tensor] = None
+        self.padding_cache_locs_allocated: Optional[torch.Tensor] = None  # Track full allocation for freeing
 
     @classmethod
     def from_requests(
@@ -138,14 +140,51 @@ class DetVerifyInfo:
         if self.total_padding_cache_slots == 0:
             return True
         
-        # Allocate KV cache slots for padding input tokens
-        self.padding_cache_locs = token_to_kv_pool_allocator.alloc(self.total_padding_cache_slots)
+        # logger.info(
+        #     f"[DET_VERIFY] Attempting to allocate {self.total_padding_cache_slots} padding cache slots, "
+        #     f"page_size={token_to_kv_pool_allocator.page_size}"
+        # )
         
-        if self.padding_cache_locs is None:
-            logger.warning(
-                f"[DET_VERIFY] Failed to allocate {self.total_padding_cache_slots} KV cache slots for padding. "
-                f"Falling back to unpadded verification."
-            )
+        # With paged allocation, we need to allocate in multiples of page_size
+        page_size = token_to_kv_pool_allocator.page_size
+        if page_size > 1:
+            # Round up to nearest page
+            slots_to_allocate = ((self.total_padding_cache_slots + page_size - 1) // page_size) * page_size
+            # logger.info(
+            #     f"[DET_VERIFY] Rounding up {self.total_padding_cache_slots} to {slots_to_allocate} "
+            #     f"for page_size={page_size}"
+            # )
+        else:
+            slots_to_allocate = self.total_padding_cache_slots
+        
+        # Allocate KV cache slots for padding input tokens
+        allocated_locs = token_to_kv_pool_allocator.alloc(slots_to_allocate)
+        
+        # logger.info(
+        #     f"[DET_VERIFY] Allocation result: "
+        #     f"{'None' if allocated_locs is None else f'tensor with {len(allocated_locs)} slots'}"
+        # )
+        
+        # Store full allocation for later freeing
+        self.padding_cache_locs_allocated = allocated_locs
+        
+        # Only use the slots we actually need (first total_padding_cache_slots)
+        if allocated_locs is not None and len(allocated_locs) > 0:
+            if len(allocated_locs) > self.total_padding_cache_slots:
+                self.padding_cache_locs = allocated_locs[:self.total_padding_cache_slots]
+                # logger.info(
+                #     f"[DET_VERIFY] Using first {self.total_padding_cache_slots} of {len(allocated_locs)} allocated slots"
+                # )
+            else:
+                self.padding_cache_locs = allocated_locs
+        else:
+            self.padding_cache_locs = None
+        
+        if self.padding_cache_locs is None or len(self.padding_cache_locs) == 0:
+            # logger.warning(
+            #     f"[DET_VERIFY] Failed to allocate {self.total_padding_cache_slots} KV cache slots for padding. "
+            #     f"Falling back to unpadded verification."
+            # )
             # Fallback: adjust padded_lens to match actual lens (no padding)
             # Also need to rebuild original_outputs without padding tokens
             original_outputs_list = self.original_outputs.tolist()
@@ -176,8 +215,10 @@ class DetVerifyInfo:
         Args:
             token_to_kv_pool_allocator: The KV cache allocator
         """
-        if self.padding_cache_locs is not None and len(self.padding_cache_locs) > 0:
-            token_to_kv_pool_allocator.free(self.padding_cache_locs)
+        # Free the full allocated tensor, not just the portion we used
+        if self.padding_cache_locs_allocated is not None and len(self.padding_cache_locs_allocated) > 0:
+            token_to_kv_pool_allocator.free(self.padding_cache_locs_allocated)
+            self.padding_cache_locs_allocated = None
             self.padding_cache_locs = None
 
     def prepare_verify_batch(
@@ -318,6 +359,14 @@ class DetVerifyInfo:
             padded_len = self.padded_lens[i]
             padding_count = self.padding_counts[i]
             
+            # logger.info(
+            #     f"[DET_VERIFY] Request {i}: origin_input_len={len(req.origin_input_ids)}, "
+            #     f"output_ids_len={len(req.output_ids)}, det_verified_tokens={req.det_verified_tokens}, "
+            #     f"current_seq_len={current_seq_len}, context_idx={context_idx}, "
+            #     f"actual_len={actual_len}, padded_len={padded_len}, padding_count={padding_count}, "
+            #     f"padding_cache_slots[i]={self.padding_cache_slots[i]}"
+            # )
+            
             if context_idx >= current_seq_len:
                 logger.error(
                     f"ERROR: context_idx {context_idx} >= current_seq_len {current_seq_len} "
@@ -350,17 +399,30 @@ class DetVerifyInfo:
                 num_actual_cache_needed = actual_len  # all actual tokens
                 end_idx = min(start_idx + num_actual_cache_needed, current_seq_len)
                 
+                # logger.info(
+                #     f"[DET_VERIFY] Padded case: start_idx={start_idx}, "
+                #     f"num_actual_cache_needed={num_actual_cache_needed}, end_idx={end_idx}, "
+                #     f"will_fetch={end_idx - start_idx} actual cache locs"
+                # )
+                
                 if start_idx < end_idx:
                     output_cache_locs = verify_batch.req_to_token_pool.req_to_token[req.req_pool_idx, start_idx:end_idx]
                     out_cache_locs.extend(output_cache_locs.tolist())
+                    # logger.info(f"[DET_VERIFY] Added {len(output_cache_locs)} actual cache locations")
                 
                 # Add allocated cache locations for padding input tokens
                 # Input structure: [context] + [actual_len tokens] + [padding_cache_slots[i] dummies]
                 # Total input = 1 + actual_len + padding_cache_slots[i] = padded_len
                 padding_cache_needed = self.padding_cache_slots[i]
+                # logger.info(
+                #     f"[DET_VERIFY] Padding: padding_cache_needed={padding_cache_needed}, "
+                #     f"padding_cache_locs={'None' if self.padding_cache_locs is None else f'len={len(self.padding_cache_locs)}'}, "
+                #     f"padding_offset={padding_offset}"
+                # )
                 if padding_cache_needed > 0 and self.padding_cache_locs is not None:
                     padding_locs = self.padding_cache_locs[padding_offset:padding_offset + padding_cache_needed]
                     out_cache_locs.extend(padding_locs.tolist())
+                    # logger.info(f"[DET_VERIFY] Added {len(padding_locs)} padding cache locations")
                     padding_offset += padding_cache_needed
             else:
                 # Non-padded case: need actual_len - 1 cache locations after context
@@ -370,6 +432,11 @@ class DetVerifyInfo:
                 if start_idx < end_idx:
                     output_cache_locs = verify_batch.req_to_token_pool.req_to_token[req.req_pool_idx, start_idx:end_idx]
                     out_cache_locs.extend(output_cache_locs.tolist())
+        
+        # logger.info(
+        #     f"[DET_VERIFY] Total cache locations collected: {len(out_cache_locs)}, "
+        #     f"expected (input_ids length): {len(input_ids)}"
+        # )
         
         if len(out_cache_locs) != len(input_ids):
             logger.error(
