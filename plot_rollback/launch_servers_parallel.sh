@@ -11,8 +11,8 @@ MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
-ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
-LOG_DIR="${LOG_DIR:-./server_logs}"
+ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
+LOG_DIR="${LOG_DIR:-./server_logs_3_di_no_self_attn}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -77,10 +77,10 @@ for ((i=0; i<NUM_GPUS; i++)); do
         --disable-chunked-prefix-cache \
         --disable-overlap-schedule \
         --enable-metrics \
+        --chunked-prefill-size -1 \
         --min-det-step-size 128 \
         --enable-det-infer 3 \
         --max-det-verify-batch-size 1 \
-        --skip-server-warmup \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!
@@ -120,3 +120,12 @@ echo "=============================================="
 
 # Wait for all background processes
 wait
+
+
+        # --det-verify-sample-one-by-one \
+        # --min-det-step-size 128 \
+        # --enable-det-infer 1 \
+        # --max-det-verify-batch-size 1 \
+        # --min-det-step-size 128 \
+        # --enable-det-infer 3 \
+        # --max-det-verify-batch-size 1 \

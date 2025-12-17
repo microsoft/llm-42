@@ -112,6 +112,10 @@ class RMSNorm(CustomOp):
         if self.triton_rmsnorm_mode:
             self._forward_method = self.forward_triton_invariant
 
+        if self.enable_det_infer > 0:
+            logger.info(f"RMSNorm initialized with deterministic inference mode: {self.deterministic}, selective determinism: {self.enable_selective_determinism}, det_infer: {self.enable_det_infer}, vllm_rmsnorm_mode: {self.vllm_rmsnorm_mode}")
+            self._forward_method = self.forward_native
+
     def forward_cuda(
         self,
         x: torch.Tensor,
@@ -139,6 +143,7 @@ class RMSNorm(CustomOp):
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """Forward using vLLM fused RMSNorm implementations"""
         if residual is not None:
+            logger.info(f"Using vLLM RMSNorm mode: {self.vllm_rmsnorm_mode}")
             mode_map = {
                 "256": lambda: vllm_fused_add_rmsnorm_256(x, residual, self.weight.data, self.variance_epsilon),
                 "1024": lambda: vllm_fused_add_rmsnorm_1024(x, residual, self.weight.data, self.variance_epsilon),

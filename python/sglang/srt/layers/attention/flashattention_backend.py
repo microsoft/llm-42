@@ -585,6 +585,27 @@ class FlashAttentionBackend(AttentionBackend):
                         metadata, metadata_expand
                     )
 
+        elif forward_batch.forward_mode.is_target_det_verify():
+            # TARGET_DET_VERIFY: Re-run output tokens for deterministic verification
+            # Similar to extend mode with prefix - input tokens already in KV cache
+            # Always uses num_splits=1 for determinism (handled in forward_extend)
+            metadata.cache_seqlens_int32 = seqlens_in_batch.to(torch.int32)
+            metadata.max_seq_len_k = forward_batch.seq_lens_cpu.max().item()
+            metadata.cu_seqlens_k = torch.nn.functional.pad(
+                torch.cumsum(seqlens_in_batch, dim=0, dtype=torch.int32), (1, 0)
+            )
+            metadata.page_table = forward_batch.req_to_token_pool.req_to_token[
+                forward_batch.req_pool_indices, : metadata.max_seq_len_k
+            ]
+
+            # extend_seq_lens contains the number of output tokens to verify
+            # extend_prefix_lens contains the length of input already in cache
+            extend_seq_lens = forward_batch.extend_seq_lens
+            metadata.max_seq_len_q = max(forward_batch.extend_seq_lens_cpu)
+            metadata.cu_seqlens_q = torch.nn.functional.pad(
+                torch.cumsum(extend_seq_lens, dim=0, dtype=torch.int32), (1, 0)
+            )
+
         elif forward_batch.forward_mode.is_extend_or_draft_extend_or_mixed():
             metadata.cache_seqlens_int32 = seqlens_in_batch.to(torch.int32)
             metadata.max_seq_len_k = forward_batch.seq_lens_cpu.max().item()
@@ -726,6 +747,13 @@ class FlashAttentionBackend(AttentionBackend):
             and not is_swa
         )
 
+        # For TARGET_DET_VERIFY, always use num_splits=1 for determinism
+        # regardless of the global setting
+        num_splits = (
+            1 if forward_batch.forward_mode.is_target_det_verify()
+            else self.num_splits
+        )
+
         # For fa3 interface version compatibility, we put new fields into conditional keyword args
         kwargs = {}
         if self.fa_impl_ver != 3:
@@ -789,7 +817,7 @@ class FlashAttentionBackend(AttentionBackend):
                 k_descale=k_descale,
                 v_descale=v_descale,
                 return_softmax_lse=use_cascade_attn,
-                num_splits=self.num_splits,
+                num_splits=num_splits,
                 **kwargs,
             )
 
@@ -811,7 +839,7 @@ class FlashAttentionBackend(AttentionBackend):
                     k_descale=k_descale,
                     v_descale=v_descale,
                     return_softmax_lse=True,
-                    num_splits=self.num_splits,
+                    num_splits=num_splits,
                     **kwargs,
                 )
                 o, _ = merge_state_v2_wrapper(
@@ -916,7 +944,7 @@ class FlashAttentionBackend(AttentionBackend):
                     k_descale=k_descale,
                     v_descale=v_descale,
                     return_softmax_lse=use_cascade_attn,
-                    num_splits=self.num_splits,
+                    num_splits=num_splits,
                 )
                 if use_cascade_attn:
                     o, softmax_lse, *rest = result
@@ -938,7 +966,7 @@ class FlashAttentionBackend(AttentionBackend):
                             k_descale=k_descale,
                             v_descale=v_descale,
                             return_softmax_lse=True,
-                            num_splits=self.num_splits,
+                            num_splits=num_splits,
                         )
                     )
                     o, _ = merge_state_v2_wrapper(
@@ -1674,6 +1702,12 @@ class FlashAttentionBackend(AttentionBackend):
                     self.target_verify_metadata_topk_swa[bs] = metadata_swa
                     metadata.swa_spec_metadata = metadata_swa
 
+        elif forward_mode.is_target_det_verify():
+            # TARGET_DET_VERIFY is not expected to use CUDA graphs
+            raise ValueError(
+                "CUDA graph capture not supported for TARGET_DET_VERIFY mode"
+            )
+
         elif forward_mode.is_draft_extend():
             metadata.cache_seqlens_int32 = self.draft_extend_metadata["cache_seqlens"][
                 :bs
@@ -1726,6 +1760,7 @@ class FlashAttentionBackend(AttentionBackend):
         spec_info: Optional[SpecInput],
         seq_lens_cpu: Optional[torch.Tensor],
         out_cache_loc: Optional[torch.Tensor] = None,
+        use_deterministic: Optional[bool] = None,
     ):
         """Initialize forward metadata for replaying CUDA graph."""
         seq_lens = seq_lens[:bs]
@@ -1919,6 +1954,12 @@ class FlashAttentionBackend(AttentionBackend):
                     self._init_sliding_window_attn_spec_metadata(
                         metadata, metadata_expand, metadata_swa
                     )
+
+        elif forward_mode.is_target_det_verify():
+            # TARGET_DET_VERIFY is not expected to use CUDA graphs
+            raise ValueError(
+                "CUDA graph replay not supported for TARGET_DET_VERIFY mode"
+            )
 
         elif forward_mode.is_draft_extend():
             metadata = self.draft_extend_metadata[bs]
