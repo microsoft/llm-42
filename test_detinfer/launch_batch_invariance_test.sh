@@ -10,7 +10,7 @@ MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 PORT="${SGLANG_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
-ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
+ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -48,14 +48,3 @@ $PYTHON_CMD -m sglang.launch_server \
     --min-det-step-size 64 \
     --enable-det-infer 3 \
     --max-det-verify-batch-size 1
-    # Mode values for --enable-det-infer:
-    # 1 = bi_kernel + vllm_rmsnorm (batch-invariant during verification)
-    # 2 = batch_invariant + native_rmsnorm (batch-invariant during verification)
-    # 3 = non-batch-invariant (default CUDA kernels during verification)
-    # --enable-selective-determinism 1 \
-    # --enable-deterministic-inference 1 \
-    # --min-det-step-size 10 \
-    # --enable-det-infer 1
-    # --enable-selective-determinism 1 \
-    # --enable-deterministic-inference 1 \
-    # --disable-cuda-graph \

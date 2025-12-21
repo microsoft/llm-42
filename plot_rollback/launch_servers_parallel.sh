@@ -12,7 +12,7 @@ HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
-LOG_DIR="${LOG_DIR:-./server_logs_3_di_no_self_attn}"
+LOG_DIR="${LOG_DIR:-./server_logs_3_di_4gpus}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -67,7 +67,7 @@ for ((i=0; i<NUM_GPUS; i++)); do
     echo "Starting server on GPU $GPU_ID, port $PORT..."
     echo "Log file: $LOG_FILE"
     
-    CUDA_VISIBLE_DEVICES=$GPU_ID $PYTHON_CMD -m sglang.launch_server \
+    CUDA_VISIBLE_DEVICES=$GPU_ID SGLANG_LOG_LEVEL=DEBUG SGLANG_DEBUG_SAMPLING=1 $PYTHON_CMD -m sglang.launch_server \
         --model-path "$MODEL_PATH" \
         --host "$HOST" \
         --port "$PORT" \
@@ -77,6 +77,7 @@ for ((i=0; i<NUM_GPUS; i++)); do
         --disable-chunked-prefix-cache \
         --disable-overlap-schedule \
         --enable-metrics \
+        --random-seed 42 \
         --chunked-prefill-size -1 \
         --min-det-step-size 128 \
         --enable-det-infer 3 \

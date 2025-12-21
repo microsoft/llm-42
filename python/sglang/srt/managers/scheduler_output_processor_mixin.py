@@ -591,6 +591,8 @@ class SchedulerOutputProcessorMixin:
         completion_tokens = []
         cached_tokens = []
         spec_verify_ct = []
+        det_num_rollbacks = []
+        det_tokens_rolled_back = []
         output_hidden_states = None
 
         if return_logprob:
@@ -634,10 +636,18 @@ class SchedulerOutputProcessorMixin:
                     continue
                 
                 if needs_verification and req.det_verified_tokens < len(req.output_ids):
+                    logger.debug(f"[Scheduler] Waiting for verification: rid={req.rid}, "
+                                f"det_verified_tokens={req.det_verified_tokens}, output_len={len(req.output_ids)}")
                     continue
                 
                 req.finished_output = True
                 should_output = True
+                logger.info(
+                    f"[Scheduler] Request finished: rid={req.rid}, "
+                    f"prompt_tokens={len(req.origin_input_ids)}, "
+                    f"completion_tokens={len(req.output_ids)}, "
+                    f"finish_reason={req.finished_reason.to_json() if req.finished_reason else None}"
+                )
             else:
                 if needs_verification:
                     if req.det_verified_tokens > req.send_token_offset and req.stream:
@@ -698,6 +708,8 @@ class SchedulerOutputProcessorMixin:
                 prompt_tokens.append(len(req.origin_input_ids))
                 completion_tokens.append(len(req.output_ids))
                 cached_tokens.append(req.cached_tokens)
+                det_num_rollbacks.append(req.det_num_rollbacks)
+                det_tokens_rolled_back.append(req.det_tokens_rolled_back)
 
                 if not self.spec_algorithm.is_none():
                     spec_verify_ct.append(req.spec_verify_ct)
@@ -788,6 +800,11 @@ class SchedulerOutputProcessorMixin:
 
         # Send to detokenizer
         if rids:
+            # Log which requests are being sent to detokenizer
+            finished_rids = [rid for rid, fr in zip(rids, finished_reasons) if fr is not None]
+            if finished_rids:
+                logger.info(f"[Scheduler] Sending {len(finished_rids)} finished request(s) to detokenizer: {finished_rids}")
+            
             if self.model_config.is_multimodal_gen:
                 return
 
@@ -805,6 +822,8 @@ class SchedulerOutputProcessorMixin:
                     completion_tokens,
                     cached_tokens,
                     spec_verify_ct,
+                    det_num_rollbacks,
+                    det_tokens_rolled_back,
                     input_token_logprobs_val,
                     input_token_logprobs_idx,
                     output_token_logprobs_val,

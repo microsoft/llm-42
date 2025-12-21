@@ -73,7 +73,7 @@ def build_base_args(cli_args: argparse.Namespace) -> dict:
         "disable_stream": False,
         "return_logprob": False,
         "seed": cli_args.seed,
-        "disable_ignore_eos": False,
+        "disable_ignore_eos": not cli_args.ignore_eos,
         "extra_request_body": cli_args.extra_request_body,
         "deterministic_ratio": cli_args.deterministic_ratio,
         "apply_chat_template": cli_args.apply_chat_template,
@@ -165,6 +165,7 @@ def main():
     parser.add_argument("--extra-request-body", default=None, help="JSON string passed through to bench_serving")
     parser.add_argument("--flush-cache", action="store_true")
     parser.add_argument("--warmup-requests", type=int, default=1)
+    parser.add_argument("--ignore-eos", action="store_true", help="Ignore EOS tokens and continue generation to max length")
 
     cli_args = parser.parse_args()
     cli_args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -205,8 +206,8 @@ def main():
                 "request_id": i,
                 "generated_text_sequential": s_text,
                 "generated_token_ids_sequential": s_tok,
-                "generated_text_qps_6": p_text,
-                "generated_token_ids_qps_6": p_tok,
+                f"generated_text_qps_{cli_args.qps}": p_text,
+                f"generated_token_ids_qps_{cli_args.qps}": p_tok,
                 "output_length": len(s_tok),
                 "first_mismatch_index": first_mismatch,
                 "second_mismatch_index": second_mismatch,

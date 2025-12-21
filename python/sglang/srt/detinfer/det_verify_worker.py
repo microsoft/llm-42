@@ -137,6 +137,8 @@ class DeterministicVerificationWorker:
                 reqs_to_verify.append(req)
         
         if reqs_to_verify:
+            logger.info(f"[DetVerifyWorker] Verifying {len(reqs_to_verify)} requests: "
+                       f"{[(req.rid[:8], len(req.output_ids), req.det_verified_tokens, req.finished_reason is not None) for req in reqs_to_verify]}")
             return self._verify_deterministic_requests_batched(
                 batch, reqs_to_verify, self.always_align, self.max_requests_per_verify
             )
@@ -210,12 +212,26 @@ class DeterministicVerificationWorker:
             
             verify_batch = det_verify_info.prepare_verify_batch(original_batch, reqs)
             
-            # Run verification forward pass (batch_invariant context is now managed in tp_worker)
-            verify_model_worker_batch = verify_batch.get_model_worker_batch()
-            verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
-            
-            # Extract results (sampling already done inside forward_batch_generation)
-            verified_token_ids = verify_output.next_token_ids
+            STEP_DEBUG = 1
+            ground_truth_token_ids = None
+            for sd in range(STEP_DEBUG):
+                # logger.info(f"[DetVerifyWorker] verify_batch seq_lens step {sd}: {verify_batch.seq_lens}")
+                # Run verification forward pass (batch_invariant context is now managed in tp_worker)
+                verify_model_worker_batch = verify_batch.get_model_worker_batch()
+                verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
+                
+                
+                # Extract results (sampling already done inside forward_batch_generation)
+                verified_token_ids = verify_output.next_token_ids
+                if sd == 0:
+                    ground_truth_token_ids = verified_token_ids.clone()
+                else:
+                    # Compare with ground truth tokens from first step
+                    if not torch.equal(verified_token_ids, ground_truth_token_ids):
+                        logger.error(f"[DetVerifyWorker][ERROR] Mismatch in verified tokens at step {sd}")
+                        logger.error(f"Ground truth tokens: {ground_truth_token_ids}")
+                        logger.error(f"Current tokens: {verified_token_ids}")
+                        raise ValueError("Deterministic verification failed: token mismatch across steps")
             verified_logprobs = verify_output.logits_output.next_token_logprobs
             
             # Compare outputs and handle rollback
@@ -235,9 +251,19 @@ class DeterministicVerificationWorker:
                         self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
                         self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
                     rollback_results.append((req, info[1]))
+                    # CRITICAL: Update det_verified_tokens after rollback
+                    # After rollback, output_ids has been truncated and corrected token appended
+                    # All tokens up to current length are now verified
+                    req.det_verified_tokens = len(req.output_ids)
+                    logger.info(f"[DetVerifyWorker] Rollback for req {req.rid[:8]}: "
+                               f"mismatch_pos={info[0]}, tokens_rolled_back={info[1]}, "
+                               f"new_output_len={len(req.output_ids)}, det_verified_tokens={req.det_verified_tokens}, "
+                               f"finished={req.finished_reason is not None}")
                 else:
                     # No rollback for this request
                     req.det_verified_tokens = len(req.output_ids)
+                    logger.debug(f"[DetVerifyWorker] No rollback for req {req.rid[:8]}: "
+                                f"output_len={len(req.output_ids)}, det_verified_tokens={req.det_verified_tokens}")
             
             # Update verified token counts
             # for req in reqs:

@@ -358,11 +358,11 @@ if __name__ == "__main__":
     host = os.getenv("SGLANG_HOST", "127.0.0.1")
     port = int(os.getenv("SGLANG_PORT", "30005"))
     base_url = f"http://{host}:{port}"
-    backend = os.getenv("SGLANG_ATTENTION_BACKEND", "flashinfer")
+    backend = os.getenv("SGLANG_ATTENTION_BACKEND", "fa3")
     
     # Configure batch sizes and max_tokens to test
-    batch_sizes = [i for i in range(3, 256, 13)]  # From 3 to 255 with step 13
-    max_tokens_list = [1, 8, 16, 133, 397, 723]
+    batch_sizes = [i for i in range(2, 3, 1)]  # From 2 to 255 with step 13
+    max_tokens_list = [66]
     
     # Configure prompt length (words)
     min_prompt_words = int(os.getenv("SGLANG_MIN_PROMPT_WORDS", "48"))

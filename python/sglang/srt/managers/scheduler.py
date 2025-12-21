@@ -1880,15 +1880,17 @@ class Scheduler(
             self.priority_scheduling_preemption_threshold,
         )
 
-        # For enable_det_infer mode 3, deterministic requests must be isolated (batch_size=1)
+        # For enable_det_infer modes, deterministic requests must be isolated (batch_size=1)
         # during prefill to ensure batch-invariant results. Decode can still be batched.
-        enable_det_infer_mode_3 = self.server_args.enable_det_infer == 3
+        # This applies to all det_infer modes (not just mode 3) because even with batch-invariant
+        # kernels, batched prefill can produce non-deterministic results due to attention.
+        enable_det_infer_isolated_prefill = self.server_args.enable_det_infer > 0
         has_deterministic_in_batch = False
 
         if self.chunked_req is not None:
             self.chunked_req.init_next_round_input()
-            # For mode 3, if chunked_req is deterministic, mark it so we don't add other requests
-            if enable_det_infer_mode_3 and self.chunked_req.is_deterministic:
+            # For det_infer modes, if chunked_req is deterministic, mark it so we don't add other requests
+            if enable_det_infer_isolated_prefill and self.chunked_req.is_deterministic:
                 has_deterministic_in_batch = True
             self.chunked_req = adder.add_chunked_req(self.chunked_req)
 
@@ -1897,14 +1899,14 @@ class Scheduler(
 
         # Get requests from the waiting queue to a new prefill batch
         for req in self.waiting_queue:
-            # In det_infer mode 3, if we already have a deterministic request in the batch,
+            # In det_infer modes, if we already have a deterministic request in the batch,
             # don't add more requests (ensure batch_size=1 for deterministic prefill)
-            if enable_det_infer_mode_3 and has_deterministic_in_batch:
+            if enable_det_infer_isolated_prefill and has_deterministic_in_batch:
                 break
             
-            # In det_infer mode 3, if we already have non-deterministic requests in the batch,
+            # In det_infer modes, if we already have non-deterministic requests in the batch,
             # skip this deterministic request but continue adding non-deterministic ones
-            if enable_det_infer_mode_3 and len(adder.can_run_list) > 0 and req.is_deterministic:
+            if enable_det_infer_isolated_prefill and len(adder.can_run_list) > 0 and req.is_deterministic:
                 continue
 
             if self.enable_lora and not self.tp_worker.can_run_lora_batch(
@@ -1945,7 +1947,7 @@ class Scheduler(
             
             # Track if we added a deterministic request to the batch
             # Check if req is in can_run_list (it gets appended if successfully added)
-            if enable_det_infer_mode_3 and req in adder.can_run_list and req.is_deterministic:
+            if enable_det_infer_isolated_prefill and req in adder.can_run_list and req.is_deterministic:
                 has_deterministic_in_batch = True
 
             if res != AddReqResult.CONTINUE:

@@ -13,7 +13,7 @@ skip_unsupported = pytest.mark.skipif(
 )
 
 BACKENDS: list[str] = [
-    "flashinfer",
+    "fa3",
 ]
 
 # Check if flash attention supports MLA by trying to import

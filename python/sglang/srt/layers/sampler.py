@@ -89,11 +89,12 @@ class Sampler(nn.Module):
         if sampling_info.is_all_greedy:
             # Use torch.argmax if all requests use greedy sampling
             batch_next_token_ids = torch.argmax(logits, -1)
+            # import logging
+            # logger = logging.getLogger(__name__)
+            # from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+            # logger.info(f"[DEBUG][Sampler][Greedy] Computing log_softmax, batch_invariant={is_batch_invariant_mode_enabled()}, shape={logits.shape}")
+            # logger.info(f"[DEBUG][Sampler][Greedy] Next token ids: {batch_next_token_ids}")
             if return_logprob:
-                import logging
-                logger = logging.getLogger(__name__)
-                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
-                #logger.info(f"[DEBUG][Sampler][Greedy] Computing log_softmax, batch_invariant={is_batch_invariant_mode_enabled()}, shape={logits.shape}")
                 logprobs = torch.nn.functional.log_softmax(logits, dim=-1)
 
         else:
@@ -102,7 +103,7 @@ class Sampler(nn.Module):
                 import logging
                 logger = logging.getLogger(__name__)
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
-                #logger.info(f"[DEBUG][Sampler][NonGreedy] Computing softmax (original), batch_invariant={is_batch_invariant_mode_enabled()}, shape={logits.shape}")
+                logger.info(f"[DEBUG][Sampler][NonGreedy] Computing softmax (original), batch_invariant={is_batch_invariant_mode_enabled()}, shape={logits.shape}")
                 probs_without_temp_scaling = torch.softmax(logits, dim=-1)
 
             # Post process logits

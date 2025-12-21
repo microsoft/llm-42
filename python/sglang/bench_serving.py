@@ -88,6 +88,7 @@ class RequestFuncOutput:
     prompt_len: int = 0
     error: str = ""
     output_len: int = 0
+    meta_info: Dict[str, Any] = field(default_factory=dict)  # Response meta_info
 
     @staticmethod
     def init_new(request_func_input: RequestFuncInput):
@@ -557,6 +558,8 @@ async def async_request_sglang_generate(
                                 timestamp = time.perf_counter()
                                 generated_text = data["text"]
                                 output_len = data["meta_info"]["completion_tokens"]
+                                # Store meta_info for later analysis
+                                output.meta_info = data.get("meta_info", {})
 
                                 # First token
                                 if ttft == 0.0:
@@ -1951,6 +1954,7 @@ async def benchmark(
         "itls": [output.itl for output in outputs],
         "generated_texts": [output.generated_text for output in outputs],
         "errors": [output.error for output in outputs],
+        "meta_info": [output.meta_info for output in outputs],
     }
 
     # Append results to a JSONL file
