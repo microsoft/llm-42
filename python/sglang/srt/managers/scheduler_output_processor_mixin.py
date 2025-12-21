@@ -642,12 +642,12 @@ class SchedulerOutputProcessorMixin:
                 
                 req.finished_output = True
                 should_output = True
-                logger.info(
-                    f"[Scheduler] Request finished: rid={req.rid}, "
-                    f"prompt_tokens={len(req.origin_input_ids)}, "
-                    f"completion_tokens={len(req.output_ids)}, "
-                    f"finish_reason={req.finished_reason.to_json() if req.finished_reason else None}"
-                )
+                # logger.info(
+                #     f"[Scheduler] Request finished: rid={req.rid}, "
+                #     f"prompt_tokens={len(req.origin_input_ids)}, "
+                #     f"completion_tokens={len(req.output_ids)}, "
+                #     f"finish_reason={req.finished_reason.to_json() if req.finished_reason else None}"
+                # )
             else:
                 if needs_verification:
                     if req.det_verified_tokens > req.send_token_offset and req.stream:
@@ -801,9 +801,9 @@ class SchedulerOutputProcessorMixin:
         # Send to detokenizer
         if rids:
             # Log which requests are being sent to detokenizer
-            finished_rids = [rid for rid, fr in zip(rids, finished_reasons) if fr is not None]
-            if finished_rids:
-                logger.info(f"[Scheduler] Sending {len(finished_rids)} finished request(s) to detokenizer: {finished_rids}")
+            # finished_rids = [rid for rid, fr in zip(rids, finished_reasons) if fr is not None]
+            # if finished_rids:
+            #     logger.info(f"[Scheduler] Sending {len(finished_rids)} finished request(s) to detokenizer: {finished_rids}")
             
             if self.model_config.is_multimodal_gen:
                 return

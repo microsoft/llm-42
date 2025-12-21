@@ -182,12 +182,13 @@ benchmark/mmlu/data
 benchmark/mmlu/data.tar
 benchmark/llava_bench/images
 benchmark/llava_bench/mme_pack
-#*.jsonl
+*.jsonl
+*.json
 tmp*.txt
 
 # Plots
-*.png
-*.pdf
+# *.png
+# *.pdf
 
 # personnal
 work_dirs/

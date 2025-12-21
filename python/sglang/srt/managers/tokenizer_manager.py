@@ -1405,12 +1405,12 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                 meta_info["e2e_latency"] = state.finished_time - state.created_time
 
                 # Log request completion
-                completion_tokens = recv_obj.completion_tokens[i] if hasattr(recv_obj, 'completion_tokens') else 0
-                logger.info(
-                    f"Request finished: rid={rid}, prompt_tokens={recv_obj.prompt_tokens[i]}, "
-                    f"completion_tokens={completion_tokens}, finish_reason={recv_obj.finished_reasons[i]}, "
-                    f"e2e_latency={meta_info['e2e_latency']:.3f}s, remaining_requests={len(self.rid_to_state)-1}"
-                )
+                # completion_tokens = recv_obj.completion_tokens[i] if hasattr(recv_obj, 'completion_tokens') else 0
+                # logger.info(
+                #     f"Request finished: rid={rid}, prompt_tokens={recv_obj.prompt_tokens[i]}, "
+                #     f"completion_tokens={completion_tokens}, finish_reason={recv_obj.finished_reasons[i]}, "
+                #     f"e2e_latency={meta_info['e2e_latency']:.3f}s, remaining_requests={len(self.rid_to_state)-1}"
+                # )
 
                 trace_req_finish(rid, ts=int(state.finished_time * 1e9))
 
