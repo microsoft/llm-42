@@ -1,76 +1,96 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Multi-QPS Mismatch Comparison Script
-# Runs four different QPS values (one per server) and compares the mismatches.
+# Multi-Config Mismatch Comparison Script
+# Runs the same QPS across servers with different configurations and compares the mismatches.
 #
 # Environment overrides:
-#   BASE_URLS (comma-separated list, default: http://127.0.0.1:30000,http://127.0.0.1:30001,http://127.0.0.1:30002,http://127.0.0.1:30003)
-#   QPS_VALUES (comma-separated list, default: 2,4,6,8)
+#   BASE_URLS (comma-separated list, default: http://127.0.0.1:30005,http://127.0.0.1:30006,http://127.0.0.1:30007,http://127.0.0.1:30008)
+#   CONFIG_NAMES (comma-separated list, default: sglang_non_deterministic,sglang_global_deterministic,detinfer_step_size_64,detinfer_step_size_128)
+#   QPS (default: 12)
 #   MODEL (default: meta-llama/Llama-3.1-8B-Instruct)
 #   TOKENIZER (default: empty = same as model)
+#   DATASET_NAME (default: sharegpt, can be "random" for synthetic workload)
 #   DATASET_PATH (optional local ShareGPT JSON)
-#   NUM_PROMPTS (default: 800)
+#   NUM_PROMPTS (default: 49152)
+#   RANDOM_INPUT_LEN (default: 1024, used when DATASET_NAME=random)
+#   RANDOM_OUTPUT_LEN (default: 1024, used when DATASET_NAME=random)
 #   SEED (default: 42)
 #   SEQ_CONCURRENCY (default: 1)
 #   EXTRA_REQUEST_BODY (default: '{"temperature":0}')
 #   BACKEND (default: sglang)
-#   OUTPUT_DIR (default: $ROOT/multi_qps_compare_out)
+#   OUTPUT_DIR (default: $ROOT/multi_config_out)
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 export PYTHONPATH="${PYTHONPATH:-}:${ROOT}/python"
 
 # Parse configuration
 BASE_URLS=${BASE_URLS:-"http://127.0.0.1:30005,http://127.0.0.1:30006,http://127.0.0.1:30007,http://127.0.0.1:30008"}
-QPS_VALUES=${QPS_VALUES:-"10,11,12,13"}
+CONFIG_NAMES=${CONFIG_NAMES:-"sglang_non_deterministic,sglang_global_deterministic,detinfer_step_size_64,detinfer_step_size_128"}
+QPS=${QPS:-12}
 MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
 TOKENIZER=${TOKENIZER:-}
+DATASET_NAME=${DATASET_NAME:-sharegpt}
 DATASET_PATH=${DATASET_PATH:-}
-NUM_PROMPTS=${NUM_PROMPTS:-52000}
+NUM_PROMPTS=${NUM_PROMPTS:-16384}
+RANDOM_INPUT_LEN=${RANDOM_INPUT_LEN:-1024}
+RANDOM_OUTPUT_LEN=${RANDOM_OUTPUT_LEN:-1024}
 SEED=${SEED:-42}
 SEQ_CONCURRENCY=${SEQ_CONCURRENCY:-1}
 SHAREGPT_CONTEXT_LEN=${SHAREGPT_CONTEXT_LEN:-16384}
 EXTRA_REQUEST_BODY=${EXTRA_REQUEST_BODY:-'{"temperature":0}'}
 BACKEND=${BACKEND:-sglang}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-OUTPUT_DIR=${OUTPUT_DIR:-"${ROOT}/reqs${NUM_PROMPTS}_s128_di_3_multi_qps_${TIMESTAMP}"}
+# Set default output directory based on dataset type
+if [ "$DATASET_NAME" = "random" ]; then
+    OUTPUT_DIR=${OUTPUT_DIR:-"${ROOT}/random_in${RANDOM_INPUT_LEN}_out${RANDOM_OUTPUT_LEN}_reqs${NUM_PROMPTS}_qps${QPS}_multi_config_${TIMESTAMP}"}
+else
+    OUTPUT_DIR=${OUTPUT_DIR:-"${ROOT}/sharegpt_reqs${NUM_PROMPTS}_qps${QPS}_multi_config_${TIMESTAMP}"}
+fi
 
 # Convert comma-separated strings to arrays
 IFS=',' read -ra URLS_ARRAY <<< "$BASE_URLS"
-IFS=',' read -ra QPS_ARRAY <<< "$QPS_VALUES"
+IFS=',' read -ra CONFIG_ARRAY <<< "$CONFIG_NAMES"
 
-# Validate that we have at least 2 servers and QPS values
+# Validate that we have at least 2 servers and configs
 if [ ${#URLS_ARRAY[@]} -lt 2 ]; then
     echo "Error: Need at least 2 server URLs. Got: ${#URLS_ARRAY[@]}"
     exit 1
 fi
 
-if [ ${#QPS_ARRAY[@]} -lt 2 ]; then
-    echo "Error: Need at least 2 QPS values. Got: ${#QPS_ARRAY[@]}"
+if [ ${#CONFIG_ARRAY[@]} -lt 2 ]; then
+    echo "Error: Need at least 2 config names. Got: ${#CONFIG_ARRAY[@]}"
     exit 1
 fi
 
 # Use the minimum of the two array sizes
 NUM_SERVERS=${#URLS_ARRAY[@]}
-NUM_QPS=${#QPS_ARRAY[@]}
-NUM_RUNS=$((NUM_SERVERS < NUM_QPS ? NUM_SERVERS : NUM_QPS))
+NUM_CONFIGS=${#CONFIG_ARRAY[@]}
+NUM_RUNS=$((NUM_SERVERS < NUM_CONFIGS ? NUM_SERVERS : NUM_CONFIGS))
 
 mkdir -p "$OUTPUT_DIR"
 
 echo "=============================================="
-echo "Multi-QPS Mismatch Comparison"
+echo "Multi-Config Mismatch Comparison"
 echo "=============================================="
 echo "Configuration:"
 echo "  Model:           $MODEL"
-echo "  Dataset:         ${DATASET_PATH:-ShareGPT (default)}"
+if [ "$DATASET_NAME" = "random" ]; then
+    echo "  Dataset:         random (synthetic)"
+    echo "  Input Length:    $RANDOM_INPUT_LEN"
+    echo "  Output Length:   $RANDOM_OUTPUT_LEN"
+else
+    echo "  Dataset:         ${DATASET_PATH:-ShareGPT (default)}"
+fi
 echo "  Num Prompts:     $NUM_PROMPTS"
+echo "  QPS:             $QPS (same for all servers)"
 echo "  Seed:            $SEED"
 echo "  Num Servers:     $NUM_RUNS"
 echo "  Output Dir:      $OUTPUT_DIR"
 echo ""
-echo "QPS to Server Mapping:"
+echo "Config to Server Mapping:"
 for ((i=0; i<NUM_RUNS; i++)); do
-    echo "  QPS ${QPS_ARRAY[$i]} -> ${URLS_ARRAY[$i]}"
+    echo "  ${CONFIG_ARRAY[$i]} -> ${URLS_ARRAY[$i]}"
 done
 echo "=============================================="
 echo ""
@@ -140,17 +160,21 @@ if [ "$ALL_HEALTHY" = false ]; then
 fi
 
 echo ""
-echo "All servers healthy. Running multi-QPS comparison..."
+echo "All servers healthy. Running multi-config comparison..."
 echo ""
 
-# Build command for direct QPS comparison
+# Build command for direct config comparison
 cmd=(
-    python "${ROOT}/compare_multi_qps_outputs.py"
+    python "${ROOT}/compare_multi_config_outputs.py"
     --backend "${BACKEND}"
     --base-urls "${BASE_URLS}"
-    --qps-values "${QPS_VALUES}"
+    --config-names "${CONFIG_NAMES}"
+    --qps "${QPS}"
     --model "${MODEL}"
+    --dataset-name "${DATASET_NAME}"
     --num-prompts "${NUM_PROMPTS}"
+    --random-input-len "${RANDOM_INPUT_LEN}"
+    --random-output-len "${RANDOM_OUTPUT_LEN}"
     --seed "${SEED}"
     --deterministic-ratio 1.0
     --output-dir "${OUTPUT_DIR}"
@@ -186,7 +210,7 @@ if [ $RESULT -eq 0 ]; then
     SUMMARY_FILE="$OUTPUT_DIR/summary.json"
     if [ -f "$SUMMARY_FILE" ] && command -v jq &> /dev/null; then
         echo "Pairwise Mismatch Summary:"
-        jq -r '.pairwise_comparisons[] | "  QPS \(.qps_1) vs QPS \(.qps_2): \(.mismatch_fraction * 100 | round / 100)% mismatch"' "$SUMMARY_FILE"
+        jq -r '.pairwise_comparisons[] | "  \(.config_1) vs \(.config_2): \(.mismatch_fraction * 100 | round / 100)% mismatch"' "$SUMMARY_FILE"
         echo ""
         echo "Heatmap plot: $OUTPUT_DIR/mismatch_heatmap.pdf"
     fi

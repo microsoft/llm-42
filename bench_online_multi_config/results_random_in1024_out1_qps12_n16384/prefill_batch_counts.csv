@@ -1,0 +1,5 @@
+config_name,batch_1,batch_2,batch_3,batch_4plus
+sglang_non_deterministic,15404,414,48,2
+sglang_global_deterministic,12970,1230,248,51
+detinfer_step_size_64,16384,0,0,0
+detinfer_step_size_128,16384,0,0,0
