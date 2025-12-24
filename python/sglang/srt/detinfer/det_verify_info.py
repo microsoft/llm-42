@@ -525,8 +525,9 @@ class DetVerifyInfo:
             
             tokens_to_rollback = len(orig_output) - mismatch_pos
             
-            # Inject mismatch if percentage is set and no natural mismatch exists
-            if tokens_to_rollback == 0 and mismatch_percentage is not None and len(orig_output) > 0:
+            # If mismatch_percentage is set, ALWAYS inject mismatch at calculated position
+            # This overrides any natural mismatch to ensure exactly X% rollback
+            if mismatch_percentage is not None and len(orig_output) > 0:
                 # Calculate mismatch position to rollback ceil(X% * window_size) tokens
                 window_size = len(orig_output)
                 tokens_to_rollback = math.ceil(mismatch_percentage / 100.0 * window_size)
