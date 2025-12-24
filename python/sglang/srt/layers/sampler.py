@@ -117,7 +117,16 @@ class Sampler(nn.Module):
             del logits
 
             if True:  # Keep this redundant check to simplify some internal code sync
-                if global_server_args_dict["sampling_backend"] == "flashinfer":
+                # Use pytorch backend if:
+                # 1. Forced (for verification batch)
+                # 2. Configured as default backend
+                # 3. sampling_seed is set (deterministic seeded sampling requires pytorch)
+                use_pytorch = (
+                    getattr(sampling_info, 'force_pytorch_backend', False) or
+                    global_server_args_dict["sampling_backend"] == "pytorch" or
+                    sampling_info.sampling_seed is not None
+                )
+                if not use_pytorch and global_server_args_dict["sampling_backend"] == "flashinfer":
                     if sampling_info.need_min_p_sampling:
                         probs = top_k_renorm_prob(probs, sampling_info.top_ks)
                         probs = top_p_renorm_prob(probs, sampling_info.top_ps)
@@ -132,7 +141,7 @@ class Sampler(nn.Module):
                             filter_apply_order="joint",
                             check_nan=self.use_nan_detection,
                         )
-                elif global_server_args_dict["sampling_backend"] == "pytorch":
+                elif use_pytorch:
                     # A slower fallback implementation with torch native operations.
                     batch_next_token_ids = top_k_top_p_min_p_sampling_from_probs_torch(
                         probs,

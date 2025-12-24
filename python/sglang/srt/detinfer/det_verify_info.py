@@ -380,6 +380,11 @@ class DetVerifyInfo:
         verify_batch.sampling_info = SamplingBatchInfo.from_schedule_batch(
             verify_batch, original_batch.model_config.vocab_size
         )
+        
+        # Force pytorch backend for verification to ensure deterministic seeded sampling
+        # via multinomial_with_seed, which uses (seed, position) for reproducibility
+        if verify_batch.sampling_info is not None:
+            verify_batch.sampling_info.force_pytorch_backend = True
 
         # logger.info(f"[DetVerifyWorker] Sampling info before adjustment: {verify_batch.sampling_info}")
         # logger.info(f"[DetVerifyWorker] Original sampling info: {original_batch.sampling_info}")

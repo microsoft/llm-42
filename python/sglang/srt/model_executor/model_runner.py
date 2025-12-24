@@ -2196,18 +2196,21 @@ class ModelRunner:
 
             self._preprocess_logits(logits_output, forward_batch.sampling_info)
             # Sample the next tokens
+            # Position selection for deterministic seeded sampling:
+            # - Decode: use forward_batch.positions (single position per request)
+            # - Verification (TARGET_DET_VERIFY): use forward_batch.positions (per-token positions)
+            # - Other extend modes: use seq_lens - 1 (last position only)
+            if forward_batch.forward_mode.is_decode() or forward_batch.forward_mode.is_target_det_verify():
+                positions = forward_batch.positions
+            else:
+                positions = forward_batch.seq_lens - 1
             next_token_ids = self.sampler(
                 logits_output,
                 forward_batch.sampling_info,
                 forward_batch.return_logprob,
                 forward_batch.top_logprobs_nums,
                 forward_batch.token_ids_logprobs,
-                # For prefill, we only use the position of the last token.
-                (
-                    forward_batch.positions
-                    if forward_batch.forward_mode.is_decode()
-                    else forward_batch.seq_lens - 1
-                ),
+                positions,
             )
             return next_token_ids
         finally:

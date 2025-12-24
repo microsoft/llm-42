@@ -67,6 +67,9 @@ class SamplingBatchInfo:
     # Used for deterministic sampling
     sampling_seed: Optional[torch.Tensor] = None
 
+    # Force pytorch backend for sampling (used for verification batch)
+    force_pytorch_backend: bool = False
+
     # Device
     device: str = "cuda"
 
