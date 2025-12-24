@@ -79,9 +79,9 @@ for ((i=0; i<NUM_GPUS; i++)); do
         --enable-metrics \
         --random-seed 42 \
         --chunked-prefill-size -1 \
-        --min-det-step-size 128 \
+        --min-det-step-size 32 \
         --enable-det-infer 3 \
-        --max-det-verify-batch-size 1 \
+        --max-det-verify-batch-size 16 \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!

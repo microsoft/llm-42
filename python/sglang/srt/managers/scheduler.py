@@ -525,6 +525,27 @@ class Scheduler(
         # Init memory pool and cache
         self.init_memory_pool_and_cache()
 
+        # Track reserved KV cache slots (e.g., for fixed-size verification pool)
+        self.reserved_kv_slots = 0
+
+        # Initialize fixed-size verification pool for deterministic inference
+        # (must be done after init_memory_pool_and_cache since allocators are needed)
+        if server_args.enable_det_infer and server_args.max_det_verify_batch_size is not None:
+            from sglang.srt.detinfer.det_verify_worker import DeterministicVerificationWorker
+            if isinstance(self.model_worker, DeterministicVerificationWorker):
+                # Use min_det_step_size as the step size for fixed batches
+                step_size = server_args.min_det_step_size or server_args.max_det_step_size
+                if step_size is not None:
+                    self.model_worker.init_fixed_pool(
+                        req_to_token_pool=self.req_to_token_pool,
+                        token_to_kv_pool_allocator=self.token_to_kv_pool_allocator,
+                        step_size=step_size,
+                        device=self.device,
+                    )
+                    # Track reserved slots for memory leak check
+                    if self.model_worker.fixed_pool is not None:
+                        self.reserved_kv_slots = len(self.model_worker.fixed_pool.dummy_cache_locs)
+
         # Init running status
         self.waiting_queue: List[Req] = []
         # The running decoding batch for continuous batching
@@ -1655,14 +1676,16 @@ class Scheduler(
         else:
             _, _, available_size, evictable_size = self._get_token_info()
             protected_size = self.tree_cache.protected_size()
-            memory_leak = (available_size + evictable_size) != (
+            # Account for reserved KV slots (e.g., fixed-size verification pool)
+            reserved_slots = getattr(self, 'reserved_kv_slots', 0)
+            memory_leak = (available_size + evictable_size + reserved_slots) != (
                 # self.max_total_num_tokens
                 # if not self.enable_hierarchical_cache
                 # else self.max_total_num_tokens - protected_size
                 self.max_total_num_tokens
                 - protected_size
             )
-            token_msg = f"{self.max_total_num_tokens=}, {available_size=}, {evictable_size=}, {protected_size=}\n"
+            token_msg = f"{self.max_total_num_tokens=}, {available_size=}, {evictable_size=}, {protected_size=}, {reserved_slots=}\n"
 
         if memory_leak:
             msg = "token_to_kv_pool_allocator memory leak detected! " f"{token_msg}"

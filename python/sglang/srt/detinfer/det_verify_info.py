@@ -19,6 +19,7 @@ import logging
 import math
 from typing import TYPE_CHECKING, List, Optional
 
+import numpy as np
 import torch
 
 from sglang.srt.model_executor.forward_batch_info import ForwardMode
@@ -55,6 +56,10 @@ class DetVerifyInfo:
         self.padding_masks = padding_masks  # masks to identify real vs padded tokens
         self.padding_counts = padding_counts  # number of padding predictions per request
         
+        # Track number of real vs dummy requests
+        self.num_real_requests = len(output_lens)
+        self.num_dummy_requests = 0
+        
         # Calculate KV cache slots needed for padding
         # We need NEW cache for tokens after context
         # For each padded request: input = [context] + [actual_len-1 tokens] + [padding_count dummies]
@@ -67,6 +72,29 @@ class DetVerifyInfo:
         # Will be set after KV cache allocation for padding
         self.padding_cache_locs: Optional[torch.Tensor] = None
         self.padding_cache_locs_allocated: Optional[torch.Tensor] = None  # Track full allocation for freeing
+    
+    def append_dummy_entries(self, num_dummies: int, step_size: int):
+        """
+        Append dummy request entries for fixed-size batch padding.
+        
+        Dummy requests have no real outputs—their padding masks are all False,
+        so their outputs are completely ignored during comparison.
+        
+        Args:
+            num_dummies: Number of dummy requests to add
+            step_size: Step size (padded length) for each dummy
+        """
+        for _ in range(num_dummies):
+            self.output_lens.append(0)  # No real outputs
+            self.padded_lens.append(step_size)
+            self.padding_masks.append([False] * step_size)  # All padding
+            self.padding_counts.append(step_size)
+        
+        self.num_dummy_requests = num_dummies
+        
+        # Note: We don't update padding_cache_slots or total_padding_cache_slots here
+        # because dummy requests use pre-allocated cache from FixedSizeVerificationPool,
+        # not the temporary allocation in allocate_padding_kv_cache()
 
     @classmethod
     def from_requests(
@@ -74,6 +102,7 @@ class DetVerifyInfo:
         reqs: List[Req], 
         start_idx: int = 0,
         always_align: bool = True,
+        force_include_all: bool = False,
     ) -> DetVerifyInfo:
         """
         Create DetVerifyInfo from a list of finished deterministic requests.
@@ -82,6 +111,8 @@ class DetVerifyInfo:
             reqs: List of requests to verify
             start_idx: Index from which to start verifying tokens (for incremental verification)
             always_align: If True, pad finished requests to step_size with dummy tokens
+            force_include_all: If True, include and pad all requests regardless of finished status.
+                              Used for fixed-size batches where we need to include not-yet-ready requests.
             
         Returns:
             DetVerifyInfo instance
@@ -108,7 +139,17 @@ class DetVerifyInfo:
             is_finished = req.finished_reason is not None
             step_size = getattr(req, 'det_step_size', None)
             
-            if always_align and is_finished and step_size is not None and actual_len < step_size:
+            # Pad if:
+            # 1. always_align is True AND step_size is set AND actual_len < step_size
+            # 2. AND (request is finished OR force_include_all is True)
+            should_pad = (
+                always_align and 
+                step_size is not None and 
+                actual_len < step_size and
+                (is_finished or force_include_all)
+            )
+            
+            if should_pad:
                 # Pad to step_size with dummy tokens
                 padding_needed = step_size - actual_len
                 original_outputs.extend(unverified_output_ids)
@@ -218,6 +259,11 @@ class DetVerifyInfo:
         self,
         original_batch: ScheduleBatch,
         reqs_to_verify: List[Req],
+        dummy_input_ids: Optional[torch.Tensor] = None,
+        dummy_cache_locs: Optional[torch.Tensor] = None,
+        num_dummies: int = 0,
+        step_size: Optional[int] = None,
+        dummy_sampling_tuple: Optional[tuple] = None,
     ) -> ScheduleBatch:
         """
         Prepare a batch for verification with TARGET_DET_VERIFY mode.
@@ -226,15 +272,28 @@ class DetVerifyInfo:
         to re-run through the model. When always_align is True, padded tokens
         use dummy values and will be masked out during comparison.
         
+        For fixed-size batches, dummy requests are appended using pre-allocated
+        resources from FixedSizeVerificationPool.
+        
         Args:
             original_batch: Original batch context
-            reqs_to_verify: Requests to verify
+            reqs_to_verify: Requests to verify (real requests only)
+            dummy_input_ids: Pre-allocated dummy input tokens (optional)
+            dummy_cache_locs: Pre-allocated dummy cache locations (optional)
+            num_dummies: Number of dummy requests to append (default 0)
+            step_size: Step size for dummy requests (required if num_dummies > 0)
+            dummy_sampling_tuple: Pre-allocated dummy sampling tensors as tuple (optional)
+                Format: (temps, top_ps, top_ks, min_ps, seeds, det_indices, prefix_lens, output_lens)
             
         Returns:
             Modified batch ready for verification
         """
         from sglang.srt.managers.schedule_batch import ScheduleBatch
         from sglang.srt.sampling.sampling_batch_info import SamplingBatchInfo
+        
+        # For fixed-size batches, we include dummy requests in the batch
+        # but keep track of the real requests for result processing
+        total_batch_size = len(reqs_to_verify) + num_dummies
         
         verify_batch = ScheduleBatch(reqs=reqs_to_verify, batch_is_full=True)
         verify_batch.forward_mode = ForwardMode.TARGET_DET_VERIFY
@@ -431,26 +490,138 @@ class DetVerifyInfo:
                 out_cache_locs.extend(padding_locs.tolist())
                 padding_offset += remaining_needed
         
-        # logger.info(
-        #     f"[DET_VERIFY] cache location count: {verify_batch.req_to_token_pool.req_to_token=}, "
-        #     f"expected (input_ids length): {len(input_ids)}"
-        # )
+        # Convert real request data to tensors first
+        real_input_ids = torch.tensor(input_ids, dtype=torch.int64, device=device)
+        real_cache_locs = torch.tensor(out_cache_locs, dtype=torch.int64, device=device)
+        real_req_pool_indices = torch.tensor(req_pool_indices, dtype=torch.int64, device=device)
+        real_prefix_lens = torch.tensor(prefix_lens_list, dtype=torch.int64, device=device)
+        real_output_lens = torch.tensor(output_lens, dtype=torch.int64, device=device)
         
-        if len(out_cache_locs) != len(input_ids):
+        # Append dummy request data for fixed-size batches
+        if num_dummies > 0 and dummy_input_ids is not None and dummy_cache_locs is not None:
+            if step_size is None:
+                raise ValueError("step_size required when adding dummy requests")
+            
+            dummy_tokens_needed = num_dummies * step_size
+            
+            # Use tensor concatenation instead of list extend + tensor creation
+            # This avoids CPU-GPU round trips
+            verify_batch.input_ids = torch.cat([
+                real_input_ids, 
+                dummy_input_ids[:dummy_tokens_needed]
+            ], dim=0)
+            
+            verify_batch.out_cache_loc = torch.cat([
+                real_cache_locs,
+                dummy_cache_locs[:dummy_tokens_needed]
+            ], dim=0)
+            
+            # Extend req_pool_indices for dummy requests (use first real's index)
+            dummy_pool_idx = req_pool_indices[0] if req_pool_indices else 0
+            dummy_pool_indices = torch.full((num_dummies,), dummy_pool_idx, dtype=torch.int64, device=device)
+            verify_batch.req_pool_indices = torch.cat([real_req_pool_indices, dummy_pool_indices], dim=0)
+            
+            # Use pre-allocated tensors if available, otherwise create new ones
+            # Tuple order: (temperatures, top_ps, top_ks, min_ps, seeds, det_indices, prefix_lens, output_lens)
+            if dummy_sampling_tuple is not None:
+                dummy_prefix_lens = dummy_sampling_tuple[6]
+                dummy_output_lens = dummy_sampling_tuple[7]
+            else:
+                dummy_prefix_lens = torch.zeros(num_dummies, dtype=torch.int64, device=device)
+                dummy_output_lens = torch.full((num_dummies,), step_size, dtype=torch.int64, device=device)
+            
+            prefix_lens = torch.cat([real_prefix_lens, dummy_prefix_lens], dim=0)
+            extend_lens_tensor = torch.cat([real_output_lens, dummy_output_lens], dim=0)
+            total_seq_lens = prefix_lens + extend_lens_tensor
+            
+            verify_batch.extend_lens = extend_lens_tensor.tolist()
+            verify_batch.prefix_lens = prefix_lens.tolist()
+            verify_batch.seq_lens = total_seq_lens
+            verify_batch.seq_lens_cpu = total_seq_lens.cpu()
+            verify_batch.extend_logprob_start_lens = [1] * (len(reqs_to_verify) + num_dummies)
+            
+            verify_batch.extend_num_tokens = len(verify_batch.input_ids)
+            verify_batch.seq_lens_sum = total_seq_lens.sum().item()
+            verify_batch.orig_seq_lens = total_seq_lens.clone()
+            
+            verify_batch.top_logprobs_nums = [0] * (len(reqs_to_verify) + num_dummies)
+            verify_batch.token_ids_logprobs = [[] for _ in range(len(reqs_to_verify) + num_dummies)]
+            
+            # Extend sampling info with dummy values (use pre-allocated if available)
+            if verify_batch.sampling_info is not None:
+                if dummy_sampling_tuple is not None:
+                    # Use pre-allocated tensors - tuple order: (temps, top_ps, top_ks, min_ps, seeds, det_indices, prefix_lens, output_lens)
+                    dummy_temps = dummy_sampling_tuple[0].to(verify_batch.sampling_info.temperatures.dtype)
+                    dummy_top_ps = dummy_sampling_tuple[1].to(verify_batch.sampling_info.top_ps.dtype)
+                    dummy_top_ks = dummy_sampling_tuple[2].to(verify_batch.sampling_info.top_ks.dtype)
+                    dummy_min_ps = dummy_sampling_tuple[3].to(verify_batch.sampling_info.min_ps.dtype)
+                else:
+                    # Fallback: create new tensors
+                    dummy_temps = torch.zeros((dummy_tokens_needed, 1), dtype=verify_batch.sampling_info.temperatures.dtype, device=device)
+                    dummy_top_ps = torch.ones(dummy_tokens_needed, dtype=verify_batch.sampling_info.top_ps.dtype, device=device)
+                    dummy_top_ks = torch.full((dummy_tokens_needed,), -1, dtype=verify_batch.sampling_info.top_ks.dtype, device=device)
+                    dummy_min_ps = torch.zeros(dummy_tokens_needed, dtype=verify_batch.sampling_info.min_ps.dtype, device=device)
+                
+                verify_batch.sampling_info.temperatures = torch.cat([
+                    verify_batch.sampling_info.temperatures, dummy_temps
+                ], dim=0)
+                verify_batch.sampling_info.top_ps = torch.cat([
+                    verify_batch.sampling_info.top_ps, dummy_top_ps
+                ], dim=0)
+                verify_batch.sampling_info.top_ks = torch.cat([
+                    verify_batch.sampling_info.top_ks, dummy_top_ks
+                ], dim=0)
+                verify_batch.sampling_info.min_ps = torch.cat([
+                    verify_batch.sampling_info.min_ps, dummy_min_ps
+                ], dim=0)
+                
+                if verify_batch.sampling_info.sampling_seed is not None:
+                    if dummy_sampling_tuple is not None:
+                        dummy_seeds = dummy_sampling_tuple[4].to(verify_batch.sampling_info.sampling_seed.dtype)
+                    else:
+                        dummy_seeds = torch.zeros(dummy_tokens_needed, dtype=verify_batch.sampling_info.sampling_seed.dtype, device=device)
+                    verify_batch.sampling_info.sampling_seed = torch.cat([
+                        verify_batch.sampling_info.sampling_seed, dummy_seeds
+                    ], dim=0)
+                
+                if verify_batch.sampling_info.deterministic_indices is not None:
+                    if dummy_sampling_tuple is not None:
+                        dummy_det_indices = dummy_sampling_tuple[5].to(verify_batch.sampling_info.deterministic_indices.dtype)
+                    else:
+                        dummy_det_indices = torch.ones((dummy_tokens_needed, 1), dtype=verify_batch.sampling_info.deterministic_indices.dtype, device=device)
+                    verify_batch.sampling_info.deterministic_indices = torch.cat([
+                        verify_batch.sampling_info.deterministic_indices, dummy_det_indices
+                    ], dim=0)
+        else:
+            # No dummies - use real tensors directly
+            verify_batch.input_ids = real_input_ids
+            verify_batch.out_cache_loc = real_cache_locs
+            verify_batch.req_pool_indices = real_req_pool_indices
+            
+            total_seq_lens = real_prefix_lens + real_output_lens
+            verify_batch.extend_lens = output_lens
+            verify_batch.prefix_lens = prefix_lens_list
+            verify_batch.seq_lens = total_seq_lens
+            verify_batch.seq_lens_cpu = total_seq_lens.cpu()
+            verify_batch.extend_logprob_start_lens = [1] * len(reqs_to_verify)
+            
+            verify_batch.extend_num_tokens = len(real_input_ids)
+            verify_batch.seq_lens_sum = total_seq_lens.sum().item()
+            verify_batch.orig_seq_lens = total_seq_lens.clone()
+            
+            verify_batch.top_logprobs_nums = [0] * len(reqs_to_verify)
+            verify_batch.token_ids_logprobs = [[] for _ in range(len(reqs_to_verify))]
+        
+        # Verify consistency
+        if len(verify_batch.out_cache_loc) != len(verify_batch.input_ids):
             logger.error(
                 f"[DET_VERIFY] ERROR: Mismatch in cache location count! "
-                f"expected={len(input_ids)}, actual={len(out_cache_locs)}, "
-                f"input_ids length={len(input_ids)}"
+                f"expected={len(verify_batch.input_ids)}, actual={len(verify_batch.out_cache_loc)}"
             )
             raise RuntimeError(
-                f"Verification batch has {len(input_ids)} input tokens but only "
-                f"{len(out_cache_locs)} cache locations. This will cause memory corruption."
+                f"Verification batch has {len(verify_batch.input_ids)} input tokens but only "
+                f"{len(verify_batch.out_cache_loc)} cache locations. This will cause memory corruption."
             )
-        
-        # Downstream fused RoPE kernel requires int64 cache indices
-        verify_batch.out_cache_loc = torch.tensor(
-            out_cache_locs, dtype=torch.int64, device=device
-        )
         
         return verify_batch
 
@@ -468,10 +639,18 @@ class DetVerifyInfo:
         Returns:
             Index of the first mismatch position, or length if all match
         """
-        for i, (orig, verify) in enumerate(zip(original_ids, verified_ids)):
-            if orig != verify:
-                return i
-        return min(len(original_ids), len(verified_ids))
+        min_len = min(len(original_ids), len(verified_ids))
+        if min_len == 0:
+            return 0
+        
+        # Use numpy for faster vectorized comparison
+        orig_arr = np.asarray(original_ids[:min_len])
+        verify_arr = np.asarray(verified_ids[:min_len])
+        mismatches = np.where(orig_arr != verify_arr)[0]
+        
+        if len(mismatches) > 0:
+            return int(mismatches[0])
+        return min_len
 
     def verify_and_compare(
         self,
@@ -485,9 +664,10 @@ class DetVerifyInfo:
         On mismatch: ROLLBACK and ACCEPT the verified token predicted at mismatch position.
         
         When always_align is used, padding tokens are masked out and not compared.
+        Note: Only processes real requests, not dummy entries added via append_dummy_entries().
         
         Args:
-            reqs: Requests that were verified
+            reqs: Requests that were verified (real requests only, not dummies)
             verified_token_ids: Token IDs from verification run (argmax predictions)
             verified_logprobs: Log probabilities from verification run (optional)
             mismatch_percentage: If set (0-100), inject a mismatch at position
@@ -504,20 +684,24 @@ class DetVerifyInfo:
         rollback_info = []
         offset = 0
         
-        for i, req in enumerate(reqs):
+        # Only process real requests (first num_real_requests entries)
+        # Dummy entries are skipped - their outputs are ignored
+        num_to_process = min(len(reqs), self.num_real_requests)
+        
+        for i in range(num_to_process):
+            req = reqs[i]
             padded_len = self.padded_lens[i]
             actual_len = self.output_lens[i]  # Only compare actual tokens, not padding
-            padding_mask = self.padding_masks[i]
             
             # Extract only the real (non-padded) tokens for comparison
-            orig_output = [original_ids[offset + j] for j in range(padded_len) if padding_mask[j]]
-            verify_output_full = verified_token_ids[offset : offset + padded_len]
-            verify_output = [verify_output_full[j] for j in range(padded_len) if padding_mask[j]]
+            # Optimization: Since padding is always at the end, we can slice directly
+            # instead of using list comprehension with mask
+            orig_output = original_ids[offset : offset + actual_len]
+            verify_output = verified_token_ids[offset : offset + actual_len]
             
             # Also extract logprobs for real tokens only
             if verified_logprobs_list is not None:
-                verify_logprobs_full = verified_logprobs_list[offset : offset + padded_len]
-                verify_logprobs = [verify_logprobs_full[j] for j in range(padded_len) if padding_mask[j]]
+                verify_logprobs = verified_logprobs_list[offset : offset + actual_len]
             else:
                 verify_logprobs = None
             
