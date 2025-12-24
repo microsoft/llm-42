@@ -37,10 +37,7 @@ echo ""
 
 # Dataset configurations: input_len output_len
 declare -a DATASET_CONFIGS=(
-    "512 513"
-    "1024 513"
-    "2048 513"
-    "4096 513"
+    "1024 1025"
 )
 
 # Run each dataset configuration
@@ -54,7 +51,7 @@ for config in "${DATASET_CONFIGS[@]}"; do
     
     export RANDOM_INPUT_LEN=$INPUT_LEN
     export RANDOM_OUTPUT_LEN=$OUTPUT_LEN
-    export OUTPUT_DIR="${ROOT}/results_in${INPUT_LEN}_out${OUTPUT_LEN}_qps${QPS}_n${NUM_PROMPTS}"
+    export OUTPUT_DIR="${ROOT}/debug_in${INPUT_LEN}_out${OUTPUT_LEN}_qps${QPS}_n${NUM_PROMPTS}"
     
     echo "Dataset: random (synthetic)"
     echo "Input Length: $RANDOM_INPUT_LEN"
