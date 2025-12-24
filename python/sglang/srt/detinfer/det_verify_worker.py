@@ -47,6 +47,7 @@ class DeterministicVerificationWorker:
         always_align: bool = True,
         max_requests_per_verify: Optional[int] = None,
         metrics_collector = None,
+        skip_mismatch: float = 100.0,
     ):
         """
         Initialize the deterministic verification worker.
@@ -61,11 +62,16 @@ class DeterministicVerificationWorker:
                          verified in chunks of this size (e.g., 20 requests with max=10
                          will be verified as 10+10). Default: None.
             metrics_collector: Optional metrics collector for tracking rollback stats.
+            skip_mismatch: Mismatch rate percentage (0.0-100.0).
+                         100.0 = normal verification (natural mismatches cause rollback).
+                         0.0 = force no mismatches (skip all, for measuring overhead).
+                         Values in between (e.g., 5.0) = inject mismatch at position to rollback ceil(5% * window_size) tokens.
         """
         self.target_worker = target_worker
         self.always_align = always_align
         self.max_requests_per_verify = max_requests_per_verify
         self.metrics_collector = metrics_collector
+        self.skip_mismatch = skip_mismatch
 
     def forward_batch_generation(
         self,
@@ -235,9 +241,21 @@ class DeterministicVerificationWorker:
             verified_logprobs = verify_output.logits_output.next_token_logprobs
             
             # Compare outputs and handle rollback
-            rollback_info = det_verify_info.verify_and_compare(
-                reqs, verified_token_ids, verified_logprobs
-            )
+            # Handle skip_mismatch percentage: 100.0=normal, 0.0=force no mismatches, in-between=inject at calculated position
+            if self.skip_mismatch >= 100.0:
+                # Normal verification - natural mismatches cause rollback
+                rollback_info = det_verify_info.verify_and_compare(
+                    reqs, verified_token_ids, verified_logprobs
+                )
+            elif self.skip_mismatch <= 0.0:
+                # Force no mismatches - skip all rollbacks
+                rollback_info = [(len(req.output_ids) - req.det_verified_tokens, 0) for req in reqs]
+            else:
+                # Percentage-based: inject mismatch at position (window - ceil(X% * window))
+                rollback_info = det_verify_info.verify_and_compare(
+                    reqs, verified_token_ids, verified_logprobs,
+                    mismatch_percentage=self.skip_mismatch
+                )
             
             # Collect rollback info for KV cache freeing (will be done by caller)
             rollback_results = []

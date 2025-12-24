@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import TYPE_CHECKING, List, Optional
 
 import torch
@@ -477,6 +478,7 @@ class DetVerifyInfo:
         reqs: List[Req],
         verified_token_ids: torch.Tensor,
         verified_logprobs: Optional[torch.Tensor] = None,
+        mismatch_percentage: Optional[float] = None,
     ):
         """
         Compare original outputs with re-generated outputs.
@@ -488,6 +490,9 @@ class DetVerifyInfo:
             reqs: Requests that were verified
             verified_token_ids: Token IDs from verification run (argmax predictions)
             verified_logprobs: Log probabilities from verification run (optional)
+            mismatch_percentage: If set (0-100), inject a mismatch at position
+                                (window_size - ceil(percentage/100 * window_size)).
+                                This causes exactly ceil(X% * window_size) tokens to be rolled back.
             
         Returns:
             List of (mismatch_position, tokens_rolled_back) tuples for each request
@@ -519,6 +524,13 @@ class DetVerifyInfo:
             mismatch_pos = self.first_mismatch_position(orig_output, verify_output)
             
             tokens_to_rollback = len(orig_output) - mismatch_pos
+            
+            # Inject mismatch if percentage is set and no natural mismatch exists
+            if tokens_to_rollback == 0 and mismatch_percentage is not None and len(orig_output) > 0:
+                # Calculate mismatch position to rollback ceil(X% * window_size) tokens
+                window_size = len(orig_output)
+                tokens_to_rollback = math.ceil(mismatch_percentage / 100.0 * window_size)
+                mismatch_pos = window_size - tokens_to_rollback
             
             if tokens_to_rollback > 0:
                 req.output_ids = req.output_ids[:-tokens_to_rollback]

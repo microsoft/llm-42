@@ -417,6 +417,7 @@ class ServerArgs:
     min_det_step_size: Optional[int] = None
     max_det_step_size: Optional[int] = None
     max_det_verify_batch_size: Optional[int] = None  # Max requests per verification batch
+    det_skip_mismatch: float = 100.0  # Mismatch rate (100.0=normal, 0.0=force no mismatches, 5.0=inject exactly 5% mismatches)
 
     # Dynamic batch tokenizer
     enable_dynamic_batch_tokenizer: bool = False
@@ -2813,6 +2814,16 @@ class ServerArgs:
             help="Maximum number of requests to verify in a single verification batch. "
                  "If not set, all requests are verified together. "
                  "For example, with max_det_verify_batch_size=10, 22 requests will be verified as 10+10+2.",
+        )
+        parser.add_argument(
+            "--det-skip-mismatch",
+            type=float,
+            default=ServerArgs.det_skip_mismatch,
+            help="Mismatch rate percentage (0.0-100.0). "
+                 "100.0 means normal behavior (natural mismatches cause rollback). "
+                 "0.0 means force no mismatches (skip all, verification runs but always assumes success). "
+                 "Values in between (e.g., 5.0) inject mismatch to rollback ceil(5%% * window_size) tokens per window. "
+                 "Useful for measuring verification overhead with controlled mismatch rates.",
         )
 
         # Deprecated arguments
