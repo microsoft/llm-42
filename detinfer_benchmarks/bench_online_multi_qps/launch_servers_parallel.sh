@@ -81,7 +81,7 @@ for ((i=0; i<NUM_GPUS; i++)); do
         --chunked-prefill-size -1 \
         --min-det-step-size 32 \
         --enable-det-infer 3 \
-        --max-det-verify-batch-size 16 \
+        --max-det-verify-batch-size 32 \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!

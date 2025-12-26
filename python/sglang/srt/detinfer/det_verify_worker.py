@@ -62,6 +62,7 @@ class FixedSizeVerificationPool:
         self.fixed_size = fixed_size
         self.step_size = step_size
         self.device = device
+        self.req_to_token_pool = req_to_token_pool
         
         # Pre-allocate dummy input_ids (N * step_size tokens)
         total_dummy_tokens = fixed_size * step_size
@@ -73,8 +74,7 @@ class FixedSizeVerificationPool:
         )
         
         # Pre-allocate KV cache slots for dummy requests
-        # Each dummy request needs (step_size - 1) cache slots after context
-        # But we also need the context slot, so allocate step_size per dummy
+        # Each dummy request needs step_size cache slots
         slots_needed = fixed_size * step_size
         
         # Handle page size alignment
@@ -89,12 +89,29 @@ class FixedSizeVerificationPool:
                 f"Consider reducing max_det_verify_batch_size or increasing KV cache size."
             )
         
-        # Pre-allocate dummy request pool indices
-        # These are virtual indices that won't conflict with real requests
-        # We use negative indices or indices beyond normal range
-        self.dummy_req_pool_indices = torch.arange(
-            -fixed_size, 0, dtype=torch.int64, device=device
+        # CRITICAL FIX: Allocate actual row indices in req_to_token_pool for dummy requests
+        # This is necessary because FlashAttention uses req_pool_indices to look up
+        # the page_table from req_to_token_pool.req_to_token[req_pool_indices, :]
+        allocated_pool_indices = req_to_token_pool.alloc(fixed_size)
+        if allocated_pool_indices is None or len(allocated_pool_indices) < fixed_size:
+            raise RuntimeError(
+                f"Failed to allocate {fixed_size} req_to_token_pool slots for dummy requests. "
+                f"Consider reducing max_det_verify_batch_size or increasing pool size."
+            )
+        
+        self.dummy_req_pool_indices = torch.tensor(
+            allocated_pool_indices, dtype=torch.int64, device=device
         )
+        self._allocated_pool_indices = allocated_pool_indices  # Keep for freeing
+        
+        # Write dummy cache locations into req_to_token_pool for each dummy request
+        # Each dummy request gets step_size consecutive cache slots
+        # FlashAttention only reads page_table[i, 0:cache_seqlens[i]], so we only need
+        # to fill the first step_size columns (cache_seqlens for dummies = step_size)
+        for i, pool_idx in enumerate(allocated_pool_indices):
+            start_slot = i * step_size
+            end_slot = start_slot + step_size
+            req_to_token_pool.req_to_token[pool_idx, :step_size] = self.dummy_cache_locs[start_slot:end_slot].to(torch.int32)
         
         # Pre-allocate dummy sampling tensors (optimization: avoid creating these per-call)
         self.dummy_temps = torch.zeros((total_dummy_tokens, 1), dtype=torch.float32, device=device)
@@ -110,7 +127,8 @@ class FixedSizeVerificationPool:
         
         logger.info(
             f"FixedSizeVerificationPool initialized: fixed_size={fixed_size}, "
-            f"step_size={step_size}, dummy_cache_slots={len(self.dummy_cache_locs)}"
+            f"step_size={step_size}, dummy_cache_slots={len(self.dummy_cache_locs)}, "
+            f"dummy_pool_indices={allocated_pool_indices}"
         )
     
     def get_dummy_data(self, num_dummies: int):
@@ -168,10 +186,15 @@ class FixedSizeVerificationPool:
         )
     
     def free(self, token_to_kv_pool_allocator):
-        """Free the pre-allocated KV cache slots."""
+        """Free the pre-allocated KV cache slots and req_to_token_pool slots."""
         if self.dummy_cache_locs is not None and len(self.dummy_cache_locs) > 0:
             token_to_kv_pool_allocator.free(self.dummy_cache_locs)
             self.dummy_cache_locs = None
+        
+        # Also free the req_to_token_pool slots
+        if hasattr(self, '_allocated_pool_indices') and self._allocated_pool_indices is not None:
+            self.req_to_token_pool.free(self._allocated_pool_indices)
+            self._allocated_pool_indices = None
 
 
 class DeterministicVerificationWorker:
@@ -467,13 +490,14 @@ class DeterministicVerificationWorker:
                 )
             
             # Prepare verification batch with dummy data and pre-allocated sampling tensors
-            dummy_input_ids, dummy_cache_locs, _ = self.fixed_pool.get_dummy_data(num_dummies)
+            dummy_input_ids, dummy_cache_locs, dummy_req_pool_indices = self.fixed_pool.get_dummy_data(num_dummies)
             dummy_sampling_tuple = self.fixed_pool.get_dummy_sampling_tensors(num_dummies) if num_dummies > 0 else None
             verify_batch = det_verify_info.prepare_verify_batch(
                 original_batch, 
                 real_reqs,
                 dummy_input_ids=dummy_input_ids,
                 dummy_cache_locs=dummy_cache_locs,
+                dummy_req_pool_indices=dummy_req_pool_indices,
                 num_dummies=num_dummies,
                 step_size=self.fixed_pool.step_size,
                 dummy_sampling_tuple=dummy_sampling_tuple,

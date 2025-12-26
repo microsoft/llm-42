@@ -1,0 +1,39 @@
+============================================================
+Multi-QPS Comparison Summary
+============================================================
+
+Num Prompts: 50000
+Seed: 42
+QPS Values: [4.0, 8.0, 12.0, 16.0]
+
+------------------------------------------------------------
+Per-QPS Output & Rollback Stats:
+------------------------------------------------------------
+QPS 4.0:
+  Total Output Tokens: 9654719
+  Total Tokens Rolled Back: 483583
+  Rollback %: 5.0088%
+QPS 8.0:
+  Total Output Tokens: 9654719
+  Total Tokens Rolled Back: 628784
+  Rollback %: 6.5127%
+QPS 12.0:
+  Total Output Tokens: 9654719
+  Total Tokens Rolled Back: 621473
+  Rollback %: 6.4370%
+QPS 16.0:
+  Total Output Tokens: 9654719
+  Total Tokens Rolled Back: 166165
+  Rollback %: 1.7211%
+
+------------------------------------------------------------
+Pairwise Comparisons:
+------------------------------------------------------------
+QPS 4.0 vs QPS 8.0: 0 mismatches, 0 deltas > 64, 0 deltas > 128
+QPS 4.0 vs QPS 12.0: 0 mismatches, 0 deltas > 64, 0 deltas > 128
+QPS 4.0 vs QPS 16.0: 0 mismatches, 0 deltas > 64, 0 deltas > 128
+QPS 8.0 vs QPS 12.0: 0 mismatches, 0 deltas > 64, 0 deltas > 128
+QPS 8.0 vs QPS 16.0: 0 mismatches, 0 deltas > 64, 0 deltas > 128
+QPS 12.0 vs QPS 16.0: 0 mismatches, 0 deltas > 64, 0 deltas > 128
+
+Heatmap: /workspace/detinfer_benchmarks/bench_online_multi_qps/temp0_s32_di3_bs16_multi_qps_20251225_032735/reqs_50000/mismatch_heatmap.pdf

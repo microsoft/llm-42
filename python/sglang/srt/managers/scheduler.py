@@ -527,6 +527,8 @@ class Scheduler(
 
         # Track reserved KV cache slots (e.g., for fixed-size verification pool)
         self.reserved_kv_slots = 0
+        # Track reserved req_to_token_pool slots (for dummy requests in fixed-size batches)
+        self.reserved_req_pool_slots = 0
 
         # Initialize fixed-size verification pool for deterministic inference
         # (must be done after init_memory_pool_and_cache since allocators are needed)
@@ -545,6 +547,7 @@ class Scheduler(
                     # Track reserved slots for memory leak check
                     if self.model_worker.fixed_pool is not None:
                         self.reserved_kv_slots = len(self.model_worker.fixed_pool.dummy_cache_locs)
+                        self.reserved_req_pool_slots = self.model_worker.fixed_pool.fixed_size
 
         # Init running status
         self.waiting_queue: List[Req] = []
@@ -1698,11 +1701,15 @@ class Scheduler(
         else:
             req_total_size = self.req_to_token_pool.size
 
-        if len(self.req_to_token_pool.free_slots) != req_total_size:
+        # Account for reserved req_to_token_pool slots (e.g., for dummy requests in fixed-size verification)
+        reserved_req_slots = getattr(self, 'reserved_req_pool_slots', 0)
+        expected_free_slots = req_total_size - reserved_req_slots
+        if len(self.req_to_token_pool.free_slots) != expected_free_slots:
             msg = (
-                "req_to_token_pool memory leak detected!"
+                "req_to_token_pool memory leak detected! "
                 f"available_size={len(self.req_to_token_pool.free_slots)}, "
-                f"total_size={self.req_to_token_pool.size}\n"
+                f"total_size={self.req_to_token_pool.size}, "
+                f"reserved_slots={reserved_req_slots}\n"
             )
             raise ValueError(msg)
 

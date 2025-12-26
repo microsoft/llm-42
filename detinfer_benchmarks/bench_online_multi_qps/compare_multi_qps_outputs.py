@@ -333,6 +333,7 @@ def main():
             # Calculate mismatch fraction and delta statistics
             deltas = [m["delta"] for m in mismatches]
             delta_array = np.array(deltas)
+            num_mismatches = int(np.sum(delta_array > 0))
             mismatch_frac = 1.0 - np.mean(delta_array == 0)
             num_delta_gt_64 = np.sum(delta_array > 64)
             num_delta_gt_128 = np.sum(delta_array > 128)
@@ -366,6 +367,7 @@ def main():
             pairwise_details.append({
                 "qps_1": qps_i,
                 "qps_2": qps_j,
+                "num_mismatches": num_mismatches,
                 "mismatch_fraction": float(mismatch_frac),
                 "zero_mismatch_fraction": float(np.mean(delta_array == 0)),
                 "num_delta_gt_64": int(num_delta_gt_64),
@@ -373,12 +375,25 @@ def main():
                 "comparison_file": str(pair_file),
             })
             
-            print(f"QPS {qps_i} vs QPS {qps_j}: {mismatch_frac:.2%} mismatch rate, "
+            print(f"QPS {qps_i} vs QPS {qps_j}: {num_mismatches} mismatches, "
                   f"{num_delta_gt_64} deltas > 64, {num_delta_gt_128} deltas > 128")
     
     # Plot heatmap
     heatmap_path = cli_args.output_dir / "mismatch_heatmap.pdf"
     plot_mismatch_heatmap(mismatch_matrix, qps_values, heatmap_path)
+    
+    # Calculate per-QPS output length and rollback stats
+    qps_output_stats = []
+    for r in process_results:
+        total_output_len = sum(len(t) for t in r["tokens"])
+        total_tokens_rolled_back = sum(r.get("det_tokens_rolled_back", []))
+        rollback_pct = (total_tokens_rolled_back / total_output_len * 100) if total_output_len > 0 else 0.0
+        qps_output_stats.append({
+            "qps": r["qps"],
+            "total_output_len": total_output_len,
+            "total_tokens_rolled_back": total_tokens_rolled_back,
+            "rollback_pct": rollback_pct,
+        })
     
     # Save summary
     summary = {
@@ -386,6 +401,7 @@ def main():
         "base_urls": base_urls,
         "num_prompts": cli_args.num_prompts,
         "seed": cli_args.seed,
+        "qps_output_stats": qps_output_stats,
         "qps_rollback_stats": qps_rollback_stats,
         "pairwise_comparisons": pairwise_details,
         "heatmap_plot": str(heatmap_path),
@@ -395,11 +411,58 @@ def main():
     with summary_file.open("w") as f:
         json.dump(summary, f, indent=2)
     
+    # Write human-readable summary to .txt file
+    txt_summary_path = cli_args.output_dir / "summary.txt"
+    with txt_summary_path.open("w") as f:
+        f.write("=" * 60 + "\n")
+        f.write("Multi-QPS Comparison Summary\n")
+        f.write("=" * 60 + "\n\n")
+        
+        f.write(f"Num Prompts: {cli_args.num_prompts}\n")
+        f.write(f"Seed: {cli_args.seed}\n")
+        f.write(f"QPS Values: {qps_values}\n\n")
+        
+        f.write("-" * 60 + "\n")
+        f.write("Per-QPS Output & Rollback Stats:\n")
+        f.write("-" * 60 + "\n")
+        for stat in qps_output_stats:
+            f.write(f"QPS {stat['qps']}:\n")
+            f.write(f"  Total Output Tokens: {stat['total_output_len']}\n")
+            f.write(f"  Total Tokens Rolled Back: {stat['total_tokens_rolled_back']}\n")
+            f.write(f"  Rollback %: {stat['rollback_pct']:.4f}%\n")
+        f.write("\n")
+        
+        f.write("-" * 60 + "\n")
+        f.write("Pairwise Comparisons:\n")
+        f.write("-" * 60 + "\n")
+        for pd in pairwise_details:
+            f.write(f"QPS {pd['qps_1']} vs QPS {pd['qps_2']}: "
+                   f"{pd['num_mismatches']} mismatches, "
+                   f"{pd['num_delta_gt_64']} deltas > 64, "
+                   f"{pd['num_delta_gt_128']} deltas > 128\n")
+        f.write("\n")
+        
+        f.write(f"Heatmap: {heatmap_path}\n")
+    
     print(f"\n{'='*50}")
     print("Summary:")
     print(f"{'='*50}")
-    print(json.dumps(summary, indent=2))
+    
+    # Print per-QPS stats
+    print("\nPer-QPS Output & Rollback Stats:")
+    for stat in qps_output_stats:
+        print(f"  QPS {stat['qps']}: {stat['total_output_len']} output tokens, "
+              f"{stat['total_tokens_rolled_back']} rolled back ({stat['rollback_pct']:.4f}%)")
+    
+    print("\nPairwise Comparisons:")
+    for pd in pairwise_details:
+        print(f"  QPS {pd['qps_1']} vs QPS {pd['qps_2']}: "
+              f"{pd['num_mismatches']} mismatches, "
+              f"{pd['num_delta_gt_64']} deltas > 64, "
+              f"{pd['num_delta_gt_128']} deltas > 128")
+    
     print(f"\nAll results saved to: {cli_args.output_dir}")
+    print(f"Summary text file: {txt_summary_path}")
     
     return 0
 

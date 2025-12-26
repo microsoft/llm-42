@@ -261,6 +261,7 @@ class DetVerifyInfo:
         reqs_to_verify: List[Req],
         dummy_input_ids: Optional[torch.Tensor] = None,
         dummy_cache_locs: Optional[torch.Tensor] = None,
+        dummy_req_pool_indices: Optional[torch.Tensor] = None,
         num_dummies: int = 0,
         step_size: Optional[int] = None,
         dummy_sampling_tuple: Optional[tuple] = None,
@@ -280,6 +281,7 @@ class DetVerifyInfo:
             reqs_to_verify: Requests to verify (real requests only)
             dummy_input_ids: Pre-allocated dummy input tokens (optional)
             dummy_cache_locs: Pre-allocated dummy cache locations (optional)
+            dummy_req_pool_indices: Pre-allocated req_pool indices for dummies (optional)
             num_dummies: Number of dummy requests to append (default 0)
             step_size: Step size for dummy requests (required if num_dummies > 0)
             dummy_sampling_tuple: Pre-allocated dummy sampling tensors as tuple (optional)
@@ -521,10 +523,18 @@ class DetVerifyInfo:
                 dummy_cache_locs[:dummy_tokens_needed]
             ], dim=0)
             
-            # Extend req_pool_indices for dummy requests (use first real's index)
-            dummy_pool_idx = req_pool_indices[0] if req_pool_indices else 0
-            dummy_pool_indices = torch.full((num_dummies,), dummy_pool_idx, dtype=torch.int64, device=device)
-            verify_batch.req_pool_indices = torch.cat([real_req_pool_indices, dummy_pool_indices], dim=0)
+            # Use pre-allocated dummy req_pool_indices (required for correct page_table lookup)
+            if dummy_req_pool_indices is not None:
+                verify_batch.req_pool_indices = torch.cat([
+                    real_req_pool_indices, 
+                    dummy_req_pool_indices[:num_dummies]
+                ], dim=0)
+            else:
+                # Fallback: use first real request's index (WARNING: this is incorrect for attention!)
+                logger.warning("dummy_req_pool_indices not provided - using first real request's index")
+                dummy_pool_idx = req_pool_indices[0] if req_pool_indices else 0
+                dummy_pool_indices = torch.full((num_dummies,), dummy_pool_idx, dtype=torch.int64, device=device)
+                verify_batch.req_pool_indices = torch.cat([real_req_pool_indices, dummy_pool_indices], dim=0)
             
             # Use pre-allocated tensors if available, otherwise create new ones
             # Tuple order: (temperatures, top_ps, top_ks, min_ps, seeds, det_indices, prefix_lens, output_lens)
@@ -697,16 +707,17 @@ class DetVerifyInfo:
             req = reqs[i]
             padded_len = self.padded_lens[i]
             actual_len = self.output_lens[i]  # Only compare actual tokens, not padding
+            padding_mask = self.padding_masks[i]
             
             # Extract only the real (non-padded) tokens for comparison
-            # Optimization: Since padding is always at the end, we can slice directly
-            # instead of using list comprehension with mask
-            orig_output = original_ids[offset : offset + actual_len]
-            verify_output = verified_token_ids[offset : offset + actual_len]
+            orig_output = [original_ids[offset + j] for j in range(padded_len) if padding_mask[j]]
+            verify_output_full = verified_token_ids[offset : offset + padded_len]
+            verify_output = [verify_output_full[j] for j in range(padded_len) if padding_mask[j]]
             
             # Also extract logprobs for real tokens only
             if verified_logprobs_list is not None:
-                verify_logprobs = verified_logprobs_list[offset : offset + actual_len]
+                verify_logprobs_full = verified_logprobs_list[offset : offset + padded_len]
+                verify_logprobs = [verify_logprobs_full[j] for j in range(padded_len) if padding_mask[j]]
             else:
                 verify_logprobs = None
             

@@ -22,22 +22,23 @@ export PYTHONPATH="${PYTHONPATH:-}:${ROOT}/python"
 
 # Parse configuration
 BASE_URLS=${BASE_URLS:-"http://127.0.0.1:30005,http://127.0.0.1:30006,http://127.0.0.1:30007,http://127.0.0.1:30008"}
-QPS_VALUES=${QPS_VALUES:-"10,11,12,13"}
+QPS_VALUES=${QPS_VALUES:-"11.5,12,12.5,13"}
 MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
 TOKENIZER=${TOKENIZER:-}
 DATASET_PATH=${DATASET_PATH:-}
-NUM_PROMPTS=${NUM_PROMPTS:-8192}
-SEED=${SEED:-42}
+NUM_PROMPTS_LIST=${NUM_PROMPTS_LIST:-"1024,2048,4096,6144,8192,12288,24576,32768,49152"}  # Comma-separated list of num_prompts values
+SEED=${SEED:-44}
 SEQ_CONCURRENCY=${SEQ_CONCURRENCY:-1}
 SHAREGPT_CONTEXT_LEN=${SHAREGPT_CONTEXT_LEN:-16384}
-EXTRA_REQUEST_BODY=${EXTRA_REQUEST_BODY:-'{"temperature":0.4}'}
+EXTRA_REQUEST_BODY=${EXTRA_REQUEST_BODY:-'{"temperature":0.6}'}
 BACKEND=${BACKEND:-sglang}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-OUTPUT_DIR=${OUTPUT_DIR:-"${ROOT}/temp0-4_reqs${NUM_PROMPTS}_s32_di3_bs16_multi_qps_${TIMESTAMP}"}
+BASE_OUTPUT_DIR=${BASE_OUTPUT_DIR:-"${ROOT}/temp0-6_s512_di3_bs1_multi_qps_${TIMESTAMP}"}
 
 # Convert comma-separated strings to arrays
 IFS=',' read -ra URLS_ARRAY <<< "$BASE_URLS"
 IFS=',' read -ra QPS_ARRAY <<< "$QPS_VALUES"
+IFS=',' read -ra NUM_PROMPTS_ARRAY <<< "$NUM_PROMPTS_LIST"
 
 # Validate that we have at least 2 servers and QPS values
 if [ ${#URLS_ARRAY[@]} -lt 2 ]; then
@@ -55,7 +56,7 @@ NUM_SERVERS=${#URLS_ARRAY[@]}
 NUM_QPS=${#QPS_ARRAY[@]}
 NUM_RUNS=$((NUM_SERVERS < NUM_QPS ? NUM_SERVERS : NUM_QPS))
 
-mkdir -p "$OUTPUT_DIR"
+mkdir -p "$BASE_OUTPUT_DIR"
 
 echo "=============================================="
 echo "Multi-QPS Mismatch Comparison"
@@ -63,10 +64,10 @@ echo "=============================================="
 echo "Configuration:"
 echo "  Model:           $MODEL"
 echo "  Dataset:         ${DATASET_PATH:-ShareGPT (default)}"
-echo "  Num Prompts:     $NUM_PROMPTS"
+echo "  Num Prompts:     ${NUM_PROMPTS_LIST} (${#NUM_PROMPTS_ARRAY[@]} runs)"
 echo "  Seed:            $SEED"
 echo "  Num Servers:     $NUM_RUNS"
-echo "  Output Dir:      $OUTPUT_DIR"
+echo "  Base Output Dir: $BASE_OUTPUT_DIR"
 echo ""
 echo "QPS to Server Mapping:"
 for ((i=0; i<NUM_RUNS; i++)); do
@@ -143,58 +144,79 @@ echo ""
 echo "All servers healthy. Running multi-QPS comparison..."
 echo ""
 
-# Build command for direct QPS comparison
-cmd=(
-    python "${ROOT}/compare_multi_qps_outputs.py"
-    --backend "${BACKEND}"
-    --base-urls "${BASE_URLS}"
-    --qps-values "${QPS_VALUES}"
-    --model "${MODEL}"
-    --num-prompts "${NUM_PROMPTS}"
-    --seed "${SEED}"
-    --deterministic-ratio 1.0
-    --output-dir "${OUTPUT_DIR}"
-    --extra-request-body "${EXTRA_REQUEST_BODY}"
-)
+# Track overall success
+OVERALL_RESULT=0
 
-if [[ -n "${TOKENIZER}" ]]; then
-    cmd+=(--tokenizer "${TOKENIZER}")
-fi
-if [[ -n "${DATASET_PATH}" ]]; then
-    cmd+=(--dataset-path "${DATASET_PATH}")
-fi
-if [[ -n "${SHAREGPT_CONTEXT_LEN}" ]]; then
-    cmd+=(--sharegpt-context-len "${SHAREGPT_CONTEXT_LEN}")
-fi
-
-# Run the comparison
-echo "Command: ${cmd[*]}"
-echo ""
-
-"${cmd[@]}"
-RESULT=$?
-
-if [ $RESULT -eq 0 ]; then
-    echo ""
-    echo "=============================================="
-    echo "Comparison completed successfully!"
-    echo "=============================================="
-    echo "Results saved to: $OUTPUT_DIR"
-    echo ""
+# Loop through each NUM_PROMPTS value
+for NUM_PROMPTS in "${NUM_PROMPTS_ARRAY[@]}"; do
+    OUTPUT_DIR="${BASE_OUTPUT_DIR}/reqs_${NUM_PROMPTS}"
+    mkdir -p "$OUTPUT_DIR"
     
-    # Display summary if available
-    SUMMARY_FILE="$OUTPUT_DIR/summary.json"
-    if [ -f "$SUMMARY_FILE" ] && command -v jq &> /dev/null; then
-        echo "Pairwise Mismatch Summary:"
-        jq -r '.pairwise_comparisons[] | "  QPS \(.qps_1) vs QPS \(.qps_2): \(.mismatch_fraction * 100 | round / 100)% mismatch"' "$SUMMARY_FILE"
-        echo ""
-        echo "Heatmap plot: $OUTPUT_DIR/mismatch_heatmap.pdf"
-    fi
-else
-    echo ""
     echo "=============================================="
-    echo "ERROR: Comparison failed with exit code $RESULT"
+    echo "Running with NUM_PROMPTS=$NUM_PROMPTS"
+    echo "Output: $OUTPUT_DIR"
     echo "=============================================="
-fi
+    
+    # Build command for direct QPS comparison
+    cmd=(
+        python "${ROOT}/compare_multi_qps_outputs.py"
+        --backend "${BACKEND}"
+        --base-urls "${BASE_URLS}"
+        --qps-values "${QPS_VALUES}"
+        --model "${MODEL}"
+        --num-prompts "${NUM_PROMPTS}"
+        --seed "${SEED}"
+        --deterministic-ratio 1.0
+        --output-dir "${OUTPUT_DIR}"
+        --extra-request-body "${EXTRA_REQUEST_BODY}"
+        --ignore-eos
+    )
 
-exit $RESULT
+    if [[ -n "${TOKENIZER}" ]]; then
+        cmd+=(--tokenizer "${TOKENIZER}")
+    fi
+    if [[ -n "${DATASET_PATH}" ]]; then
+        cmd+=(--dataset-path "${DATASET_PATH}")
+    fi
+    if [[ -n "${SHAREGPT_CONTEXT_LEN}" ]]; then
+        cmd+=(--sharegpt-context-len "${SHAREGPT_CONTEXT_LEN}")
+    fi
+
+    # Run the comparison
+    echo "Command: ${cmd[*]}"
+    echo ""
+
+    "${cmd[@]}"
+    RESULT=$?
+
+    if [ $RESULT -eq 0 ]; then
+        echo ""
+        echo "=============================================="
+        echo "NUM_PROMPTS=$NUM_PROMPTS completed successfully!"
+        echo "=============================================="
+        echo "Results saved to: $OUTPUT_DIR"
+        echo ""
+        
+        # Display summary if available
+        SUMMARY_FILE="$OUTPUT_DIR/summary.json"
+        if [ -f "$SUMMARY_FILE" ] && command -v jq &> /dev/null; then
+            echo "Pairwise Mismatch Summary:"
+            jq -r '.pairwise_comparisons[] | "  QPS \(.qps_1) vs QPS \(.qps_2): \(.num_mismatches) mismatches"' "$SUMMARY_FILE"
+            echo ""
+        fi
+    else
+        echo ""
+        echo "=============================================="
+        echo "ERROR: NUM_PROMPTS=$NUM_PROMPTS failed with exit code $RESULT"
+        echo "=============================================="
+        OVERALL_RESULT=$RESULT
+    fi
+    echo ""
+done
+
+echo "=============================================="
+echo "All runs completed!"
+echo "=============================================="
+echo "Results saved to: $BASE_OUTPUT_DIR"
+
+exit $OVERALL_RESULT
