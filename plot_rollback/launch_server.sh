@@ -44,8 +44,8 @@ $PYTHON_CMD -m sglang.launch_server \
     --disable-chunked-prefix-cache \
     --disable-overlap-schedule \
     --enable-metrics \
-    --min-det-step-size 128 \
+    --det-infer-window-size 128 \
     --enable-det-infer 3 \
-    --max-det-verify-batch-size 1 \
+    --det-infer-verify-batch-size 1 \
     --chunked-prefill-size -1 \
     --page-size 16

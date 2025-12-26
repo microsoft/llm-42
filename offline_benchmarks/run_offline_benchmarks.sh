@@ -22,7 +22,7 @@ RESULTS_FILE="${OUTPUT_DIR}/benchmark_results_${TIMESTAMP}.jsonl"
 # Benchmark parameters
 INPUT_LENS=(256 512 1024 2048)
 OUTPUT_LENS=(128 256 512 1024)
-MIN_DET_STEP_SIZES=(16 64 128 256 512)
+DET_INFER_WINDOW_SIZES=(16 64 128 256 512)
 DETERMINISTIC_RATIOS=(0.01 0.02 0.05 0.1 0.2 0.5 1.0)
 
 # Determine Python command
@@ -209,22 +209,22 @@ done
 wait_all_gpus
 
 # ============================================
-# Configuration 3: enable-det-infer 3 with varying min-det-step-size
+# Configuration 3: enable-det-infer 3 with varying det-infer-window-size
 # ============================================
 echo "========== Configuration 3: enable-det-infer 3 =========="
 for det_ratio in "${DETERMINISTIC_RATIOS[@]}"; do
     echo "--- Deterministic Ratio: $det_ratio ---"
-    for min_det_step in "${MIN_DET_STEP_SIZES[@]}"; do
-        echo "--- min-det-step-size: $min_det_step ---"
+    for det_step in "${DET_INFER_WINDOW_SIZES[@]}"; do
+        echo "--- det-infer-window-size: $det_step ---"
         for input_len in "${INPUT_LENS[@]}"; do
             for output_len in "${OUTPUT_LENS[@]}"; do
                 schedule_benchmark \
-                    "det_infer_3_step${min_det_step}" \
-                    "$BASE_ARGS --enable-det-infer 3 --max-det-verify-batch-size 1 --min-det-step-size $min_det_step" \
+                    "det_infer_3_step${det_step}" \
+                    "$BASE_ARGS --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-window-size $det_step" \
                     "$input_len" \
                     "$output_len" \
                     "$det_ratio" \
-                    "min_det_step_size=$min_det_step"
+                    "det_infer_window_size=$det_step"
             done
         done
     done

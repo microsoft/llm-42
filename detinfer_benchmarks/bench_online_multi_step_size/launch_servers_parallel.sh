@@ -2,7 +2,7 @@
 
 # Launch multiple SGLang servers for parallel batch invariance testing with different step sizes
 # This script starts N servers (one per GPU) with deterministic inference enabled
-# Each server uses a different min-det-step-size
+# Each server uses a different det-infer-window-size
 
 set -e
 
@@ -101,9 +101,9 @@ for ((i=0; i<NUM_SERVERS; i++)); do
         --enable-metrics \
         --random-seed 42 \
         --chunked-prefill-size -1 \
-        --min-det-step-size "$STEP_SIZE" \
+        --det-infer-window-size "$STEP_SIZE" \
         --enable-det-infer 3 \
-        --max-det-verify-batch-size 1 \
+        --det-infer-verify-batch-size 1 \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!

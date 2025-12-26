@@ -4,8 +4,8 @@
 # This script starts N servers (one per GPU) with different determinism settings:
 #   config1: sglang_non_deterministic (no determinism flags)
 #   config2: sglang_global_deterministic (enable-deterministic-inference 2)
-#   config3: detinfer_step_size_64 (enable-det-infer 3, min-det-step-size 64)
-#   config4: detinfer_step_size_128 (enable-det-infer 3, min-det-step-size 128)
+#   config3: detinfer_step_size_64 (enable-det-infer 3, det-infer-window-size 64)
+#   config4: detinfer_step_size_128 (enable-det-infer 3, det-infer-window-size 128)
 
 set -e
 
@@ -95,16 +95,16 @@ get_config_args() {
             echo "--enable-deterministic-inference 2"
             ;;
         "detinfer_step_size_32")
-            echo "--min-det-step-size 32 --enable-det-infer 3 --max-det-verify-batch-size 1"
+            echo "--det-infer-window-size 32 --enable-det-infer 3 --det-infer-verify-batch-size 1"
             ;;
         "detinfer_step_size_64")
-            echo "--min-det-step-size 64 --enable-det-infer 3 --max-det-verify-batch-size 1"
+            echo "--det-infer-window-size 64 --enable-det-infer 3 --det-infer-verify-batch-size 1"
             ;;
         "detinfer_step_size_128")
-            echo "--min-det-step-size 128 --enable-det-infer 3 --max-det-verify-batch-size 1"
+            echo "--det-infer-window-size 128 --enable-det-infer 3 --det-infer-verify-batch-size 1"
             ;;
         "detinfer_step_size_256")
-            echo "--min-det-step-size 256 --enable-det-infer 3 --max-det-verify-batch-size 1"
+            echo "--det-infer-window-size 256 --enable-det-infer 3 --det-infer-verify-batch-size 1"
             ;;
         *)
             echo "Error: Unknown config name: $config_name" >&2

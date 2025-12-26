@@ -63,9 +63,9 @@ class DetVerifyInfo:
         # Calculate KV cache slots needed for padding
         # We need NEW cache for tokens after context
         # For each padded request: input = [context] + [actual_len-1 tokens] + [padding_count dummies]
-        # Total new cache needed = (actual_len - 1) + padding_count = step_size - 1 = padded_len - 1
-        # Example: actual_len=1, step_size=64 → need 0 + 63 = 63 new cache slots
-        # Example: actual_len=2, step_size=64 → need 1 + 62 = 63 new cache slots
+        # Total new cache needed = (actual_len - 1) + padding_count = window_size - 1 = padded_len - 1
+        # Example: actual_len=1, window_size=64 → need 0 + 63 = 63 new cache slots
+        # Example: actual_len=2, window_size=64 → need 1 + 62 = 63 new cache slots
         self.padding_cache_slots = [max(0, padded_len - 1) for padded_len in padded_lens]
         self.total_padding_cache_slots = sum(self.padding_cache_slots)
         
@@ -73,7 +73,7 @@ class DetVerifyInfo:
         self.padding_cache_locs: Optional[torch.Tensor] = None
         self.padding_cache_locs_allocated: Optional[torch.Tensor] = None  # Track full allocation for freeing
     
-    def append_dummy_entries(self, num_dummies: int, step_size: int):
+    def append_dummy_entries(self, num_dummies: int, window_size: int):
         """
         Append dummy request entries for fixed-size batch padding.
         
@@ -82,13 +82,13 @@ class DetVerifyInfo:
         
         Args:
             num_dummies: Number of dummy requests to add
-            step_size: Step size (padded length) for each dummy
+            window_size: Step size (padded length) for each dummy
         """
         for _ in range(num_dummies):
             self.output_lens.append(0)  # No real outputs
-            self.padded_lens.append(step_size)
-            self.padding_masks.append([False] * step_size)  # All padding
-            self.padding_counts.append(step_size)
+            self.padded_lens.append(window_size)
+            self.padding_masks.append([False] * window_size)  # All padding
+            self.padding_counts.append(window_size)
         
         self.num_dummy_requests = num_dummies
         
@@ -103,6 +103,7 @@ class DetVerifyInfo:
         start_idx: int = 0,
         always_align: bool = True,
         force_include_all: bool = False,
+        window_size: Optional[int] = None,
     ) -> DetVerifyInfo:
         """
         Create DetVerifyInfo from a list of finished deterministic requests.
@@ -110,9 +111,10 @@ class DetVerifyInfo:
         Args:
             reqs: List of requests to verify
             start_idx: Index from which to start verifying tokens (for incremental verification)
-            always_align: If True, pad finished requests to step_size with dummy tokens
+            always_align: If True, pad finished requests to window_size with dummy tokens
             force_include_all: If True, include and pad all requests regardless of finished status.
                               Used for fixed-size batches where we need to include not-yet-ready requests.
+            window_size: Verification window size for padding. If None, no padding is applied.
             
         Returns:
             DetVerifyInfo instance
@@ -125,7 +127,7 @@ class DetVerifyInfo:
         padding_counts = []
         
         for req in reqs:
-            unverified_output_ids = req.output_ids[req.det_verified_tokens:]
+            unverified_output_ids = req.output_ids[req.det_infer_verified_tokens:]
             actual_len = len(unverified_output_ids)
             
             # Skip requests with no unverified tokens
@@ -137,24 +139,23 @@ class DetVerifyInfo:
             # Determine if padding is needed
             # Note: finished_output is a boolean (False initially), so use truthiness check, not "is not None"
             is_finished = req.finished_reason is not None
-            step_size = getattr(req, 'det_step_size', None)
             
             # Pad if:
-            # 1. always_align is True AND step_size is set AND actual_len < step_size
+            # 1. always_align is True AND window_size is set AND actual_len < window_size
             # 2. AND (request is finished OR force_include_all is True)
             should_pad = (
                 always_align and 
-                step_size is not None and 
-                actual_len < step_size and
+                window_size is not None and 
+                actual_len < window_size and
                 (is_finished or force_include_all)
             )
             
             if should_pad:
-                # Pad to step_size with dummy tokens
-                padding_needed = step_size - actual_len
+                # Pad to window_size with dummy tokens
+                padding_needed = window_size - actual_len
                 original_outputs.extend(unverified_output_ids)
                 original_outputs.extend([cls.DUMMY_TOKEN_ID] * padding_needed)
-                padded_lens.append(step_size)
+                padded_lens.append(window_size)
                 padding_counts.append(padding_needed)
                 # Mask: True for real tokens, False for padding
                 padding_masks.append([True] * actual_len + [False] * padding_needed)
@@ -263,7 +264,7 @@ class DetVerifyInfo:
         dummy_cache_locs: Optional[torch.Tensor] = None,
         dummy_req_pool_indices: Optional[torch.Tensor] = None,
         num_dummies: int = 0,
-        step_size: Optional[int] = None,
+        window_size: Optional[int] = None,
         dummy_sampling_tuple: Optional[tuple] = None,
     ) -> ScheduleBatch:
         """
@@ -283,7 +284,7 @@ class DetVerifyInfo:
             dummy_cache_locs: Pre-allocated dummy cache locations (optional)
             dummy_req_pool_indices: Pre-allocated req_pool indices for dummies (optional)
             num_dummies: Number of dummy requests to append (default 0)
-            step_size: Step size for dummy requests (required if num_dummies > 0)
+            window_size: Step size for dummy requests (required if num_dummies > 0)
             dummy_sampling_tuple: Pre-allocated dummy sampling tensors as tuple (optional)
                 Format: (temps, top_ps, top_ks, min_ps, seeds, det_indices, prefix_lens, output_lens)
             
@@ -306,7 +307,7 @@ class DetVerifyInfo:
         prefix_lens_list = []
         
         for i, req in enumerate(reqs_to_verify):
-            actual_unverified = req.output_ids[req.det_verified_tokens:]
+            actual_unverified = req.output_ids[req.det_infer_verified_tokens:]
             padded_len = self.padded_lens[i]
             actual_len = self.output_lens[i]
             
@@ -314,8 +315,8 @@ class DetVerifyInfo:
                 continue
             
             # Get the last verified token as context
-            if req.det_verified_tokens > 0:
-                last_verified_token = req.output_ids[req.det_verified_tokens - 1]
+            if req.det_infer_verified_tokens > 0:
+                last_verified_token = req.output_ids[req.det_infer_verified_tokens - 1]
             elif req.origin_input_ids:
                 last_verified_token = req.origin_input_ids[-1]
             elif req.input_ids:
@@ -350,7 +351,7 @@ class DetVerifyInfo:
             
             req_pool_indices.append(req.req_pool_idx)
             output_lens.append(padded_len)
-            prefix_lens_list.append(len(req.origin_input_ids) + req.det_verified_tokens - 1)
+            prefix_lens_list.append(len(req.origin_input_ids) + req.det_infer_verified_tokens - 1)
         
         device = original_batch.device
         verify_batch.input_ids = torch.tensor(input_ids, dtype=torch.int64, device=device)
@@ -427,7 +428,7 @@ class DetVerifyInfo:
             #   - Total KV positions: origin_input_len + N - 1
             # The last output token (output_ids[N-1]) hasn't had its KV written yet!
             current_seq_len = len(req.origin_input_ids) + len(req.output_ids) - 1
-            context_idx = len(req.origin_input_ids) + req.det_verified_tokens - 1
+            context_idx = len(req.origin_input_ids) + req.det_infer_verified_tokens - 1
             actual_len = self.output_lens[i]
             padded_len = self.padded_lens[i]
             padding_count = self.padding_counts[i]
@@ -456,9 +457,9 @@ class DetVerifyInfo:
             #   Padded:     [context, token_0, ..., token_{n-2}, dummy_0, ..., dummy_{p-1}] 
             #               = 1 + (n-1) + p = padded_len tokens (where n = actual_len, p = padding_count)
             #
-            # Note: For actual_len=1, input is [context] + [0 actual tokens] + [step_size-1 dummies]
+            # Note: For actual_len=1, input is [context] + [0 actual tokens] + [window_size-1 dummies]
             
-            start_idx = len(req.origin_input_ids) + req.det_verified_tokens
+            start_idx = len(req.origin_input_ids) + req.det_infer_verified_tokens
             
             # CRITICAL: Always reuse the SAME cache locations that decode wrote to!
             # Verification must overwrite decode KV at the exact same physical slots
@@ -473,7 +474,7 @@ class DetVerifyInfo:
             end_idx = min(start_idx + num_cache_after_context, current_seq_len)
             
             # logger.info(f"[DET_VERIFY] req {req.rid}: origin_input_len={len(req.origin_input_ids)}, "
-            #             f"det_verified_tokens={req.det_verified_tokens}, output_ids_len={len(req.output_ids)}, "
+            #             f"det_infer_verified_tokens={req.det_infer_verified_tokens}, output_ids_len={len(req.output_ids)}, "
             #             f"context_idx={context_idx}, start_idx={start_idx}, end_idx={end_idx}, "
             #             f"current_seq_len={current_seq_len}, padded_len={padded_len}, actual_len={actual_len}")
             
@@ -506,10 +507,10 @@ class DetVerifyInfo:
         
         # Append dummy request data for fixed-size batches
         if num_dummies > 0 and dummy_input_ids is not None and dummy_cache_locs is not None:
-            if step_size is None:
-                raise ValueError("step_size required when adding dummy requests")
+            if window_size is None:
+                raise ValueError("window_size required when adding dummy requests")
             
-            dummy_tokens_needed = num_dummies * step_size
+            dummy_tokens_needed = num_dummies * window_size
             
             # Use tensor concatenation instead of list extend + tensor creation
             # This avoids CPU-GPU round trips
@@ -543,7 +544,7 @@ class DetVerifyInfo:
                 dummy_output_lens = dummy_sampling_tuple[7]
             else:
                 dummy_prefix_lens = torch.zeros(num_dummies, dtype=torch.int64, device=device)
-                dummy_output_lens = torch.full((num_dummies,), step_size, dtype=torch.int64, device=device)
+                dummy_output_lens = torch.full((num_dummies,), window_size, dtype=torch.int64, device=device)
             
             prefix_lens = torch.cat([real_prefix_lens, dummy_prefix_lens], dim=0)
             extend_lens_tensor = torch.cat([real_output_lens, dummy_output_lens], dim=0)

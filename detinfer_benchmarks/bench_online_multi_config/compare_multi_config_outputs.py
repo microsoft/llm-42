@@ -136,8 +136,8 @@ def run_experiment_process(idx: int, base: dict, url: str, qps: float, config_na
     det_tokens_rolled_back = []
     if "meta_info" in result:
         for meta in result["meta_info"]:
-            det_num_rollbacks.append(meta.get("det_num_rollbacks", 0))
-            det_tokens_rolled_back.append(meta.get("det_tokens_rolled_back", 0))
+            det_num_rollbacks.append(meta.get("det_infer_num_rollbacks", 0))
+            det_tokens_rolled_back.append(meta.get("det_infer_tokens_rolled_back", 0))
     
     # Calculate rollback statistics
     rollback_stats = {}

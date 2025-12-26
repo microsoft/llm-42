@@ -102,19 +102,19 @@ get_config_args() {
             ;;
         "detinfer_512_0pct")
             # DetInfer with step_size=512, 0% mismatches (no rollback)
-            echo "--min-det-step-size 512 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 0.0"
+            echo "--det-infer-window-size 512 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 0.0"
             ;;
         "detinfer_512_5pct")
             # DetInfer with step_size=512, 5% mismatches (forced rollback at ceil(5% * window))
-            echo "--min-det-step-size 512 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 5.0"
+            echo "--det-infer-window-size 512 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 5.0"
             ;;
         "detinfer_512_10pct")
             # DetInfer with step_size=512, 10% mismatches
-            echo "--min-det-step-size 512 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 10.0"
+            echo "--det-infer-window-size 512 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 10.0"
             ;;
         "detinfer_512_20pct")
             # DetInfer with step_size=512, 20% mismatches
-            echo "--min-det-step-size 512 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 20.0"
+            echo "--det-infer-window-size 512 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 20.0"
             ;;
         *)
             echo "Error: Unknown config name: $config_name" >&2

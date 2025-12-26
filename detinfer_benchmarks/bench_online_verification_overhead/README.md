@@ -1,11 +1,11 @@
 # Verification Overhead Benchmark
 
-This benchmark measures the **pure verification overhead** of deterministic inference with different step sizes. By enabling `--det-skip-mismatch`, all servers skip the mismatch detection and rollback, so we measure only the cost of running the verification forward pass.
+This benchmark measures the **pure verification overhead** of deterministic inference with different step sizes. By enabling `--det-infer-skip-mismatch`, all servers skip the mismatch detection and rollback, so we measure only the cost of running the verification forward pass.
 
 ## Overview
 
 - **Goal**: Measure how much overhead verification adds at different step sizes
-- **Key setting**: `--det-skip-mismatch` (no rollback/recomputation)
+- **Key setting**: `--det-infer-skip-mismatch` (no rollback/recomputation)
 - **Step sizes**: 32, 128, 512, 1024
 - **Dataset configs**: Various input/output length combinations
 
@@ -24,7 +24,7 @@ This starts 4 servers on GPUs 0-3, each with a different step size:
 - GPU 2 (port 30012): step_size=512
 - GPU 3 (port 30013): step_size=1024
 
-All servers have `--det-skip-mismatch` enabled.
+All servers have `--det-infer-skip-mismatch` enabled.
 
 ### 2. Run the benchmark
 
@@ -76,7 +76,7 @@ Each directory contains:
 
 ## What This Measures
 
-With `--det-skip-mismatch`:
+With `--det-infer-skip-mismatch`:
 - ✅ Verification forward pass runs
 - ✅ KV cache allocation for padding
 - ✅ Batch preparation and token collection

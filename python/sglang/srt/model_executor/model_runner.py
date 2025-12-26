@@ -2053,14 +2053,7 @@ class ModelRunner:
                     should_enable_batch_invariant = True
                 else:
                     is_decode_mode = forward_batch.forward_mode.is_decode()
-                    if is_decode_mode:
-                        # DECODE: Enable if any request has force_deterministic_mode flag
-                        has_force_deterministic = any(
-                            getattr(req, 'force_deterministic_mode', False) 
-                            for req in forward_batch.reqs
-                        )
-                        should_enable_batch_invariant = has_force_deterministic
-                    else:
+                    if not is_decode_mode:
                         # Others (EXTEND, etc.): enable if any request needs determinism
                         if forward_batch.sampling_info is not None:
                             is_any_deterministic = forward_batch.sampling_info.is_any_deterministic

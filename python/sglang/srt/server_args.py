@@ -414,10 +414,9 @@ class ServerArgs:
     enable_deterministic_inference: int = 0  # Global: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
     enable_det_infer: int = 0  # Forward-mode-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
     enable_selective_determinism: int = 0  # Batch-composition-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
-    min_det_step_size: Optional[int] = None
-    max_det_step_size: Optional[int] = None
-    max_det_verify_batch_size: Optional[int] = None  # Max requests per verification batch
-    det_skip_mismatch: float = 100.0  # Mismatch rate (100.0=normal, 0.0=force no mismatches, 5.0=inject exactly 5% mismatches)
+    det_infer_window_size: int = 32
+    det_infer_verify_batch_size: int = 16  # Max requests per verification batch
+    det_infer_skip_mismatch: float = 100.0  # Mismatch rate (100.0=normal, 0.0=force no mismatches, 5.0=inject exactly 5% mismatches)
 
     # Dynamic batch tokenizer
     enable_dynamic_batch_tokenizer: bool = False
@@ -2796,29 +2795,22 @@ class ServerArgs:
             help="Enable batch-composition-based deterministic switching (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
         )
         parser.add_argument(
-            "--min-det-step-size",
+            "--det-infer-window-size",
             type=int,
-            default=ServerArgs.min_det_step_size,
-            help="Minimum number of tokens before verification (initial value for each request). If not set, verify only at the end.",
+            default=ServerArgs.det_infer_window_size,
+            help="Number of tokens before verification (initial value for each request). If not set, verify only at the end.",
         )
         parser.add_argument(
-            "--max-det-step-size",
+            "--det-infer-verify-batch-size",
             type=int,
-            default=ServerArgs.max_det_step_size,
-            help="Maximum number of tokens before verification. Requests can adaptively adjust between min and max.",
+            default=ServerArgs.det_infer_verify_batch_size,
+            help="Fixed number of requests per verification batch (padded with dummies if needed). "
+                 "For example, with det_infer_verify_batch_size=10, 22 requests will be verified as 10+10+10 (2 real + 8 dummies in last batch).",
         )
         parser.add_argument(
-            "--max-det-verify-batch-size",
-            type=int,
-            default=ServerArgs.max_det_verify_batch_size,
-            help="Maximum number of requests to verify in a single verification batch. "
-                 "If not set, all requests are verified together. "
-                 "For example, with max_det_verify_batch_size=10, 22 requests will be verified as 10+10+2.",
-        )
-        parser.add_argument(
-            "--det-skip-mismatch",
+            "--det-infer-skip-mismatch",
             type=float,
-            default=ServerArgs.det_skip_mismatch,
+            default=ServerArgs.det_infer_skip_mismatch,
             help="Mismatch rate percentage (0.0-100.0). "
                  "100.0 means normal behavior (natural mismatches cause rollback). "
                  "0.0 means force no mismatches (skip all, verification runs but always assumes success). "

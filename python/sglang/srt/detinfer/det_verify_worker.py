@@ -34,7 +34,7 @@ class FixedSizeVerificationPool:
     """
     Pre-allocated pool of dummy resources for fixed-size verification batches.
     
-    When max_det_verify_batch_size is set, verification batches always have exactly
+    When det_infer_verify_batch_size is set, verification batches always have exactly
     N requests. This pool provides pre-allocated dummy resources to fill slots
     when there are fewer than N real requests.
     """
@@ -44,7 +44,7 @@ class FixedSizeVerificationPool:
     def __init__(
         self,
         fixed_size: int,
-        step_size: int,
+        window_size: int,
         req_to_token_pool,
         token_to_kv_pool_allocator,
         device: str = "cuda",
@@ -54,18 +54,18 @@ class FixedSizeVerificationPool:
         
         Args:
             fixed_size: Number of requests in each verification batch (N)
-            step_size: Verification step size (tokens per request)
+            window_size: Verification step size (tokens per request)
             req_to_token_pool: Pool for request-to-token mapping
             token_to_kv_pool_allocator: KV cache allocator
             device: Device for tensors
         """
         self.fixed_size = fixed_size
-        self.step_size = step_size
+        self.window_size = window_size
         self.device = device
         self.req_to_token_pool = req_to_token_pool
         
-        # Pre-allocate dummy input_ids (N * step_size tokens)
-        total_dummy_tokens = fixed_size * step_size
+        # Pre-allocate dummy input_ids (N * window_size tokens)
+        total_dummy_tokens = fixed_size * window_size
         self.dummy_input_ids = torch.full(
             (total_dummy_tokens,), 
             self.DUMMY_TOKEN_ID, 
@@ -74,8 +74,8 @@ class FixedSizeVerificationPool:
         )
         
         # Pre-allocate KV cache slots for dummy requests
-        # Each dummy request needs step_size cache slots
-        slots_needed = fixed_size * step_size
+        # Each dummy request needs window_size cache slots
+        slots_needed = fixed_size * window_size
         
         # Handle page size alignment
         page_size = token_to_kv_pool_allocator.page_size
@@ -86,7 +86,7 @@ class FixedSizeVerificationPool:
         if self.dummy_cache_locs is None or len(self.dummy_cache_locs) == 0:
             raise RuntimeError(
                 f"Failed to allocate {slots_needed} KV cache slots for fixed-size verification pool. "
-                f"Consider reducing max_det_verify_batch_size or increasing KV cache size."
+                f"Consider reducing det_infer_verify_batch_size or increasing KV cache size."
             )
         
         # CRITICAL FIX: Allocate actual row indices in req_to_token_pool for dummy requests
@@ -96,7 +96,7 @@ class FixedSizeVerificationPool:
         if allocated_pool_indices is None or len(allocated_pool_indices) < fixed_size:
             raise RuntimeError(
                 f"Failed to allocate {fixed_size} req_to_token_pool slots for dummy requests. "
-                f"Consider reducing max_det_verify_batch_size or increasing pool size."
+                f"Consider reducing det_infer_verify_batch_size or increasing pool size."
             )
         
         self.dummy_req_pool_indices = torch.tensor(
@@ -105,13 +105,13 @@ class FixedSizeVerificationPool:
         self._allocated_pool_indices = allocated_pool_indices  # Keep for freeing
         
         # Write dummy cache locations into req_to_token_pool for each dummy request
-        # Each dummy request gets step_size consecutive cache slots
+        # Each dummy request gets window_size consecutive cache slots
         # FlashAttention only reads page_table[i, 0:cache_seqlens[i]], so we only need
-        # to fill the first step_size columns (cache_seqlens for dummies = step_size)
+        # to fill the first window_size columns (cache_seqlens for dummies = window_size)
         for i, pool_idx in enumerate(allocated_pool_indices):
-            start_slot = i * step_size
-            end_slot = start_slot + step_size
-            req_to_token_pool.req_to_token[pool_idx, :step_size] = self.dummy_cache_locs[start_slot:end_slot].to(torch.int32)
+            start_slot = i * window_size
+            end_slot = start_slot + window_size
+            req_to_token_pool.req_to_token[pool_idx, :window_size] = self.dummy_cache_locs[start_slot:end_slot].to(torch.int32)
         
         # Pre-allocate dummy sampling tensors (optimization: avoid creating these per-call)
         self.dummy_temps = torch.zeros((total_dummy_tokens, 1), dtype=torch.float32, device=device)
@@ -121,13 +121,13 @@ class FixedSizeVerificationPool:
         self.dummy_seeds = torch.zeros(total_dummy_tokens, dtype=torch.int32, device=device)
         self.dummy_det_indices = torch.ones((total_dummy_tokens, 1), dtype=torch.int64, device=device)
         
-        # Pre-allocate dummy prefix_lens and output_lens (all zeros and step_size respectively)
+        # Pre-allocate dummy prefix_lens and output_lens (all zeros and window_size respectively)
         self.dummy_prefix_lens = torch.zeros(fixed_size, dtype=torch.int64, device=device)
-        self.dummy_output_lens = torch.full((fixed_size,), step_size, dtype=torch.int64, device=device)
+        self.dummy_output_lens = torch.full((fixed_size,), window_size, dtype=torch.int64, device=device)
         
         logger.info(
             f"FixedSizeVerificationPool initialized: fixed_size={fixed_size}, "
-            f"step_size={step_size}, dummy_cache_slots={len(self.dummy_cache_locs)}, "
+            f"window_size={window_size}, dummy_cache_slots={len(self.dummy_cache_locs)}, "
             f"dummy_pool_indices={allocated_pool_indices}"
         )
     
@@ -149,8 +149,8 @@ class FixedSizeVerificationPool:
                 f"Requested {num_dummies} dummies but pool only has {self.fixed_size}"
             )
         
-        tokens_needed = num_dummies * self.step_size
-        cache_slots_needed = num_dummies * self.step_size
+        tokens_needed = num_dummies * self.window_size
+        cache_slots_needed = num_dummies * self.window_size
         
         return (
             self.dummy_input_ids[:tokens_needed],
@@ -172,7 +172,7 @@ class FixedSizeVerificationPool:
         if num_dummies <= 0:
             return None
         
-        tokens_needed = num_dummies * self.step_size
+        tokens_needed = num_dummies * self.window_size
         # Return tuple instead of dict to avoid dict creation overhead
         return (
             self.dummy_temps[:tokens_needed],      # 0: temperatures
@@ -212,26 +212,26 @@ class DeterministicVerificationWorker:
         self, 
         target_worker: TpModelWorker, 
         always_align: bool = True,
-        max_requests_per_verify: Optional[int] = None,
+        fixed_requests_per_verify: int = 16,
         metrics_collector = None,
         skip_mismatch: float = 100.0,
         req_to_token_pool = None,
         token_to_kv_pool_allocator = None,
-        step_size: Optional[int] = None,
+        window_size: int = 32,
     ):
         """
         Initialize the deterministic verification worker.
         
         Args:
             target_worker: The underlying TpModelWorker to wrap
-            always_align: If True, pad verification batches to step_size with dummy tokens
-                         for finished requests that have fewer unverified tokens than step_size.
+            always_align: If True, pad verification batches to window_size with dummy tokens
+                         for finished requests that have fewer unverified tokens than window_size.
                          This ensures consistent batch sizes for verification. Default: True.
-            max_requests_per_verify: Maximum number of requests to verify in a single batch.
-                         If None, all requests are verified together. If set, requests are
-                         verified in chunks of this size (e.g., 20 requests with max=10
-                         will be verified as 10+10). When set with allocators, enables
-                         fixed-size batches with padding. Default: None.
+            fixed_requests_per_verify: Fixed number of requests per verification batch (padded
+                         with dummies if needed). Requests are verified in batches of exactly
+                         this size (e.g., 22 requests with fixed_requests_per_verify=10 will be
+                         verified as 10+10+10, where the last batch has 2 real + 8 dummies).
+                         Default: 16.
             metrics_collector: Optional metrics collector for tracking rollback stats.
             skip_mismatch: Mismatch rate percentage (0.0-100.0).
                          100.0 = normal verification (natural mismatches cause rollback).
@@ -239,21 +239,19 @@ class DeterministicVerificationWorker:
                          Values in between (e.g., 5.0) = inject mismatch at position to rollback ceil(5% * window_size) tokens.
             req_to_token_pool: Pool for request-to-token mapping (needed for fixed-size batches).
             token_to_kv_pool_allocator: KV cache allocator (needed for fixed-size batches).
-            step_size: Verification step size (needed for fixed-size batches).
+            window_size: Number of tokens before verification. Default: 32.
         """
         self.target_worker = target_worker
         self.always_align = always_align
-        self.max_requests_per_verify = max_requests_per_verify
+        self.fixed_requests_per_verify = fixed_requests_per_verify
         self.metrics_collector = metrics_collector
         self.skip_mismatch = skip_mismatch
         
-        # Initialize fixed-size verification pool if all required params are provided
+        # Initialize fixed-size verification pool if allocators are provided
+        # (they may be None here, in which case init_fixed_pool() will be called later)
         self.fixed_pool: Optional[FixedSizeVerificationPool] = None
-        self._step_size = step_size  # Store for late initialization
-        if (max_requests_per_verify is not None and 
-            req_to_token_pool is not None and 
-            token_to_kv_pool_allocator is not None and
-            step_size is not None):
+        self._window_size = window_size
+        if req_to_token_pool is not None and token_to_kv_pool_allocator is not None:
             self._init_fixed_pool(
                 req_to_token_pool, 
                 token_to_kv_pool_allocator,
@@ -272,20 +270,17 @@ class DeterministicVerificationWorker:
         Can be called during __init__ or later via init_fixed_pool() if
         allocators weren't available at construction time.
         """
-        if self.max_requests_per_verify is None or self._step_size is None:
-            return
-        
         try:
             self.fixed_pool = FixedSizeVerificationPool(
-                fixed_size=self.max_requests_per_verify,
-                step_size=self._step_size,
+                fixed_size=self.fixed_requests_per_verify,
+                window_size=self._window_size,
                 req_to_token_pool=req_to_token_pool,
                 token_to_kv_pool_allocator=token_to_kv_pool_allocator,
                 device=device,
             )
             logger.info(
-                f"Fixed-size verification enabled: batch_size={self.max_requests_per_verify}, "
-                f"step_size={self._step_size}"
+                f"Fixed-size verification enabled: batch_size={self.fixed_requests_per_verify}, "
+                f"window_size={self._window_size}"
             )
         except Exception as e:
             logger.warning(
@@ -297,7 +292,7 @@ class DeterministicVerificationWorker:
         self,
         req_to_token_pool,
         token_to_kv_pool_allocator,
-        step_size: int,
+        window_size: int,
         device: str = "cuda",
     ):
         """
@@ -309,13 +304,13 @@ class DeterministicVerificationWorker:
         Args:
             req_to_token_pool: Pool for request-to-token mapping
             token_to_kv_pool_allocator: KV cache allocator
-            step_size: Verification step size
+            window_size: Verification step size
             device: Device for tensors
         """
         if self.fixed_pool is not None:
             return  # Already initialized
         
-        self._step_size = step_size
+        self._window_size = window_size
         self._init_fixed_pool(req_to_token_pool, token_to_kv_pool_allocator, device)
 
     def forward_batch_generation(
@@ -347,7 +342,7 @@ class DeterministicVerificationWorker:
         This is called from process_batch_result_decode, similar to how Eagle
         handles verification after output processing.
         
-        When fixed_pool is enabled (max_det_verify_batch_size is set with allocators),
+        When fixed_pool is enabled (det_infer_verify_batch_size is set with allocators),
         verification runs with exactly N requests by:
         1. Including all deterministic requests (ready or not, padding partial outputs)
         2. Filling remaining slots with pre-allocated dummy requests
@@ -370,14 +365,9 @@ class DeterministicVerificationWorker:
             if not req.is_deterministic:
                 continue
             
-            # Skip verification if force_deterministic_mode is True
-            if getattr(req, 'force_deterministic_mode', False):
-                req.det_verified_tokens = len(req.output_ids)
-                continue
-            
             # Calculate unverified tokens
             output_len = len(req.output_ids)
-            unverified_tokens = output_len - req.det_verified_tokens
+            unverified_tokens = output_len - req.det_infer_verified_tokens
             
             if unverified_tokens <= 0:
                 continue
@@ -386,7 +376,7 @@ class DeterministicVerificationWorker:
             
             # Check if this request triggers verification
             is_finished = req.finished_reason is not None
-            if is_finished or (req.det_step_size is not None and unverified_tokens >= req.det_step_size):
+            if is_finished or unverified_tokens >= self._window_size:
                 at_least_one_ready = True
         
         if not at_least_one_ready:
@@ -401,9 +391,9 @@ class DeterministicVerificationWorker:
             not_ready_reqs = []
             for req in all_det_reqs:
                 output_len = len(req.output_ids)
-                unverified_tokens = output_len - req.det_verified_tokens
+                unverified_tokens = output_len - req.det_infer_verified_tokens
                 is_finished = req.finished_reason is not None
-                if is_finished or (req.det_step_size is not None and unverified_tokens >= req.det_step_size):
+                if is_finished or unverified_tokens >= self._window_size:
                     ready_reqs.append(req)
                 else:
                     not_ready_reqs.append(req)
@@ -440,14 +430,14 @@ class DeterministicVerificationWorker:
         reqs_to_verify = []
         for req in all_det_reqs:
             output_len = len(req.output_ids)
-            unverified_tokens = output_len - req.det_verified_tokens
+            unverified_tokens = output_len - req.det_infer_verified_tokens
             is_finished = req.finished_reason is not None
-            if is_finished or (req.det_step_size is not None and unverified_tokens >= req.det_step_size):
+            if is_finished or unverified_tokens >= self._window_size:
                 reqs_to_verify.append(req)
         
         if reqs_to_verify:
             return self._verify_deterministic_requests_batched(
-                batch, reqs_to_verify, self.always_align, self.max_requests_per_verify
+                batch, reqs_to_verify, self.always_align, self.fixed_requests_per_verify
             )
         return []
     
@@ -460,7 +450,7 @@ class DeterministicVerificationWorker:
         """
         Verify requests in a fixed-size batch with dummy padding.
         
-        All real requests are included (ready or not), padded to step_size.
+        All real requests are included (ready or not), padded to window_size.
         Remaining slots are filled with pre-allocated dummy requests.
         
         Args:
@@ -476,12 +466,13 @@ class DeterministicVerificationWorker:
             det_verify_info = DetVerifyInfo.from_requests(
                 real_reqs, 
                 always_align=self.always_align,
-                force_include_all=True,  # Include requests even if not at step_size boundary
+                force_include_all=True,  # Include requests even if not at window_size boundary
+                window_size=self._window_size,
             )
             
             # Append dummy entries if needed
             if num_dummies > 0:
-                det_verify_info.append_dummy_entries(num_dummies, self.fixed_pool.step_size)
+                det_verify_info.append_dummy_entries(num_dummies, self.fixed_pool.window_size)
             
             # Allocate temporary KV cache for padding tokens of real requests
             if det_verify_info.total_padding_cache_slots > 0:
@@ -499,7 +490,7 @@ class DeterministicVerificationWorker:
                 dummy_cache_locs=dummy_cache_locs,
                 dummy_req_pool_indices=dummy_req_pool_indices,
                 num_dummies=num_dummies,
-                step_size=self.fixed_pool.step_size,
+                window_size=self.fixed_pool.window_size,
                 dummy_sampling_tuple=dummy_sampling_tuple,
             )
             
@@ -517,7 +508,7 @@ class DeterministicVerificationWorker:
                     real_reqs, verified_token_ids, verified_logprobs
                 )
             elif self.skip_mismatch <= 0.0:
-                rollback_info = [(len(req.output_ids) - req.det_verified_tokens, 0) for req in real_reqs]
+                rollback_info = [(len(req.output_ids) - req.det_infer_verified_tokens, 0) for req in real_reqs]
             else:
                 rollback_info = det_verify_info.verify_and_compare(
                     real_reqs, verified_token_ids, verified_logprobs,
@@ -528,15 +519,15 @@ class DeterministicVerificationWorker:
             rollback_results = []
             for req, info in zip(real_reqs, rollback_info):
                 if info is not None and info[1] > 0:
-                    req.det_num_rollbacks += 1
-                    req.det_tokens_rolled_back += info[1]
+                    req.det_infer_num_rollbacks += 1
+                    req.det_infer_tokens_rolled_back += info[1]
                     if self.metrics_collector:
                         self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
                         self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
                     rollback_results.append((req, info[1]))
-                    req.det_verified_tokens = len(req.output_ids)
+                    req.det_infer_verified_tokens = len(req.output_ids)
                 else:
-                    req.det_verified_tokens = len(req.output_ids)
+                    req.det_infer_verified_tokens = len(req.output_ids)
             
             # Update batch state if there was rollback
             if rollback_results:
@@ -595,7 +586,7 @@ class DeterministicVerificationWorker:
         Args:
             original_batch: Original batch context
             reqs: All requests to verify
-            always_align: If True, pad to step_size with dummy tokens
+            always_align: If True, pad to window_size with dummy tokens
             max_requests: Maximum requests per verification batch. None means all at once.
             
         Returns:
@@ -630,13 +621,13 @@ class DeterministicVerificationWorker:
         Args:
             original_batch: Original batch context
             reqs: Requests to verify (tokens already appended)
-            always_align: If True, pad to step_size with dummy tokens for finished requests
+            always_align: If True, pad to window_size with dummy tokens for finished requests
             
         Returns:
             List of (req, tokens_rolled_back) tuples for requests that had rollback.
         """
         try:
-            det_verify_info = DetVerifyInfo.from_requests(reqs, always_align=always_align)
+            det_verify_info = DetVerifyInfo.from_requests(reqs, always_align=always_align, window_size=self._window_size)
             # logger.info(f"[DetVerifyWorker] Verifying {len(reqs)} requests with total padding cache slots {det_verify_info.total_padding_cache_slots}")
             
             # Allocate temporary KV cache for padding tokens (if any)
@@ -678,7 +669,7 @@ class DeterministicVerificationWorker:
                 )
             elif self.skip_mismatch <= 0.0:
                 # Force no mismatches - skip all rollbacks
-                rollback_info = [(len(req.output_ids) - req.det_verified_tokens, 0) for req in reqs]
+                rollback_info = [(len(req.output_ids) - req.det_infer_verified_tokens, 0) for req in reqs]
             else:
                 # Percentage-based: inject mismatch at position (window - ceil(X% * window))
                 rollback_info = det_verify_info.verify_and_compare(
@@ -691,30 +682,30 @@ class DeterministicVerificationWorker:
             for req, info in zip(reqs, rollback_info):
                 if info is not None and info[1] > 0:
                     # Track per-request stats
-                    req.det_num_rollbacks += 1
-                    req.det_tokens_rolled_back += info[1]
+                    req.det_infer_num_rollbacks += 1
+                    req.det_infer_tokens_rolled_back += info[1]
                     # Track global metrics
                     if self.metrics_collector:
                         self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
                         self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
                     rollback_results.append((req, info[1]))
-                    # CRITICAL: Update det_verified_tokens after rollback
+                    # CRITICAL: Update det_infer_verified_tokens after rollback
                     # After rollback, output_ids has been truncated and corrected token appended
                     # All tokens up to current length are now verified
-                    req.det_verified_tokens = len(req.output_ids)
+                    req.det_infer_verified_tokens = len(req.output_ids)
                     # logger.info(f"[DetVerifyWorker] Rollback for req {req.rid[:8]}: "
                     #            f"mismatch_pos={info[0]}, tokens_rolled_back={info[1]}, "
-                    #            f"new_output_len={len(req.output_ids)}, det_verified_tokens={req.det_verified_tokens}, "
+                    #            f"new_output_len={len(req.output_ids)}, det_infer_verified_tokens={req.det_infer_verified_tokens}, "
                     #            f"finished={req.finished_reason is not None}")
                 else:
                     # No rollback for this request
-                    req.det_verified_tokens = len(req.output_ids)
+                    req.det_infer_verified_tokens = len(req.output_ids)
                     # logger.debug(f"[DetVerifyWorker] No rollback for req {req.rid[:8]}: "
-                    #             f"output_len={len(req.output_ids)}, det_verified_tokens={req.det_verified_tokens}")
+                    #             f"output_len={len(req.output_ids)}, det_infer_verified_tokens={req.det_infer_verified_tokens}")
             
             # Update verified token counts
             # for req in reqs:
-            #     req.det_verified_tokens = len(req.output_ids)
+            #     req.det_infer_verified_tokens = len(req.output_ids)
             
             # Update batch state if there was any rollback
             # (need to sync seq_lens with the new req.output_ids length)

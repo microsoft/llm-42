@@ -501,7 +501,7 @@ async def async_request_sglang_generate(
         extra_body = request_func_input.extra_request_body.copy()
         extra_sampling_params = {}
         # Move sampling-related fields into sampling_params
-        for key in ["is_deterministic", "det_step_size", "sampling_seed"]:
+        for key in ["is_deterministic", "sampling_seed"]:
             if key in extra_body:
                 extra_sampling_params[key] = extra_body.pop(key)
         

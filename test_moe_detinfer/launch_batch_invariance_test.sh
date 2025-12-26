@@ -45,12 +45,12 @@ $PYTHON_CMD -m sglang.launch_server \
     --chunked-prefill-size -1 \
     --disable-overlap-schedule \
     --enable-metrics \
-    --min-det-step-size 64 \
+    --det-infer-window-size 64 \
     --enable-det-infer 3 \
-    --max-det-verify-batch-size 1
+    --det-infer-verify-batch-size 1
     # --enable-selective-determinism 1 \
     # --enable-deterministic-inference 2 \
-    # --min-det-step-size 10 \
+    # --det-infer-window-size 10 \
     # --enable-det-infer 1
     # --enable-selective-determinism 1 \
     # --enable-deterministic-inference 1 \

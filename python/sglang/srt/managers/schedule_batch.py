@@ -632,12 +632,10 @@ class Req:
 
         # For deterministic verification
         self.is_deterministic: bool = sampling_params.is_deterministic
-        self.det_verified_tokens: int = 0  # Number of tokens that have been verified
-        self.det_step_size: int = sampling_params.det_step_size  # Current verification step size
-        self.force_deterministic_mode: bool = False
+        self.det_infer_verified_tokens: int = 0  # Number of tokens that have been verified
         # Request-level rollback stats
-        self.det_num_rollbacks: int = 0  # Number of rollback events for this request
-        self.det_tokens_rolled_back: int = 0  # Total tokens rolled back for this request 
+        self.det_infer_num_rollbacks: int = 0  # Number of rollback events for this request
+        self.det_infer_tokens_rolled_back: int = 0  # Total tokens rolled back for this request 
         
     
         # For metrics
@@ -857,8 +855,8 @@ class Req:
         if self.is_deterministic:
             logger.info(
                 f"Det Rollback Stats(rid={self.rid}): "
-                f"rollbacks={self.det_num_rollbacks}, "
-                f"tokens_rolled_back={self.det_tokens_rolled_back}"
+                f"rollbacks={self.det_infer_num_rollbacks}, "
+                f"tokens_rolled_back={self.det_infer_tokens_rolled_back}"
             )
 
     def set_finish_with_abort(self, error_msg: str):

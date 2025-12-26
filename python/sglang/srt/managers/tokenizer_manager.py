@@ -707,10 +707,6 @@ class TokenizerManager(TokenizerCommunicatorMixin):
         else:
             sampling_kwargs = obj.sampling_params
         
-        # Always set det_step_size to min_det_step_size for deterministic requests
-        if sampling_kwargs.get('is_deterministic', False) and self.server_args.min_det_step_size is not None:
-            sampling_kwargs['det_step_size'] = self.server_args.min_det_step_size
-        
         sampling_params = SamplingParams(**sampling_kwargs)
         sampling_params.normalize(self.tokenizer)
         sampling_params.verify(self.model_config.vocab_size)
@@ -1352,8 +1348,8 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                     {
                         "completion_tokens": recv_obj.completion_tokens[i],
                         "cached_tokens": recv_obj.cached_tokens[i],
-                        "det_num_rollbacks": recv_obj.det_num_rollbacks[i],
-                        "det_tokens_rolled_back": recv_obj.det_tokens_rolled_back[i],
+                        "det_infer_num_rollbacks": recv_obj.det_infer_num_rollbacks[i],
+                        "det_infer_tokens_rolled_back": recv_obj.det_infer_tokens_rolled_back[i],
                     }
                 )
 

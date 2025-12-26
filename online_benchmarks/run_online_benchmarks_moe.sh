@@ -42,12 +42,12 @@ CONFIG_NAMES=(
 CONFIG_ARGS=(
     ""
     "--enable-deterministic-inference 2"
-    "--enable-det-infer 3 --min-det-step-size 128 --max-det-verify-batch-size 1"
-    "--enable-det-infer 3 --min-det-step-size 256 --max-det-verify-batch-size 1"
-    "--enable-det-infer 3 --min-det-step-size 64 --max-det-verify-batch-size 1"
-    "--enable-det-infer 3 --min-det-step-size 32 --max-det-verify-batch-size 1"
-    "--enable-det-infer 3 --min-det-step-size 16 --max-det-verify-batch-size 1"
-    "--enable-det-infer 3 --min-det-step-size 512 --max-det-verify-batch-size 1"
+    "--enable-det-infer 3 --det-infer-window-size 128 --det-infer-verify-batch-size 1"
+    "--enable-det-infer 3 --det-infer-window-size 256 --det-infer-verify-batch-size 1"
+    "--enable-det-infer 3 --det-infer-window-size 64 --det-infer-verify-batch-size 1"
+    "--enable-det-infer 3 --det-infer-window-size 32 --det-infer-verify-batch-size 1"
+    "--enable-det-infer 3 --det-infer-window-size 16 --det-infer-verify-batch-size 1"
+    "--enable-det-infer 3 --det-infer-window-size 512 --det-infer-verify-batch-size 1"
 )
 
 PYTHON_CMD=$(command -v python || command -v python3) || { echo "Error: Python not found"; exit 1; }

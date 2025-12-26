@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run per-request rollback benchmark sweep for different det_step_sizes
+# Run per-request rollback benchmark sweep for different det_infer_window_sizes
 # and generate CDF plots.
 #
 # Usage:
@@ -14,7 +14,7 @@
 #   REQUEST_RATE    - QPS / request rate for async requests (default: 0 = sync)
 #
 # This script will:
-#   1. Run benchmarks for det_step_size = 10, 20, 50, 100
+#   1. Run benchmarks for det_infer_window_size = 10, 20, 50, 100
 #   2. Collect per-request rollback stats from server logs  
 #   3. Generate CDF plots comparing the distributions
 
@@ -107,7 +107,7 @@ run_experiment() {
     
     echo ""
     echo "=========================================="
-    echo "Running: det_step_size=$step_size"
+    echo "Running: det_infer_window_size=$step_size"
     echo "=========================================="
     
     local LOG_FILE="$RUN_DIR/server_step${step_size}.log"
@@ -126,8 +126,8 @@ run_experiment() {
         --chunked-prefill-size -1 \
         --enable-metrics \
         --enable-det-infer 3 \
-        --max-det-verify-batch-size 1 \
-        --min-det-step-size "$step_size" \
+        --det-infer-verify-batch-size 1 \
+        --det-infer-window-size "$step_size" \
         2>&1 | tee "$LOG_FILE" &
     
     SERVER_PID=$!
@@ -210,7 +210,7 @@ run_experiment() {
     python -c "import torch; torch.cuda.empty_cache(); print('GPU cache cleared')" 2>/dev/null || true
     sleep 3
     
-    echo "✓ Completed: det_step_size=$step_size"
+    echo "✓ Completed: det_infer_window_size=$step_size"
     echo ""
 }
 

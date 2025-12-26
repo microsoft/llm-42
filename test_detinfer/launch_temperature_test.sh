@@ -34,5 +34,5 @@ $PYTHON_CMD -m sglang.launch_server \
     --disable-chunked-prefix-cache \
     --disable-overlap-schedule \
     --disable-cuda-graph \
-    --det-step-size 10 \
+    --det-infer-window-size 10 \
     --enable-det-infer 1

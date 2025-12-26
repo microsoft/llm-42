@@ -96,7 +96,7 @@ class SchedulerOutputProcessorMixin:
                     # since prefill runs deterministically (no batching interference)
                     if (req.is_deterministic and self.server_args.enable_det_infer 
                         and len(req.output_ids) == 1):
-                        req.det_verified_tokens = 1
+                        req.det_infer_verified_tokens = 1
                     
                     req.check_finished()
 
@@ -591,8 +591,8 @@ class SchedulerOutputProcessorMixin:
         completion_tokens = []
         cached_tokens = []
         spec_verify_ct = []
-        det_num_rollbacks = []
-        det_tokens_rolled_back = []
+        det_infer_num_rollbacks = []
+        det_infer_tokens_rolled_back = []
         output_hidden_states = None
 
         if return_logprob:
@@ -635,9 +635,9 @@ class SchedulerOutputProcessorMixin:
                     # because of the one additional delayed token. This "continue" prevented the dummy output.
                     continue
                 
-                if needs_verification and req.det_verified_tokens < len(req.output_ids):
+                if needs_verification and req.det_infer_verified_tokens < len(req.output_ids):
                     logger.debug(f"[Scheduler] Waiting for verification: rid={req.rid}, "
-                                f"det_verified_tokens={req.det_verified_tokens}, output_len={len(req.output_ids)}")
+                                f"det_infer_verified_tokens={req.det_infer_verified_tokens}, output_len={len(req.output_ids)}")
                     continue
                 
                 req.finished_output = True
@@ -650,9 +650,9 @@ class SchedulerOutputProcessorMixin:
                 # )
             else:
                 if needs_verification:
-                    if req.det_verified_tokens > req.send_token_offset and req.stream:
+                    if req.det_infer_verified_tokens > req.send_token_offset and req.stream:
                         stream_interval = req.sampling_params.stream_interval or self.stream_interval
-                        should_output = req.det_verified_tokens % stream_interval == 0 if stream_interval > 1 else True
+                        should_output = req.det_infer_verified_tokens % stream_interval == 0 if stream_interval > 1 else True
                     else:
                         should_output = False
                 elif req.stream:
@@ -693,7 +693,7 @@ class SchedulerOutputProcessorMixin:
                 read_offsets.append(read_offset)
                 
                 if needs_verification and not req.finished():
-                    max_tokens_to_send = min(len(req.output_ids), req.det_verified_tokens)
+                    max_tokens_to_send = min(len(req.output_ids), req.det_infer_verified_tokens)
                     output_ids.append(req.output_ids[send_token_offset:max_tokens_to_send])
                     req.send_token_offset = max_tokens_to_send
                 else:
@@ -708,8 +708,8 @@ class SchedulerOutputProcessorMixin:
                 prompt_tokens.append(len(req.origin_input_ids))
                 completion_tokens.append(len(req.output_ids))
                 cached_tokens.append(req.cached_tokens)
-                det_num_rollbacks.append(req.det_num_rollbacks)
-                det_tokens_rolled_back.append(req.det_tokens_rolled_back)
+                det_infer_num_rollbacks.append(req.det_infer_num_rollbacks)
+                det_infer_tokens_rolled_back.append(req.det_infer_tokens_rolled_back)
 
                 if not self.spec_algorithm.is_none():
                     spec_verify_ct.append(req.spec_verify_ct)
@@ -822,8 +822,8 @@ class SchedulerOutputProcessorMixin:
                     completion_tokens,
                     cached_tokens,
                     spec_verify_ct,
-                    det_num_rollbacks,
-                    det_tokens_rolled_back,
+                    det_infer_num_rollbacks,
+                    det_infer_tokens_rolled_back,
                     input_token_logprobs_val,
                     input_token_logprobs_idx,
                     output_token_logprobs_val,

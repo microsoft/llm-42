@@ -57,7 +57,6 @@ class SamplingParams:
         logit_bias: Optional[Dict[str, float]] = None,
         sampling_seed: int = 42,
         is_deterministic: bool = False,
-        det_step_size: Optional[int] = None,
     ) -> None:
         self.max_new_tokens = max_new_tokens
         self.stop_strs = stop
@@ -87,7 +86,6 @@ class SamplingParams:
         self.logit_bias = logit_bias
         self.sampling_seed = sampling_seed
         self.is_deterministic = is_deterministic
-        self.det_step_size = det_step_size
 
         # Process some special cases
         if 0 <= self.temperature < _SAMPLING_EPS:

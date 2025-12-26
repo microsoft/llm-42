@@ -91,7 +91,7 @@ This benchmark helps understand:
 
 ## Mismatch Percentage Explained
 
-The `--det-skip-mismatch` parameter controls forced mismatch injection:
+The `--det-infer-skip-mismatch` parameter controls forced mismatch injection:
 - **100%** (default): Normal behavior (natural mismatches)
 - **0%**: Force no mismatches (skip all rollbacks)
 - **5%**: Inject mismatch at position `window - ceil(5% × window)` to rollback exactly `ceil(5% × window)` tokens

@@ -13,7 +13,7 @@ behavior of vllm_online_batch_invariance_multitest.py.
 Usage:
     # Start server with logging enabled:
     python -m sglang.launch_server --model-path <model> --enable-det-infer 1 \\
-        --min-det-step-size 10 2>&1 | tee server.log
+        --det-infer-window-size 10 2>&1 | tee server.log
     
     # Run benchmark (sends 2 batched requests, each with 32 prompts = 64 total prompts):
     python bench_per_request_rollbacks.py --num-requests 2 --batch-size 32 --log-file server.log
@@ -205,7 +205,7 @@ class BenchmarkConfig:
     seed: int = 12345  # Match vllm_online_batch_invariance_multitest.py
     min_prompt_words: int = 10  # Match vllm_online_batch_invariance_multitest.py
     max_prompt_words: int = 50  # Match vllm_online_batch_invariance_multitest.py
-    step_size: int = 0  # det_step_size used (0 = unknown)
+    step_size: int = 0  # det_infer_window_size used (0 = unknown)
     # Dataset options
     dataset: str = "random"  # "random" or "sharegpt"
     dataset_path: Optional[str] = None  # Path to dataset file (for sharegpt)
@@ -795,7 +795,7 @@ def main():
     parser.add_argument("--max-prompt-words", type=int, default=0,
                         help="Maximum prompt length in words (for random dataset)")
     parser.add_argument("--step-size", type=int, default=0,
-                        help="det_step_size used (for labeling in results)")
+                        help="det_infer_window_size used (for labeling in results)")
     parser.add_argument("--qps", type=float, default=0.0,
                         help="Requests per second (0 = synchronous, no rate limit)")
     

@@ -56,7 +56,7 @@ echo "TP Size per server: $TP_SIZE"
 echo "Attention Backend: $ATTENTION_BACKEND"
 echo "Log Directory: $LOG_DIR"
 echo ""
-echo "NOTE: All servers have --det-skip-mismatch enabled (no rollback)"
+echo "NOTE: All servers have --det-infer-skip-mismatch enabled (no rollback)"
 echo ""
 echo "Configuration Mapping:"
 for ((i=0; i<NUM_SERVERS; i++)); do
@@ -86,27 +86,27 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Function to get config-specific arguments
-# All configs use --det-skip-mismatch 0.0 to measure pure verification overhead (skip all mismatches)
+# All configs use --det-infer-skip-mismatch 0.0 to measure pure verification overhead (skip all mismatches)
 get_config_args() {
     local config_name="$1"
     case "$config_name" in
         "detinfer_step_size_32")
-            echo "--min-det-step-size 32 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 0.0"
+            echo "--det-infer-window-size 32 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 0.0"
             ;;
         "detinfer_step_size_64")
-            echo "--min-det-step-size 64 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 0.0"
+            echo "--det-infer-window-size 64 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 0.0"
             ;;
         "detinfer_step_size_128")
-            echo "--min-det-step-size 128 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 0.0"
+            echo "--det-infer-window-size 128 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 0.0"
             ;;
         "detinfer_step_size_256")
-            echo "--min-det-step-size 256 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 0.0"
+            echo "--det-infer-window-size 256 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 0.0"
             ;;
         "detinfer_step_size_512")
-            echo "--min-det-step-size 512 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 0.0"
+            echo "--det-infer-window-size 512 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 0.0"
             ;;
         "detinfer_step_size_1024")
-            echo "--min-det-step-size 1024 --enable-det-infer 3 --max-det-verify-batch-size 1 --det-skip-mismatch 0.0"
+            echo "--det-infer-window-size 1024 --enable-det-infer 3 --det-infer-verify-batch-size 1 --det-infer-skip-mismatch 0.0"
             ;;
         *)
             echo "Error: Unknown config name: $config_name" >&2

@@ -222,13 +222,10 @@ class CudaGraphRunner:
         # batch_invariant_mode: True = deterministic, False = non-deterministic
         self.graphs = {}
         self.output_buffers = {}
-        # Enable dual graphs for selective_determinism and det_infer modes 1 and 2 only
-        # Mode 3 uses non-batch-invariant kernels so it doesn't need dual graphs
-        # (Mode 3 uses default CUDA matmul without batch-invariant switching)
-        self.enable_dual_graphs = (
-            model_runner.enable_selective_determinism or 
-            (model_runner.enable_det_infer_mode and model_runner.enable_det_infer_mode != 3)
-        )
+        # Enable dual graphs only for selective_determinism mode
+        # (det_infer mode doesn't need dual graphs: decode uses non-deterministic kernels,
+        # and verification doesn't use CUDA graph)
+        self.enable_dual_graphs = model_runner.enable_selective_determinism
         self.enable_torch_compile = model_runner.server_args.enable_torch_compile
         self.disable_padding = model_runner.server_args.disable_cuda_graph_padding
         self.is_encoder_decoder = model_runner.model_config.is_encoder_decoder
@@ -449,9 +446,8 @@ class CudaGraphRunner:
 
     def capture(self) -> None:
         if self.enable_dual_graphs:
-            mode_name = "enable_det_infer" if self.model_runner.enable_det_infer_mode else "enable_selective_determinism"
             logger.info(
-                f"Dual CUDA graphs enabled ({mode_name}). "
+                "Dual CUDA graphs enabled (enable_selective_determinism). "
                 "Capturing two graphs per batch size: one deterministic (batch_invariant=True), "
                 "one non-deterministic (batch_invariant=False). This will double CUDA graph memory usage."
             )
@@ -505,10 +501,10 @@ class CudaGraphRunner:
                             # First capture with batch_invariant enabled (deterministic)
                             from sglang.srt.batch_invariant_ops import set_batch_invariant_mode
                             
-                            # Use the actual det_infer mode (1 or 2) for batch_invariant settings
-                            det_infer_mode = self.model_runner.enable_det_infer_mode
-                            logger.info(f"Capturing CUDA graph for bs={bs} with batch_invariant_mode=True (det_infer_mode={det_infer_mode})")
-                            with set_batch_invariant_mode(enabled=True, mode=det_infer_mode):
+                            # Use enable_selective_determinism mode for batch_invariant settings
+                            selective_det_mode = self.model_runner.enable_selective_determinism
+                            logger.info(f"Capturing CUDA graph for bs={bs} with batch_invariant_mode=True (selective_det_mode={selective_det_mode})")
+                            with set_batch_invariant_mode(enabled=True, mode=selective_det_mode):
                                 (
                                     graph_det,
                                     output_buffers_det,
@@ -825,15 +821,7 @@ class CudaGraphRunner:
         if self.enable_dual_graphs:
             self.use_deterministic = True  # Default to deterministic
             
-            # For enable_det_infer mode, check force_deterministic_mode flag in DECODE
-            if self.model_runner.enable_det_infer_mode:
-                # Check if any request has force_deterministic_mode set
-                has_force_deterministic = any(
-                    getattr(req, 'force_deterministic_mode', False) 
-                    for req in forward_batch.reqs
-                )
-                self.use_deterministic = has_force_deterministic
-            elif forward_batch.sampling_info is not None:
+            if forward_batch.sampling_info is not None:
                 # For enable_selective_determinism, use is_any_deterministic
                 self.use_deterministic = forward_batch.sampling_info.is_any_deterministic
         
@@ -877,14 +865,7 @@ class CudaGraphRunner:
             else:
                 use_deterministic = True  # Default to deterministic
                 
-                # For enable_det_infer mode, check force_deterministic_mode flag
-                if self.model_runner.enable_det_infer_mode:
-                    has_force_deterministic = any(
-                        getattr(req, 'force_deterministic_mode', False) 
-                        for req in forward_batch.reqs
-                    )
-                    use_deterministic = has_force_deterministic
-                elif forward_batch.sampling_info is not None:
+                if forward_batch.sampling_info is not None:
                     # For enable_selective_determinism, use is_any_deterministic
                     use_deterministic = forward_batch.sampling_info.is_any_deterministic
             

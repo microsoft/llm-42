@@ -230,7 +230,7 @@ def plot_overhead_comparison(results: List[Dict], output_dir: str):
 
 
 def plot_step_size_comparison(results: List[Dict], output_dir: str):
-    """Compare different min-det-step-size values."""
+    """Compare different det-infer-window-size values."""
     # Filter for det_infer_3 configs
     det_infer_results = [r for r in results if r['config_name'].startswith('det_infer_3_step')]
     
@@ -266,9 +266,9 @@ def plot_step_size_comparison(results: List[Dict], output_dir: str):
         plt.plot(steps, throughputs, marker='o', color=colors[idx], 
                 label=f'in={input_len}, out={output_len}', linewidth=2, markersize=6)
     
-    plt.xlabel('min-det-step-size', fontsize=12)
+    plt.xlabel('det-infer-window-size', fontsize=12)
     plt.ylabel('Output Throughput (tokens/s)', fontsize=12)
-    plt.title('Effect of min-det-step-size on Throughput\n(enable-det-infer 3)', fontsize=14)
+    plt.title('Effect of det-infer-window-size on Throughput\n(enable-det-infer 3)', fontsize=14)
     plt.legend(loc='best', fontsize=9, ncol=2)
     plt.grid(True, alpha=0.3)
     plt.xticks(step_sizes)

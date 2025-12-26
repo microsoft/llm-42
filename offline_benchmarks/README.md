@@ -6,7 +6,7 @@ This directory contains scripts for benchmarking offline throughput with differe
 
 1. **Default (Baseline)**: Standard SGLang configuration with TP=1
 2. **Deterministic Inference Mode 2**: Global deterministic inference with `--enable-deterministic-inference 2`
-3. **Det-Infer Mode 3**: Forward-mode-based deterministic inference with `--enable-det-infer 3` and varying `--min-det-step-size` (16, 64, 128)
+3. **Det-Infer Mode 3**: Forward-mode-based deterministic inference with `--enable-det-infer 3` and varying `--det-infer-window-size` (16, 64, 128)
 
 ## Parameters Varied
 
@@ -56,5 +56,5 @@ Results are saved to `results/` directory:
   - `throughput_by_output_len_in*.png`: Throughput vs output length
   - `heatmap_*.png`: Throughput heatmaps per configuration
   - `overhead_comparison.png`: Overhead compared to baseline
-  - `step_size_comparison.png`: Effect of min-det-step-size
+  - `step_size_comparison.png`: Effect of det-infer-window-size
   - `summary.txt`: Text summary of all results

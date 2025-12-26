@@ -458,15 +458,14 @@ class Scheduler(
             self.model_worker = DeterministicVerificationWorker(
                 self.model_worker,
                 always_align=True,
-                max_requests_per_verify=server_args.max_det_verify_batch_size,
+                fixed_requests_per_verify=server_args.det_infer_verify_batch_size,
                 metrics_collector=getattr(self, 'metrics_collector', None),
-                skip_mismatch=server_args.det_skip_mismatch,
+                skip_mismatch=server_args.det_infer_skip_mismatch,
             )
             logger.info(
-                f"Deterministic verification worker enabled with min_det_step_size={server_args.min_det_step_size}, "
-                f"max_det_step_size={server_args.max_det_step_size}, "
-                f"max_det_verify_batch_size={server_args.max_det_verify_batch_size}, "
-                f"det_skip_mismatch={server_args.det_skip_mismatch}"
+                f"Deterministic verification worker enabled with det_infer_window_size={server_args.det_infer_window_size}, "
+                f"det_infer_verify_batch_size={server_args.det_infer_verify_batch_size}, "
+                f"det_infer_skip_mismatch={server_args.det_infer_skip_mismatch}"
             )
 
         # Get token and memory info from the model worker
@@ -532,22 +531,20 @@ class Scheduler(
 
         # Initialize fixed-size verification pool for deterministic inference
         # (must be done after init_memory_pool_and_cache since allocators are needed)
-        if server_args.enable_det_infer and server_args.max_det_verify_batch_size is not None:
+        if server_args.enable_det_infer:
             from sglang.srt.detinfer.det_verify_worker import DeterministicVerificationWorker
             if isinstance(self.model_worker, DeterministicVerificationWorker):
-                # Use min_det_step_size as the step size for fixed batches
-                step_size = server_args.min_det_step_size or server_args.max_det_step_size
-                if step_size is not None:
-                    self.model_worker.init_fixed_pool(
-                        req_to_token_pool=self.req_to_token_pool,
-                        token_to_kv_pool_allocator=self.token_to_kv_pool_allocator,
-                        step_size=step_size,
-                        device=self.device,
-                    )
-                    # Track reserved slots for memory leak check
-                    if self.model_worker.fixed_pool is not None:
-                        self.reserved_kv_slots = len(self.model_worker.fixed_pool.dummy_cache_locs)
-                        self.reserved_req_pool_slots = self.model_worker.fixed_pool.fixed_size
+                # Use det_infer_window_size as the window size for fixed batches
+                self.model_worker.init_fixed_pool(
+                    req_to_token_pool=self.req_to_token_pool,
+                    token_to_kv_pool_allocator=self.token_to_kv_pool_allocator,
+                    window_size=server_args.det_infer_window_size,
+                    device=self.device,
+                )
+                # Track reserved slots for memory leak check
+                if self.model_worker.fixed_pool is not None:
+                    self.reserved_kv_slots = len(self.model_worker.fixed_pool.dummy_cache_locs)
+                    self.reserved_req_pool_slots = self.model_worker.fixed_pool.fixed_size
 
         # Init running status
         self.waiting_queue: List[Req] = []

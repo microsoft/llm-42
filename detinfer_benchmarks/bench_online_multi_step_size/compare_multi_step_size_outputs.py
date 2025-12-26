@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Compare outputs across multiple step size configurations (same QPS, different step sizes).
-Each server runs at the same QPS but with a different min-det-step-size,
+Each server runs at the same QPS but with a different det-infer-window-size,
 and we compare their outputs token-by-token.
 """
 
@@ -136,8 +136,8 @@ def run_experiment_process(idx: int, base: dict, url: str, qps: float, step_size
     det_tokens_rolled_back = []
     if "meta_info" in result:
         for meta in result["meta_info"]:
-            det_num_rollbacks.append(meta.get("det_num_rollbacks", 0))
-            det_tokens_rolled_back.append(meta.get("det_tokens_rolled_back", 0))
+            det_num_rollbacks.append(meta.get("det_infer_num_rollbacks", 0))
+            det_tokens_rolled_back.append(meta.get("det_infer_tokens_rolled_back", 0))
     
     # Calculate rollback statistics
     rollback_stats = {}
