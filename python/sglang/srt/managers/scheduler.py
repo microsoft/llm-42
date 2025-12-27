@@ -1911,8 +1911,6 @@ class Scheduler(
 
         # For enable_det_infer modes, deterministic requests must be isolated (batch_size=1)
         # during prefill to ensure batch-invariant results. Decode can still be batched.
-        # This applies to all det_infer modes (not just mode 3) because even with batch-invariant
-        # kernels, batched prefill can produce non-deterministic results due to attention.
         enable_det_infer_isolated_prefill = self.server_args.enable_det_infer > 0
         has_deterministic_in_batch = False
 

@@ -174,12 +174,11 @@ class FlashInferAttnBackend(AttentionBackend):
             global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
         
         if self.enable_det_infer_mode > 0 and self.enable_det_infer_mode == 3:
-            # Non-batch-invariant mode: use original settings
+            # Non-batch-invariant mode: use original settings for prefill/decode
+            # Verification mode will handle its own deterministic settings
+            # No need to increase workspace size - use default heuristics
             self.decode_use_tensor_cores = self.original_decode_use_tensor_cores
-            self.prefill_split_tile_size = get_int_env_var(
-                "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
-            )
-            global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
+            # Keep prefill_split_tile_size as None (use default heuristic)
 
         # Allocate buffers
         global global_workspace_buffer
@@ -327,8 +326,9 @@ class FlashInferAttnBackend(AttentionBackend):
             # This mode is used for deterministic verification - re-running output tokens
             # to verify determinism. The input tokens are already in KV cache.
             # We need to pass prefix_lens (the length of input tokens already in cache)
-            # Always use deterministic settings regardless of enable_det_infer_mode
-            current_prefill_split_tile_size = self.prefill_split_tile_size
+            # Always use fixed split size for verification determinism
+            # Use 2048 since verification typically processes ~32 tokens
+            current_prefill_split_tile_size = 2048
             use_ragged = False
             extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
             
