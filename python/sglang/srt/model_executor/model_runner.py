@@ -2035,7 +2035,7 @@ class ModelRunner:
         should_enable_batch_invariant = False
         
         # During verification modes, batch-invariant mode must be enabled for deterministic results
-        is_verification_mode = forward_batch.forward_mode.is_any_verify()
+        is_verification_mode = forward_batch.forward_mode.is_target_det_verify()
         
         # enable_det_infer: Dynamic control based on forward mode
         # Global default is DISABLED. We enable only when needed:
