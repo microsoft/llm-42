@@ -88,6 +88,7 @@ class RequestFuncOutput:
     prompt_len: int = 0
     error: str = ""
     output_len: int = 0
+    output_ids: List[int] = field(default_factory=list)  # Output token IDs
     meta_info: Dict[str, Any] = field(default_factory=dict)  # Response meta_info
 
     @staticmethod
@@ -551,6 +552,11 @@ async def async_request_sglang_generate(
                         else:
                             data = json.loads(chunk)
 
+                            # Accumulate output token IDs regardless of text content
+                            # (early tokens may not produce printable text yet)
+                            if "output_ids" in data:
+                                output.output_ids.extend(data["output_ids"])
+
                             # NOTE: Some completion API might have a last
                             # usage summary response without a token so we
                             # want to check a token was generated
@@ -664,6 +670,9 @@ def get_dataset(args, tokenizer):
     tokenize_prompt = getattr(args, "tokenize_prompt", False)
     if args.dataset_name == "sharegpt":
         assert not tokenize_prompt
+        # Support three-seed system if available, otherwise fallback to legacy behavior
+        select_seed = getattr(args, 'select_seed', None)
+        order_seed = getattr(args, 'order_seed', None)
         input_requests = sample_sharegpt_requests(
             dataset_path=args.dataset_path,
             num_requests=args.num_prompts,
@@ -672,6 +681,8 @@ def get_dataset(args, tokenizer):
             context_len=args.sharegpt_context_len,
             prompt_suffix=args.prompt_suffix,
             apply_chat_template=args.apply_chat_template,
+            select_seed=select_seed,
+            order_seed=order_seed,
         )
     elif args.dataset_name.startswith("random") and args.dataset_name != "random-image":
         input_requests = sample_random_requests(
@@ -853,6 +864,7 @@ class DatasetRow:
     output_len: int
     image_data: Optional[List[str]] = None
     timestamp: Optional[float] = None
+    prompt_hash: Optional[str] = None  # SHA256 hash of prompt for cross-config matching
 
 
 async def get_mooncake_request_over_time(
@@ -1067,6 +1079,19 @@ def sample_mmmu_requests(
     return filtered_dataset
 
 
+def _compute_prompt_hash(prompt: str, index: Optional[int] = None) -> str:
+    """Compute a short hash of the prompt for cross-config matching.
+    
+    If index is provided, it's included in the hash to make duplicates unique.
+    """
+    import hashlib
+    if index is not None:
+        data = f"{index}:{prompt}"
+    else:
+        data = prompt
+    return hashlib.sha256(data.encode()).hexdigest()[:16]
+
+
 def sample_sharegpt_requests(
     dataset_path: str,
     num_requests: int,
@@ -1075,7 +1100,18 @@ def sample_sharegpt_requests(
     context_len: Optional[int] = None,
     prompt_suffix: Optional[str] = "",
     apply_chat_template=False,
+    select_seed: Optional[int] = None,
+    order_seed: Optional[int] = None,
 ) -> List[DatasetRow]:
+    """
+    Sample requests from ShareGPT dataset with separate control over selection and ordering.
+    
+    Args:
+        select_seed: Seed for deterministic prompt selection. If None, uses current random state.
+                    Use the SAME select_seed across configs to get the same prompts.
+        order_seed: Seed for shuffling the selected prompts. If None, uses current random state.
+                   Use DIFFERENT order_seed across configs to get different arrival orders.
+    """
     if fixed_output_len is not None and fixed_output_len < 4:
         raise ValueError("output_len too small")
 
@@ -1102,7 +1138,16 @@ def sample_sharegpt_requests(
         for data in dataset
     ]
 
-    # Shuffle the dataset.
+    # PHASE 1: Deterministic selection of prompts (controlled by select_seed)
+    # Save current random state
+    saved_random_state = random.getstate()
+    saved_np_state = np.random.get_state()
+    
+    if select_seed is not None:
+        random.seed(select_seed)
+        np.random.seed(select_seed)
+    
+    # Shuffle for selection (this determines WHICH prompts are selected)
     random.shuffle(dataset)
 
     # Filter out sequences that are too long or too short
@@ -1145,9 +1190,23 @@ def sample_sharegpt_requests(
             # Prune too long sequences.
             continue
 
+        # Compute hash including selection index for uniqueness (handles duplicate prompts)
+        # Using selection index (before shuffle) ensures same prompt gets same hash across configs
+        selection_idx = len(filtered_dataset)
+        prompt_hash = _compute_prompt_hash(prompt, index=selection_idx)
+        
         filtered_dataset.append(
-            DatasetRow(prompt=prompt, prompt_len=prompt_len, output_len=output_len)
+            DatasetRow(prompt=prompt, prompt_len=prompt_len, output_len=output_len, prompt_hash=prompt_hash)
         )
+
+    # PHASE 2: Reorder the selected prompts (controlled by order_seed)
+    if order_seed is not None:
+        random.seed(order_seed)
+        random.shuffle(filtered_dataset)
+    elif select_seed is not None:
+        # Restore random state if we only used select_seed
+        random.setstate(saved_random_state)
+        np.random.set_state(saved_np_state)
 
     print(f"#Input tokens: {np.sum([x.prompt_len for x in filtered_dataset])}")
     print(f"#Output tokens: {np.sum([x.output_len for x in filtered_dataset])}")
@@ -1952,9 +2011,12 @@ async def benchmark(
         "output_lens": output_lens,
         "ttfts": [output.ttft for output in outputs],
         "itls": [output.itl for output in outputs],
+        "latencies": [output.latency for output in outputs],  # e2e latency per request
         "generated_texts": [output.generated_text for output in outputs],
+        "output_ids": [output.output_ids for output in outputs],
         "errors": [output.error for output in outputs],
         "meta_info": [output.meta_info for output in outputs],
+        "prompt_hashes": [req.prompt_hash for req in input_requests] if hasattr(input_requests[0], 'prompt_hash') and input_requests[0].prompt_hash else [],
     }
 
     # Append results to a JSONL file
@@ -1976,11 +2038,18 @@ async def benchmark(
                         if output_len > 1
                         else 0.0
                     )
+                    # Get prompt hash if available
+                    prompt_hash = None
+                    if hasattr(input_requests[i], 'prompt_hash') and input_requests[i].prompt_hash:
+                        prompt_hash = input_requests[i].prompt_hash
                     latency_record = {
+                        "req_id": i + 1,
+                        "hash": prompt_hash,
+                        "prompt_len": output.prompt_len,
+                        "output_len": output_len,
                         "ttft_ms": output.ttft * 1000,
                         "tpot_ms": tpot_ms,
                         "e2e_latency_ms": output.latency * 1000,
-                        "output_len": output_len,
                     }
                     latency_file.write(json.dumps(latency_record) + "\n")
 
@@ -2034,12 +2103,23 @@ def run_benchmark(args_: argparse.Namespace):
     if not hasattr(args, "mooncake_num_rounds"):
         args.mooncake_num_rounds = 1
 
+    # Handle three-seed system with backward compatibility
+    # If individual seeds not specified, use --seed as default
+    if not hasattr(args, "select_seed") or args.select_seed is None:
+        args.select_seed = args.seed
+    if not hasattr(args, "order_seed") or args.order_seed is None:
+        args.order_seed = args.seed
+    if not hasattr(args, "arrival_seed") or args.arrival_seed is None:
+        args.arrival_seed = args.order_seed  # Default to order_seed
+
     print(f"benchmark_args={args}")
+    print(f"Seeds: select_seed={args.select_seed}, order_seed={args.order_seed}, arrival_seed={args.arrival_seed}")
 
     # Set global environments
     set_ulimit()
-    random.seed(args.seed)
-    np.random.seed(args.seed)
+    # Use arrival_seed for the Poisson timing (np.random.exponential)
+    random.seed(args.arrival_seed)
+    np.random.seed(args.arrival_seed)
 
     extra_request_body = {}
     if args.extra_request_body:
@@ -2347,7 +2427,25 @@ if __name__ == "__main__":
         action="store_true",
         help="Return logprob.",
     )
-    parser.add_argument("--seed", type=int, default=42, help="The random seed.")
+    parser.add_argument("--seed", type=int, default=42, help="The random seed. Sets all three seeds (select, order, arrival) if individual seeds are not specified.")
+    parser.add_argument(
+        "--select-seed",
+        type=int,
+        default=None,
+        help="Seed for deterministic prompt selection from dataset. Use the SAME select-seed across configs to get the same prompts. If not set, uses --seed.",
+    )
+    parser.add_argument(
+        "--order-seed",
+        type=int,
+        default=None,
+        help="Seed for shuffling the selected prompts (controls arrival ORDER). Use DIFFERENT order-seed across configs to test different arrival orders. If not set, uses --seed.",
+    )
+    parser.add_argument(
+        "--arrival-seed",
+        type=int,
+        default=None,
+        help="Seed for Poisson arrival timing (controls inter-arrival intervals). If not set, defaults to --order-seed.",
+    )
     parser.add_argument(
         "--disable-ignore-eos",
         action="store_true",

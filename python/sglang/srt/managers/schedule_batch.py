@@ -733,7 +733,7 @@ class Req:
         return self.fill_ids[:max_prefix_len]
 
     # Based on https://github.com/vllm-project/vllm/blob/7a64d24aad69e4d2548aa0bf528d9fe63428ab01/vllm/transformers_utils/detokenizer.py#L194-L313
-    def init_incremental_detokenize(self):
+    def init_incremental_detokenize(self, needs_verification: bool = False):
         first_iter = self.surr_offset is None or self.read_offset is None
 
         if first_iter:
@@ -741,13 +741,27 @@ class Req:
             self.surr_offset = max(
                 self.read_offset - INIT_INCREMENTAL_DETOKENIZATION_OFFSET, 0
             )
-            self.surr_and_decode_ids = (
-                self.origin_input_ids_unpadded[self.surr_offset :] + self.output_ids
-            )
-            self.cur_decode_ids_len = len(self.output_ids)
+            if needs_verification :
+                # only send verified tokens for deterministic inference
+                self.surr_and_decode_ids = (
+                    self.origin_input_ids_unpadded[self.surr_offset :] + self.output_ids[:self.det_infer_verified_tokens]
+                )
+                self.cur_decode_ids_len = self.det_infer_verified_tokens
+            else:
+                self.surr_and_decode_ids = (
+                    self.origin_input_ids_unpadded[self.surr_offset :] + self.output_ids
+                )
+                self.cur_decode_ids_len = len(self.output_ids)
         else:
-            self.surr_and_decode_ids.extend(self.output_ids[self.cur_decode_ids_len :])
-            self.cur_decode_ids_len = len(self.output_ids)
+            if needs_verification:
+                # only send verified tokens for deterministic inference
+                self.surr_and_decode_ids.extend(
+                    self.output_ids[self.cur_decode_ids_len : self.det_infer_verified_tokens]
+                )
+                self.cur_decode_ids_len = self.det_infer_verified_tokens
+            else:
+                self.surr_and_decode_ids.extend(self.output_ids[self.cur_decode_ids_len :])
+                self.cur_decode_ids_len = len(self.output_ids)
 
         return self.surr_and_decode_ids, self.read_offset - self.surr_offset
 

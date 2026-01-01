@@ -652,7 +652,13 @@ class SchedulerOutputProcessorMixin:
                 if needs_verification:
                     if req.det_infer_verified_tokens > req.send_token_offset and req.stream:
                         stream_interval = req.sampling_params.stream_interval or self.stream_interval
-                        should_output = req.det_infer_verified_tokens % stream_interval == 0 if stream_interval > 1 else True
+                        # should_output = req.det_infer_verified_tokens % stream_interval == 0 if stream_interval > 1 else True
+                        should_output = (
+                            req.det_infer_verified_tokens % stream_interval == 1
+                            if not self.model_config.is_multimodal_gen
+                            and stream_interval > 1
+                            else req.det_infer_verified_tokens % stream_interval == 0
+                        )
                     else:
                         should_output = False
                 elif req.stream:
@@ -681,8 +687,8 @@ class SchedulerOutputProcessorMixin:
                 finished_reasons.append(
                     req.finished_reason.to_json() if req.finished_reason else None
                 )
-                decoded_texts.append(req.decoded_text)
-                decode_ids, read_offset = req.init_incremental_detokenize()
+                decoded_texts.append(req.decoded_text) # TODO: it's always empty?
+                decode_ids, read_offset = req.init_incremental_detokenize(needs_verification=needs_verification)
 
                 if self.model_config.is_multimodal_gen:
                     decode_ids_list.append(decode_ids)
@@ -707,6 +713,8 @@ class SchedulerOutputProcessorMixin:
                 no_stop_trim.append(req.sampling_params.no_stop_trim)
                 prompt_tokens.append(len(req.origin_input_ids))
                 completion_tokens.append(len(req.output_ids))
+                if needs_verification:
+                    completion_tokens[-1] = req.det_infer_verified_tokens
                 cached_tokens.append(req.cached_tokens)
                 det_infer_num_rollbacks.append(req.det_infer_num_rollbacks)
                 det_infer_tokens_rolled_back.append(req.det_infer_tokens_rolled_back)
@@ -796,7 +804,12 @@ class SchedulerOutputProcessorMixin:
 
             # Log deterministic rollback stats when request finishes
             # if req.finished() and self.tp_rank == 0 and req.is_deterministic:
-            #     req.log_det_rollback_stats()
+            #     # req.log_det_rollback_stats()
+            #     logger.info(
+            #         f"[Scheduler] Deterministic request finished: rid={req.rid}, "
+            #         f"prompt_len={len(req.origin_input_ids)}, output_len={len(req.output_ids)}, "
+            #         f"output_tokens={req.output_ids}, "
+            #     )
 
         # Send to detokenizer
         if rids:
