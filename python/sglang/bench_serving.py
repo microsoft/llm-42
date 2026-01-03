@@ -745,6 +745,17 @@ def get_dataset(args, tokenizer):
 
         # Limit the number of requests based on --num-prompts
         input_requests = all_requests_data[: args.num_prompts]
+    elif args.dataset_name == "arxiv":
+        assert not tokenize_prompt
+        select_seed = getattr(args, 'select_seed', None)
+        order_seed = getattr(args, 'order_seed', None)
+        input_requests = sample_arxiv_requests(
+            num_requests=args.num_prompts,
+            tokenizer=tokenizer,
+            context_len=args.sharegpt_context_len,
+            select_seed=select_seed,
+            order_seed=order_seed,
+        )
     else:
         raise ValueError(f"Unknown dataset: {args.dataset_name}")
     return input_requests
@@ -1208,6 +1219,110 @@ def sample_sharegpt_requests(
         random.setstate(saved_random_state)
         np.random.set_state(saved_np_state)
 
+    print(f"#Input tokens: {np.sum([x.prompt_len for x in filtered_dataset])}")
+    print(f"#Output tokens: {np.sum([x.output_len for x in filtered_dataset])}")
+    return filtered_dataset
+
+
+def sample_arxiv_requests(
+    num_requests: int,
+    tokenizer: PreTrainedTokenizerBase,
+    context_len: Optional[int] = None,
+    select_seed: Optional[int] = None,
+    order_seed: Optional[int] = None,
+) -> List[DatasetRow]:
+    """
+    Sample requests from arxiv-summarization dataset (ccdv/arxiv-summarization from HuggingFace).
+    
+    Args:
+        num_requests: Number of requests to sample.
+        tokenizer: Tokenizer for computing token lengths.
+        context_len: Maximum context length. Requests exceeding this will be filtered.
+        select_seed: Seed for deterministic prompt selection. If None, uses current random state.
+        order_seed: Seed for shuffling the selected prompts. If None, uses current random state.
+    """
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        raise ImportError(
+            "Please install the 'datasets' package to use the arxiv dataset: "
+            "pip install datasets"
+        )
+    
+    import filelock
+    
+    # Use a file lock to prevent race conditions when multiple processes download simultaneously
+    lock_path = Path("/tmp/arxiv_dataset_download.lock")
+    print("Loading ccdv/arxiv-summarization from HuggingFace...")
+    
+    with filelock.FileLock(lock_path, timeout=600):  # 10 minute timeout
+        ds = load_dataset("ccdv/arxiv-summarization", split="test")
+    
+    # Save current random state
+    saved_random_state = random.getstate()
+    saved_np_state = np.random.get_state()
+    
+    if select_seed is not None:
+        random.seed(select_seed)
+        np.random.seed(select_seed)
+    
+    # Convert to list and shuffle for selection
+    dataset_list = list(ds)
+    random.shuffle(dataset_list)
+    
+    # Filter and collect samples
+    filtered_dataset: List[DatasetRow] = []
+    max_items_to_process = num_requests * 3  # Account for filtering
+    
+    for i, item in enumerate(dataset_list):
+        if len(filtered_dataset) >= num_requests:
+            break
+        if i >= max_items_to_process:
+            break
+        
+        article = item['article']
+        abstract = item['abstract']
+        
+        # Create summarization prompt
+        prompt = f"Summarize the following article:\n\n{article}\n\nSummary:"
+        
+        # Tokenize to get actual token counts
+        prompt_token_ids = tokenizer.encode(prompt)
+        abstract_token_ids = tokenizer.encode(abstract)
+        prompt_len = len(prompt_token_ids)
+        output_len = len(abstract_token_ids)
+        
+        # Skip if too short
+        if prompt_len < 10 or output_len < 2:
+            continue
+        
+        # Skip if total exceeds context length
+        if context_len and prompt_len + output_len > context_len:
+            continue
+        
+        # Compute hash for cross-config matching
+        selection_idx = len(filtered_dataset)
+        prompt_hash = _compute_prompt_hash(prompt, index=selection_idx)
+        
+        filtered_dataset.append(
+            DatasetRow(
+                prompt=prompt,
+                prompt_len=prompt_len,
+                output_len=output_len,
+                prompt_hash=prompt_hash,
+            )
+        )
+    
+    # PHASE 2: Reorder the selected prompts (controlled by order_seed)
+    if order_seed is not None:
+        random.seed(order_seed)
+        random.shuffle(filtered_dataset)
+    elif select_seed is not None:
+        # Restore random state if we only used select_seed
+        random.setstate(saved_random_state)
+        np.random.set_state(saved_np_state)
+    
+    print(f"Loaded {len(filtered_dataset)} arxiv samples")
     print(f"#Input tokens: {np.sum([x.prompt_len for x in filtered_dataset])}")
     print(f"#Output tokens: {np.sum([x.output_len for x in filtered_dataset])}")
     return filtered_dataset
@@ -1681,6 +1796,7 @@ async def benchmark(
     mooncake_slowdown_factor=1.0,
     mooncake_num_rounds=1,
     deterministic_ratio: float = 0.0,
+    deterministic_seed: int = 42,
 ):
     if backend in ASYNC_REQUEST_FUNCS:
         request_func = ASYNC_REQUEST_FUNCS[backend]
@@ -1798,11 +1914,16 @@ async def benchmark(
         request_generator = get_request(input_requests, request_rate)
 
     # Pre-compute which requests will be deterministic (exact count)
+    # Use deterministic_seed for reproducible selection across different server configs
     num_requests = len(input_requests) if args.dataset_name != "mooncake" else len(input_requests) * mooncake_num_rounds
     num_deterministic = int(num_requests * deterministic_ratio)
-    deterministic_indices = set(random.sample(range(num_requests), num_deterministic)) if num_deterministic > 0 else set()
-    if deterministic_ratio > 0:
-        print(f"Deterministic requests: {num_deterministic}/{num_requests} ({deterministic_ratio*100:.1f}%)")
+    if num_deterministic > 0:
+        # Use a separate Random instance with deterministic_seed for reproducible selection
+        det_rng = random.Random(deterministic_seed)
+        deterministic_indices = set(det_rng.sample(range(num_requests), num_deterministic))
+        print(f"Deterministic requests: {num_deterministic}/{num_requests} ({deterministic_ratio*100:.1f}%) [seed={deterministic_seed}]")
+    else:
+        deterministic_indices = set()
 
     pbar = None if disable_tqdm else tqdm(total=pbar_total)
     request_idx = 0
@@ -2251,6 +2372,7 @@ def run_benchmark(args_: argparse.Namespace):
             mooncake_slowdown_factor=args.mooncake_slowdown_factor,
             mooncake_num_rounds=args.mooncake_num_rounds,
             deterministic_ratio=args.deterministic_ratio,
+            deterministic_seed=args.deterministic_seed,
         )
     )
 
@@ -2308,6 +2430,7 @@ if __name__ == "__main__":
             "mmmu",
             "random-image",
             "mooncake",
+            "arxiv",
         ],
         help="Name of the dataset to benchmark on.",
     )
@@ -2464,6 +2587,13 @@ if __name__ == "__main__":
         default=0.0,
         help="Ratio of requests to send with is_deterministic=True (0.0 to 1.0). "
         "Default is 0.0 (no deterministic requests). Set to 0.1 for 10%% deterministic requests.",
+    )
+    parser.add_argument(
+        "--deterministic-seed",
+        type=int,
+        default=42,
+        help="Seed for selecting which requests are deterministic. "
+        "Use the same seed across different server configs to ensure the same requests are marked deterministic.",
     )
     parser.add_argument(
         "--apply-chat-template",

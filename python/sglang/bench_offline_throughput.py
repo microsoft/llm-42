@@ -56,6 +56,7 @@ class BenchArgs:
     disable_ignore_eos: bool = False
     extra_request_body: Optional[str] = None
     deterministic_ratio: float = 1.0
+    deterministic_seed: int = 42
     apply_chat_template: bool = False
     profile: bool = False
     skip_warmup: bool = False
@@ -72,7 +73,7 @@ class BenchArgs:
             "--dataset-name",
             type=str,
             default="sharegpt",
-            choices=["sharegpt", "random", "generated-shared-prefix"],
+            choices=["sharegpt", "random", "generated-shared-prefix", "arxiv"],
             help="Name of the dataset to benchmark on.",
         )
         parser.add_argument(
@@ -169,6 +170,13 @@ class BenchArgs:
             "Default is 1.0 (all requests are deterministic). Set to 0.1 for 10%% deterministic requests.",
         )
         parser.add_argument(
+            "--deterministic-seed",
+            type=int,
+            default=BenchArgs.deterministic_seed,
+            help="Seed for selecting which requests are deterministic. "
+            "Use the same seed across different configs to ensure the same requests are marked deterministic.",
+        )
+        parser.add_argument(
             "--apply-chat-template",
             action="store_true",
             help="Apply chat template",
@@ -210,6 +218,7 @@ def throughput_test_once(
     extra_request_body: Dict,
     profile: bool,
     deterministic_ratio: float = 1.0,
+    deterministic_seed: int = 42,
 ):
     measurement_results = {
         "backend": backend_name,
@@ -226,8 +235,13 @@ def throughput_test_once(
     prompt = [r.prompt for r in reqs]
     
     # Pre-compute which requests will be deterministic (exact count)
+    # Use deterministic_seed for reproducible selection
     num_deterministic = int(len(reqs) * deterministic_ratio)
-    deterministic_indices = set(random.sample(range(len(reqs)), num_deterministic)) if num_deterministic > 0 else set()
+    if num_deterministic > 0:
+        det_rng = random.Random(deterministic_seed)
+        deterministic_indices = set(det_rng.sample(range(len(reqs)), num_deterministic))
+    else:
+        deterministic_indices = set()
     deterministic_flags = [i in deterministic_indices for i in range(len(reqs))]
     
     sampling_params = [
@@ -372,6 +386,7 @@ def throughput_test(
             extra_request_body=extra_request_body,
             profile=False,
             deterministic_ratio=bench_args.deterministic_ratio,
+            deterministic_seed=bench_args.deterministic_seed,
         )
         time.sleep(0.5)
 
@@ -384,6 +399,7 @@ def throughput_test(
         extra_request_body=extra_request_body,
         profile=bench_args.profile,
         deterministic_ratio=bench_args.deterministic_ratio,
+        deterministic_seed=bench_args.deterministic_seed,
     )
     backend.shutdown()
 
