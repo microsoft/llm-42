@@ -101,7 +101,7 @@ def create_rmsnorm_layer(hidden_size: int, eps: float = 1e-6, vllm_mode: Optiona
 
     if use_native:
         # Set deterministic inference without bit 64 to force native mode
-        os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = "1"
+        os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = "2"
     elif vllm_mode:
         os.environ["SGLANG_USE_VLLM_RMSNORM"] = vllm_mode
     elif use_triton:

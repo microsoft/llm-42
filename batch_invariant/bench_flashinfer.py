@@ -3,6 +3,8 @@ import unittest
 import torch
 import os
 os.environ["SGLANG_ENABLE_TORCH_COMPILE"] = "1"
+# Increase FlashInfer workspace size to handle larger sequence lengths (16384+)
+os.environ["FLASHINFER_WORKSPACE_SIZE"] = str(16384 * 1024 * 1024)
 
 from sglang.srt.configs.model_config import AttentionArch
 from sglang.srt.layers.attention.flashinfer_backend import FlashInferAttnBackend
@@ -87,6 +89,8 @@ class MockModelRunner:
         self.server_args.enable_deterministic_inference = deterministic
         self.server_args.speculative_eagle_topk = None
         self.server_args.speculative_num_draft_tokens = None
+        self.server_args.enable_selective_determinism = 0
+        self.server_args.enable_det_infer = 0
         # DP stuff
         self.server_args.enable_dp_attention = False
         self.server_args.tp_size = 1
@@ -401,8 +405,8 @@ def test_forward_decode_with_page_size_greater_than_1(bench, batch_size=128, seq
 
 
 bench_nondet = BenchFlashAttentionBackend()
-bench_det = BenchFlashAttentionBackend(deterministic=1)
-bench_mixed = BenchFlashAttentionBackend(deterministic=8)
+bench_det = BenchFlashAttentionBackend(deterministic=2)
+bench_mixed = BenchFlashAttentionBackend(deterministic=1)
 bench_nondet.setUp()
 bench_det.setUp()
 bench_mixed.setUp()

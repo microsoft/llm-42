@@ -8,16 +8,19 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
+def plot_results(results, batch_sizes, hidden_sizes, all_batch_sizes, output_dir="."):
     """Plot performance comparison: raw execution times and speedup vs SGLang-Native side by side"""
+
+    # Get indices of filtered batch_sizes in all_batch_sizes
+    batch_indices = [all_batch_sizes.index(bs) for bs in batch_sizes]
 
     # Create figure with subplots for each hidden size (2 rows x 2 columns)
     # Each row: raw time (left) and speedup (right)
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('RMSNorm Performance Comparison', fontsize=16, fontweight='bold')
 
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
-    markers = ['o', 's', '^', 'D', 'v', 'P', '*']
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+    markers = ['o', 's', '^', 'D', 'v', 'P', '*', 'X', 'h', '8']
     baseline_name = "SGLang-Native"
 
     for idx, hidden_size in enumerate(hidden_sizes):
@@ -28,7 +31,8 @@ def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
         # Get baseline times for speedup calculation
         baseline_times = None
         if baseline_name in results and hidden_size in results[baseline_name]['times']:
-            baseline_times = np.array(results[baseline_name]['times'][hidden_size])
+            all_baseline_times = np.array(results[baseline_name]['times'][hidden_size])
+            baseline_times = all_baseline_times[batch_indices]
             print(baseline_times)
 
         # Create equally spaced x positions for batch sizes
@@ -37,7 +41,8 @@ def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
         # Plot raw execution times and speedups
         for (name, _), color, marker in zip(results.items(), colors, markers):
             if hidden_size in results[name]['times']:
-                times = np.array(results[name]['times'][hidden_size])
+                all_times = np.array(results[name]['times'][hidden_size])
+                times = all_times[batch_indices]
 
                 # Plot raw times at equally spaced positions
                 ax_time.plot(x_positions, times, marker=marker, color=color,
@@ -79,16 +84,19 @@ def plot_results(results, batch_sizes, hidden_sizes, output_dir="."):
     plt.close('all')
 
 
-def plot_one(results, batch_sizes, hidden_size, lines, titles=None, output_dir=".", file_name="rmsnorm_benchmark_one.png"):
+def plot_one(results, batch_sizes, hidden_size, lines, all_batch_sizes, titles=None, output_dir=".", file_name="rmsnorm_benchmark_one.png"):
     """Plot performance comparison: raw execution times and speedup vs SGLang-Native side by side"""
+
+    # Get indices of filtered batch_sizes in all_batch_sizes
+    batch_indices = [all_batch_sizes.index(bs) for bs in batch_sizes]
 
     # Create figure with subplots for each hidden size (2 rows x 2 columns)
     # Each row: raw time (left) and speedup (right)
-    fig, axes = plt.subplots(1, 1, figsize=(8, 4))
+    fig, axes = plt.subplots(1, 1, figsize=(9, 6))
     #fig.suptitle('RMSNorm Performance Comparison', fontsize=16, fontweight='bold')
 
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f']
-    markers = ['o', 's', '^', 'D', 'v', 'P', '*', 'X']
+    colors = ['tab:pink', 'tab:blue', 'tab:gray', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:red', 'tab:green', 'tab:olive', 'tab:cyan']
+    markers = ['o', 's', '^', 'D', 'v', 'P', '*', 'X', 'h', '8']
 
     print(f"Plotting results for hidden size: {hidden_size}")
     ax_time = axes
@@ -99,30 +107,31 @@ def plot_one(results, batch_sizes, hidden_size, lines, titles=None, output_dir="
     # Plot raw execution times and speedups
     for (name, _), color, marker in zip(results.items(), colors, markers):
         if hidden_size in results[name]['times'] and name in lines:
-            times = np.array(results[name]['times'][hidden_size])
+            all_times = np.array(results[name]['times'][hidden_size])
+            times = all_times[batch_indices]
 
             if titles:
                 name = titles[lines.index(name)]
 
             # Plot raw times at equally spaced positions
             ax_time.plot(x_positions, times, marker=marker, color=color,
-                        label=name, linewidth=1, markersize=4)
+                        label=name, markersize=6, linewidth=1.6)
 
     # Configure raw time subplot
-    ax_time.set_xlabel('Tokens', fontsize=16, fontweight='bold')
-    ax_time.set_ylabel('Execution Time (ms)', fontsize=16, fontweight='bold')
+    ax_time.set_xlabel('Tokens', fontsize=24, fontweight='bold')
+    ax_time.set_ylabel('Execution Time (ms)', fontsize=24, fontweight='bold')
     #ax_time.set_title(f'Raw Execution Time - Hidden Size {hidden_size}', fontsize=13, fontweight='bold')
     ax_time.set_xticks(x_positions)
-    ax_time.set_xticklabels([str(bs) for bs in batch_sizes], fontsize=14)
-    ax_time.tick_params(labelsize=14)
-    ax_time.grid(True, alpha=0.3, linestyle='--')
-    ax_time.legend(fontsize=16, loc='best')
+    ax_time.set_xticklabels([str(bs) for bs in batch_sizes], fontsize=20)
+    ax_time.tick_params(labelsize=20)
+    ax_time.grid(True, alpha=0.5, linestyle='--', which='both')
+    ax_time.legend(fontsize=20, loc='best', frameon=False)
 
     plt.tight_layout()
 
     # Save plot as PDF
     output_path = os.path.join(output_dir, file_name)
-    plt.savefig(output_path, format='png', bbox_inches='tight')
+    plt.savefig(output_path, bbox_inches='tight', dpi=1200)
     print(f"\n✓ Plot saved to: {output_path}")
 
     plt.close('all')
@@ -181,14 +190,23 @@ with open(fname, "r", encoding="utf-8") as fh:
         results[name]['times'][hidden_size].append(time_ms)
         results[name]['bandwidths'][hidden_size].append(bandwidth_gbs)
 
-plot_results(results, sorted(batch_sizes), sorted(hidden_sizes), output_dir="figures/")
-plot_one(results, sorted(batch_sizes), 8192,
-         ['vLLM-Dynamic', 'vLLM-BS=128', 'vLLM-BS=256', 'vLLM-BS=512', 'vLLM-BS=1024'],
-         output_dir="figures/", file_name="figure5.png")
+# Filter batch_sizes to only include specific values
+allowed_batch_sizes = [1, 8, 32, 128, 256, 512, 1024, 2048, 4096]
+all_batch_sizes = sorted(batch_sizes)
+filtered_batch_sizes = sorted([bs for bs in batch_sizes if bs in allowed_batch_sizes])
+
+# plot_results(results, filtered_batch_sizes, sorted(hidden_sizes), all_batch_sizes, output_dir="figures/")
+# plot_one(results, filtered_batch_sizes, 8192,
+#          ['vLLM-Dynamic', 'vLLM-BS=128', 'vLLM-BS=256', 'vLLM-BS=512', 'vLLM-BS=1024'],
+#          all_batch_sizes,
+#          output_dir="figures/", file_name="figure5.png")
 
 # 'SGLang (Batch-invariant)',
 #'SGLang-Native',
-plot_one(results, sorted(batch_sizes), 8192,
-         ['SGLang-Native', 'vLLM-Dynamic', 'Triton-BatchInv'],
-         titles=['Torch (Batch-invariant)', 'vLLM (Non-deterministic)', 'Triton (Batch-invariant)'],
-         output_dir="figures/", file_name="rmsnorm_impl.png")
+print("Plotting RMSNorm implementations comparison...")
+print(f"{results=}")
+plot_one(results, filtered_batch_sizes, 8192,
+         ['SGLang-Native', 'SGLang-Default', 'Triton-BatchInv'],
+         all_batch_sizes,
+         titles=['Batch-invariant (Python)', 'Non-batch-invariant (CUDA)', 'Batch-invariant (Triton)'],
+         output_dir="../llm42-plots/microbenchmarks/rms_norm/", file_name="rmsnorm_impl.pdf")

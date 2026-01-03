@@ -1,0 +1,285 @@
+================================================================================
+RMSNorm Implementation Benchmark (5 Configurations)
+================================================================================
+Testing SGLang RMSNorm with different configurations:
+  1. SGLang-Default (deterministic CUDA kernel)
+  2. SGLang-Native (SGLANG_ENABLE_DETERMINISTIC_INFERENCE=1, native PyTorch)
+  3. vLLM-Dynamic (SGLANG_USE_VLLM_RMSNORM=dynamic)
+  4. vLLM-BS=256 (SGLANG_USE_VLLM_RMSNORM=256)
+  5. vLLM-BS=1024 (SGLANG_USE_VLLM_RMSNORM=1024)
+
+All tests use residual connections (residual != None)
+================================================================================
+
+================================================================================
+Correctness Tests
+================================================================================
+
+================================================================================
+Correctness Test (batch=4, hidden=4096, with residual)
+================================================================================
+Implementation            | Status    
+--------------------------------------------------------------------------------
+SGLang-Default            | ✓ PASS    
+SGLang-Native             | ✓ PASS    
+vLLM-Dynamic              | ✓ PASS    
+vLLM-BS=256               | ✓ PASS    
+vLLM-BS=1024              | ✓ PASS    
+Triton-BatchInv           | ✓ PASS    
+--------------------------------------------------------------------------------
+Overall: ✓ All tests passed
+
+--- Large Hidden Size (8192) ---
+
+================================================================================
+Correctness Test (batch=8, hidden=8192, with residual)
+================================================================================
+Implementation            | Status    
+--------------------------------------------------------------------------------
+SGLang-Default            | ✓ PASS    
+SGLang-Native             | ✓ PASS    
+vLLM-Dynamic              | ✓ PASS    
+vLLM-BS=256               | ✓ PASS    
+vLLM-BS=1024              | ✓ PASS    
+Triton-BatchInv           | ✓ PASS    
+--------------------------------------------------------------------------------
+Overall: ✓ All tests passed
+
+================================================================================
+Batch Invariance Tests
+================================================================================
+
+Naive (PyTorch):
+  Batch Invariant: True
+  Max diff: 0.00e+00, Min diff: 0.00e+00
+  Run-to-run variation: 0.00e+00
+
+SGLang-Default:
+  Batch Invariant: True
+  Max diff: 0.00e+00, Min diff: 0.00e+00
+  Run-to-run variation: 0.00e+00
+
+SGLang-Native:
+  Batch Invariant: True
+  Max diff: 0.00e+00, Min diff: 0.00e+00
+  Run-to-run variation: 0.00e+00
+
+vLLM-Dynamic:
+  Batch Invariant: True
+  Max diff: 0.00e+00, Min diff: 0.00e+00
+  Run-to-run variation: 0.00e+00
+
+vLLM-BS=256:
+  Batch Invariant: True
+  Max diff: 0.00e+00, Min diff: 0.00e+00
+  Run-to-run variation: 0.00e+00
+
+vLLM-BS=1024:
+  Batch Invariant: True
+  Max diff: 0.00e+00, Min diff: 0.00e+00
+  Run-to-run variation: 0.00e+00
+
+Triton-BatchInv:
+  Batch Invariant: True
+  Max diff: 0.00e+00, Min diff: 0.00e+00
+  Run-to-run variation: 0.00e+00
+
+================================================================================
+Performance Benchmark (with residual)
+================================================================================
+
+Hidden Size: 4096
+--------------------------------------------------------------------------------
+Batch Size   | Implementation            | Time (ms)    | BW (GB/s)   
+--------------------------------------------------------------------------------
+1            | SGLang-Default            |     0.0263 |       1.56
+1            | SGLang-Native             |     0.0968 |       0.42
+1            | vLLM-Dynamic              |     0.0255 |       1.61
+1            | vLLM-BS=128               |     0.0256 |       1.60
+1            | vLLM-BS=256               |     0.0253 |       1.62
+1            | vLLM-BS=512               |     0.0253 |       1.62
+1            | vLLM-BS=1024              |     0.0252 |       1.63
+1            | Triton-BatchInv           |     0.0394 |       1.04
+8            | SGLang-Default            |     0.0256 |      10.56
+8            | SGLang-Native             |     0.0972 |       2.78
+8            | vLLM-Dynamic              |     0.0257 |      10.51
+8            | vLLM-BS=128               |     0.0260 |      10.42
+8            | vLLM-BS=256               |     0.0254 |      10.64
+8            | vLLM-BS=512               |     0.0256 |      10.57
+8            | vLLM-BS=1024              |     0.0256 |      10.58
+8            | Triton-BatchInv           |     0.0401 |       6.74
+32           | SGLang-Default            |     0.0257 |      41.18
+32           | SGLang-Native             |     0.0978 |      10.80
+32           | vLLM-Dynamic              |     0.0257 |      41.17
+32           | vLLM-BS=128               |     0.0259 |      40.82
+32           | vLLM-BS=256               |     0.0254 |      41.54
+32           | vLLM-BS=512               |     0.0253 |      41.73
+32           | vLLM-BS=1024              |     0.0253 |      41.77
+32           | Triton-BatchInv           |     0.0397 |      26.61
+128          | SGLang-Default            |     0.0254 |     165.64
+128          | SGLang-Native             |     0.0975 |      43.09
+128          | vLLM-Dynamic              |     0.0255 |     164.78
+128          | vLLM-BS=128               |     0.0256 |     164.05
+128          | vLLM-BS=256               |     0.0252 |     166.96
+128          | vLLM-BS=512               |     0.0252 |     166.70
+128          | vLLM-BS=1024              |     0.0253 |     166.07
+128          | Triton-BatchInv           |     0.0401 |     104.89
+256          | SGLang-Default            |     0.0256 |     327.73
+256          | SGLang-Native             |     0.0973 |      86.33
+256          | vLLM-Dynamic              |     0.0257 |     327.27
+256          | vLLM-BS=128               |     0.0257 |     327.23
+256          | vLLM-BS=256               |     0.0253 |     331.47
+256          | vLLM-BS=512               |     0.0254 |     330.95
+256          | vLLM-BS=1024              |     0.0255 |     329.49
+256          | Triton-BatchInv           |     0.0400 |     209.77
+512          | SGLang-Default            |     0.0258 |     649.59
+512          | SGLang-Native             |     0.0946 |     177.52
+512          | vLLM-Dynamic              |     0.0259 |     648.66
+512          | vLLM-BS=128               |     0.0257 |     652.50
+512          | vLLM-BS=256               |     0.0254 |     661.74
+512          | vLLM-BS=512               |     0.0255 |     658.85
+512          | vLLM-BS=1024              |     0.0255 |     658.26
+512          | Triton-BatchInv           |     0.0404 |     415.31
+1024         | SGLang-Default            |     0.0168 |    1999.47
+1024         | SGLang-Native             |     0.1419 |     236.51
+1024         | vLLM-Dynamic              |     0.0168 |    2003.73
+1024         | vLLM-BS=128               |     0.0169 |    1989.92
+1024         | vLLM-BS=256               |     0.0163 |    2058.37
+1024         | vLLM-BS=512               |     0.0165 |    2040.25
+1024         | vLLM-BS=1024              |     0.0164 |    2051.89
+1024         | Triton-BatchInv           |     0.0286 |    1175.22
+2048         | SGLang-Default            |     0.0276 |    2431.67
+2048         | SGLang-Native             |     0.3373 |     198.97
+2048         | vLLM-Dynamic              |     0.0275 |    2441.25
+2048         | vLLM-BS=128               |     0.0275 |    2438.71
+2048         | vLLM-BS=256               |     0.0275 |    2438.71
+2048         | vLLM-BS=512               |     0.0275 |    2444.49
+2048         | vLLM-BS=1024              |     0.0275 |    2439.69
+2048         | Triton-BatchInv           |     0.0393 |    1707.30
+4096         | SGLang-Default            |     0.0796 |    1685.31
+4096         | SGLang-Native             |     0.6689 |     200.68
+4096         | vLLM-Dynamic              |     0.0795 |    1687.46
+4096         | vLLM-BS=128               |     0.0796 |    1687.16
+4096         | vLLM-BS=256               |     0.0796 |    1686.87
+4096         | vLLM-BS=512               |     0.0796 |    1687.00
+4096         | vLLM-BS=1024              |     0.0796 |    1687.08
+4096         | Triton-BatchInv           |     0.0991 |    1354.68
+8192         | SGLang-Default            |     0.1536 |    1747.88
+8192         | SGLang-Native             |     1.2999 |     206.51
+8192         | vLLM-Dynamic              |     0.1538 |    1745.14
+8192         | vLLM-BS=128               |     0.1538 |    1745.50
+8192         | vLLM-BS=256               |     0.1537 |    1746.24
+8192         | vLLM-BS=512               |     0.1538 |    1745.80
+8192         | vLLM-BS=1024              |     0.1538 |    1745.40
+8192         | Triton-BatchInv           |     0.1999 |    1342.87
+16384        | SGLang-Default            |     0.3016 |    1779.99
+16384        | SGLang-Native             |     2.5361 |     211.69
+16384        | vLLM-Dynamic              |     0.3011 |    1783.13
+16384        | vLLM-BS=128               |     0.3011 |    1783.14
+16384        | vLLM-BS=256               |     0.3011 |    1782.85
+16384        | vLLM-BS=512               |     0.3011 |    1783.11
+16384        | vLLM-BS=1024              |     0.3011 |    1783.13
+16384        | Triton-BatchInv           |     0.4095 |    1311.00
+
+Hidden Size: 8192
+--------------------------------------------------------------------------------
+Batch Size   | Implementation            | Time (ms)    | BW (GB/s)   
+--------------------------------------------------------------------------------
+1            | SGLang-Default            |     0.0250 |       3.28
+1            | SGLang-Native             |     0.0961 |       0.85
+1            | vLLM-Dynamic              |     0.0253 |       3.24
+1            | vLLM-BS=128               |     0.0251 |       3.27
+1            | vLLM-BS=256               |     0.0252 |       3.25
+1            | vLLM-BS=512               |     0.0252 |       3.25
+1            | vLLM-BS=1024              |     0.0253 |       3.23
+1            | Triton-BatchInv           |     0.0395 |       2.08
+8            | SGLang-Default            |     0.0255 |      21.17
+8            | SGLang-Native             |     0.0971 |       5.57
+8            | vLLM-Dynamic              |     0.0253 |      21.36
+8            | vLLM-BS=128               |     0.0253 |      21.35
+8            | vLLM-BS=256               |     0.0250 |      21.59
+8            | vLLM-BS=512               |     0.0254 |      21.29
+8            | vLLM-BS=1024              |     0.0256 |      21.09
+8            | Triton-BatchInv           |     0.0396 |      13.64
+32           | SGLang-Default            |     0.0251 |      84.31
+32           | SGLang-Native             |     0.0972 |      21.74
+32           | vLLM-Dynamic              |     0.0254 |      83.21
+32           | vLLM-BS=128               |     0.0252 |      83.74
+32           | vLLM-BS=256               |     0.0250 |      84.46
+32           | vLLM-BS=512               |     0.0252 |      83.82
+32           | vLLM-BS=1024              |     0.0252 |      83.81
+32           | Triton-BatchInv           |     0.0400 |      52.82
+128          | SGLang-Default            |     0.0252 |     333.64
+128          | SGLang-Native             |     0.0973 |      86.35
+128          | vLLM-Dynamic              |     0.0255 |     329.27
+128          | vLLM-BS=128               |     0.0255 |     329.74
+128          | vLLM-BS=256               |     0.0252 |     333.99
+128          | vLLM-BS=512               |     0.0251 |     334.39
+128          | vLLM-BS=1024              |     0.0254 |     331.38
+128          | Triton-BatchInv           |     0.0396 |     212.29
+256          | SGLang-Default            |     0.0255 |     659.38
+256          | SGLang-Native             |     0.0954 |     175.96
+256          | vLLM-Dynamic              |     0.0256 |     656.37
+256          | vLLM-BS=128               |     0.0255 |     658.92
+256          | vLLM-BS=256               |     0.0252 |     665.72
+256          | vLLM-BS=512               |     0.0252 |     665.97
+256          | vLLM-BS=1024              |     0.0256 |     655.48
+256          | Triton-BatchInv           |     0.0401 |     419.16
+512          | SGLang-Default            |     0.0162 |    2068.86
+512          | SGLang-Native             |     0.1388 |     241.92
+512          | vLLM-Dynamic              |     0.0165 |    2029.33
+512          | vLLM-BS=128               |     0.0164 |    2051.82
+512          | vLLM-BS=256               |     0.0162 |    2074.78
+512          | vLLM-BS=512               |     0.0162 |    2066.30
+512          | vLLM-BS=1024              |     0.0163 |    2055.19
+512          | Triton-BatchInv           |     0.0292 |    1147.96
+1024         | SGLang-Default            |     0.0290 |    2315.32
+1024         | SGLang-Native             |     0.3311 |     202.75
+1024         | vLLM-Dynamic              |     0.0290 |    2314.38
+1024         | vLLM-BS=128               |     0.0290 |    2317.16
+1024         | vLLM-BS=256               |     0.0290 |    2314.33
+1024         | vLLM-BS=512               |     0.0290 |    2314.40
+1024         | vLLM-BS=1024              |     0.0290 |    2315.20
+1024         | Triton-BatchInv           |     0.0397 |    1689.09
+2048         | SGLang-Default            |     0.0808 |    1661.44
+2048         | SGLang-Native             |     0.6756 |     198.68
+2048         | vLLM-Dynamic              |     0.0808 |    1661.84
+2048         | vLLM-BS=128               |     0.0808 |    1661.55
+2048         | vLLM-BS=256               |     0.0808 |    1661.70
+2048         | vLLM-BS=512               |     0.0808 |    1661.19
+2048         | vLLM-BS=1024              |     0.0808 |    1661.47
+2048         | Triton-BatchInv           |     0.1045 |    1284.10
+4096         | SGLang-Default            |     0.1553 |    1728.89
+4096         | SGLang-Native             |     1.2935 |     207.54
+4096         | vLLM-Dynamic              |     0.1552 |    1729.51
+4096         | vLLM-BS=128               |     0.1552 |    1730.02
+4096         | vLLM-BS=256               |     0.1553 |    1729.12
+4096         | vLLM-BS=512               |     0.1552 |    1729.36
+4096         | vLLM-BS=1024              |     0.1553 |    1728.76
+4096         | Triton-BatchInv           |     0.2130 |    1260.31
+8192         | SGLang-Default            |     0.3032 |    1770.90
+8192         | SGLang-Native             |     2.5292 |     212.28
+8192         | vLLM-Dynamic              |     0.3032 |    1770.79
+8192         | vLLM-BS=128               |     0.3032 |    1770.76
+8192         | vLLM-BS=256               |     0.3032 |    1770.68
+8192         | vLLM-BS=512               |     0.3032 |    1770.56
+8192         | vLLM-BS=1024              |     0.3031 |    1771.48
+8192         | Triton-BatchInv           |     0.4252 |    1262.61
+16384        | SGLang-Default            |     0.6003 |    1788.66
+16384        | SGLang-Native             |     5.0038 |     214.59
+16384        | vLLM-Dynamic              |     0.6026 |    1781.98
+16384        | vLLM-BS=128               |     0.6024 |    1782.33
+16384        | vLLM-BS=256               |     0.6026 |    1781.96
+16384        | vLLM-BS=512               |     0.6024 |    1782.61
+16384        | vLLM-BS=1024              |     0.6025 |    1782.14
+16384        | Triton-BatchInv           |     0.8367 |    1283.25
+
+================================================================================
+Generating Performance Plots
+================================================================================
+
+✓ Plot saved to: ./rmsnorm_benchmark_all_configs.png
+
+================================================================================
+Benchmark Complete
+================================================================================

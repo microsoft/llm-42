@@ -1,0 +1,8 @@
+1024
+2048
+4096
+8192
+Extend seq_len=1024: Non-deterministic time = 0.0061s, Deterministic (split size 1024) time = 0.0090s Deterministic (split size 2048) time = 0.0091s Deterministic (split size 4096) time = 0.0121s Deterministic (split size 8192) time = 0.0078s
+Extend seq_len=2048: Non-deterministic time = 0.0155s, Deterministic (split size 1024) time = 0.0421s Deterministic (split size 2048) time = 0.0235s Deterministic (split size 4096) time = 0.0243s Deterministic (split size 8192) time = 0.0243s
+Extend seq_len=4096: Non-deterministic time = 0.0432s, Deterministic (split size 1024) time = 0.1152s Deterministic (split size 2048) time = 0.1091s Deterministic (split size 4096) time = 0.0698s Deterministic (split size 8192) time = 0.0703s
+Extend seq_len=8192: Non-deterministic time = 0.1594s, Deterministic (split size 1024) time = 0.3540s Deterministic (split size 2048) time = 0.3329s Deterministic (split size 4096) time = 0.3236s Deterministic (split size 8192) time = 0.2505s

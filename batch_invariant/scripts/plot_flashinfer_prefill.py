@@ -36,24 +36,33 @@ print(pref_series)
 
 # Preference (extend) plot: x = seq_len
 x_pref = sorted(pref_series.keys())
-
-fig = plt.figure(figsize=(8, 4))
+markers = ['o', 's', '^', 'D', 'v', 'P', '*', 'X', 'h', '8']
+colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
+          'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+fig = plt.figure(figsize=(8, 6))
 ax = fig.add_subplot()
-for name in pref_series[x_pref[0]].keys():
+for idx, name in enumerate(pref_series[x_pref[0]].keys()):
     y_vals = [pref_series[seq].get(name, None) for seq in x_pref]
-    plt.plot(x_pref, y_vals, marker="o", label=name)
+    # Replace "deterministic" with "split size" in display label
+    plt.plot(x_pref, y_vals, marker=markers[idx % len(markers)],
+             color=colors[idx % len(colors)],
+             label=name)
 plt.xscale("log", base=2)
 ax.xaxis.set_major_formatter(ticker.ScalarFormatter())
 plt.ticklabel_format(axis='x', style='plain')
-plt.xlabel("Sequence length", fontsize=16, fontweight='bold')
-plt.ylabel("Time (s)", fontsize=16, fontweight='bold')
-plt.xticks(fontsize=14)
-plt.yticks(fontsize=14)
+plt.xlabel("Sequence length", fontsize=24, fontweight='bold')
+plt.ylabel("Time (s)", fontsize=24, fontweight='bold')
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
 #plt.title("Prefill performance")
-plt.legend(fontsize=14, loc="best")
+plt.legend(fontsize=18, loc="best", frameon=False)
 plt.grid(True, which="both", ls="--", alpha=0.5)
 plt.tight_layout()
-plt.savefig("figures/fi_pref_compare.png")
+# plt.savefig("figures/fi_pref_compare.png")
+outfile = f'../llm42-plots/microbenchmarks/attention/fi_pref_compare.pdf'
+import os
+os.makedirs(os.path.dirname(outfile), exist_ok=True)
+plt.savefig(outfile, dpi=1200)
 #plt.show()
 
 '''
