@@ -149,6 +149,7 @@ class LlamaAttention(nn.Module):
         self.scaling = self.head_dim**-0.5
         self.rope_theta = rope_theta
         self.max_position_embeddings = max_position_embeddings
+        self.layer_id = layer_id
 
         self.qkv_proj = QKVParallelLinear(
             hidden_size,
@@ -166,6 +167,16 @@ class LlamaAttention(nn.Module):
             quant_config=quant_config,
             prefix=add_prefix("o_proj", prefix),
         )
+        if layer_id == 0:
+            logger.info(f"LlamaAttention layer {layer_id}:")
+            logger.info(f"  num_heads: {self.num_heads}")
+            logger.info(f"  num_kv_heads: {self.num_kv_heads}")
+            logger.info(f"  head_dim: {self.head_dim}")
+            logger.info(f"  rotary_dim: {self.rotary_dim}")
+            logger.info(f"  rope_theta: {rope_theta}")
+            logger.info(f"  max_position_embeddings: {max_position_embeddings}")
+            logger.info(f"  rope_scaling: {rope_scaling}")
+            logger.info(f"  rope_is_neox_style: {rope_is_neox_style}")
 
         self.rotary_emb = get_rope(
             self.head_dim,
@@ -191,11 +202,31 @@ class LlamaAttention(nn.Module):
         hidden_states: torch.Tensor,
         forward_batch: ForwardBatch,
     ) -> torch.Tensor:
+        # if self.layer_id == 0:
+        #     logger.info(f"forward_batch models llama.py {forward_batch.forward_mode.is_target_det_verify=}")
+        #     logger.info(f"Hidden states shape: {hidden_states.shape}")
         qkv, _ = self.qkv_proj(hidden_states)
+        # if self.layer_id == 0:
+        #     logger.info(f"QKV shape: {qkv.shape}")
         q, k, v = qkv.split([self.q_size, self.kv_size, self.kv_size], dim=-1)
+        # if self.layer_id == 0:
+        #     logger.info(f"Q shape: {q.shape}, K shape: {k.shape}, V shape: {v.shape}")
+        #     logger.info(f"Q before embedding: {q[0, :10]=}")
         q, k = self.rotary_emb(positions, q, k)
+        # if self.layer_id == 0:
+        #     logger.info(f"Rotary Q shape: {q.shape}, Rotary K shape: {k.shape}")
+        #     logger.info(f"Positions shape: {positions.shape}")
+        #     logger.info(f"Positions: {positions}")
+        #     logger.info(f"Q after embedding: {q[0, :10]=}")
+            # if k.shape[0] == 512:
+            #     logger.info(f"k[0, :10]= {k[0, :10]}")
         attn_output = self.attn(q, k, v, forward_batch)
+        # if self.layer_id == 0:
+        #     logger.info(f"Attention output shape: {attn_output.shape}")
+        #     logger.info(f"attn_output: {attn_output[0, :10]=}")
         output, _ = self.o_proj(attn_output)
+        # if self.layer_id == 0:
+        #     logger.info(f"Output shape: {output.shape}")
         return output
 
 

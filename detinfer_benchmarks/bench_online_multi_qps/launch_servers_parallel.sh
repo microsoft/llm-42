@@ -11,7 +11,7 @@ MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
-ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
+ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 LOG_DIR="${LOG_DIR:-./server_logs_3_di_4gpus}"
 
 # Determine Python command
@@ -67,7 +67,7 @@ for ((i=0; i<NUM_GPUS; i++)); do
     echo "Starting server on GPU $GPU_ID, port $PORT..."
     echo "Log file: $LOG_FILE"
     
-    CUDA_VISIBLE_DEVICES=$GPU_ID SGLANG_LOG_LEVEL=DEBUG SGLANG_DEBUG_SAMPLING=1 $PYTHON_CMD -m sglang.launch_server \
+    CUDA_VISIBLE_DEVICES=$GPU_ID $PYTHON_CMD -m sglang.launch_server \
         --model-path "$MODEL_PATH" \
         --host "$HOST" \
         --port "$PORT" \
@@ -81,7 +81,7 @@ for ((i=0; i<NUM_GPUS; i++)); do
         --chunked-prefill-size -1 \
         --det-infer-window-size 32 \
         --enable-det-infer 3 \
-        --det-infer-verify-batch-size 32 \
+        --det-infer-verify-batch-size 16 \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!
@@ -123,10 +123,6 @@ echo "=============================================="
 wait
 
 
-        # --det-verify-sample-one-by-one \
-        # --det-infer-window-size 128 \
-        # --enable-det-infer 1 \
-        # --det-infer-verify-batch-size 1 \
-        # --det-infer-window-size 128 \
+        # --det-infer-window-size 32 \
         # --enable-det-infer 3 \
-        # --det-infer-verify-batch-size 1 \
+        # --det-infer-verify-batch-size 32 \

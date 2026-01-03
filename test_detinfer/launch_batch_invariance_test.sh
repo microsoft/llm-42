@@ -10,7 +10,7 @@ MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 PORT="${SGLANG_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
-ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
+ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -42,9 +42,11 @@ $PYTHON_CMD -m sglang.launch_server \
     --attention-backend "$ATTENTION_BACKEND" \
     --disable-radix-cache \
     --disable-chunked-prefix-cache \
-    --chunked-prefill-size -1 \
     --disable-overlap-schedule \
     --enable-metrics \
-    --det-infer-window-size 64 \
+    --random-seed 42 \
+    --disable-cuda-graph \
+    --chunked-prefill-size -1 \
+    --det-infer-window-size 32 \
     --enable-det-infer 3 \
-    --det-infer-verify-batch-size 1
+    --det-infer-verify-batch-size 1 \

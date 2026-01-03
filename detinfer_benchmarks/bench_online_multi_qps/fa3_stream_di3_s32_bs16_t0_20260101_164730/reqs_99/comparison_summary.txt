@@ -1,0 +1,395 @@
+============================================================
+Multi-Config Comparison Summary
+============================================================
+
+Num Prompts: 99
+Select Seed: 99
+Configs: ['qps5.0_o13_a1000', 'qps6.0_o14_a1001', 'qps7.0_o15_a1002', 'qps8.0_o16_a1003', 'qps9.0_o17_a1004', 'qps10.0_o18_a1005', 'qps11.0_o19_a1006', 'qps12.0_o20_a1007', 'qps13.0_o21_a1008', 'qps14.0_o22_a1009', 'qps15.0_o23_a1010', 'qps16.0_o24_a1011', 'qps17.0_o25_a1012', 'qps18.0_o26_a1013', 'qps19.0_o27_a1014', 'qps20.0_o28_a1015', 'qps21.0_o29_a1016', 'qps22.0_o30_a1017', 'qps23.0_o31_a1018', 'qps24.0_o32_a1019']
+
+------------------------------------------------------------
+Per-Config Output & Rollback Stats:
+------------------------------------------------------------
+QPS 5.0, Order Seed = 13, Arrival Seed = 1000:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1014
+  Rollback %: 4.4322%
+QPS 6.0, Order Seed = 14, Arrival Seed = 1001:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 902
+  Rollback %: 3.9427%
+QPS 7.0, Order Seed = 15, Arrival Seed = 1002:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1160
+  Rollback %: 5.0704%
+QPS 8.0, Order Seed = 16, Arrival Seed = 1003:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1041
+  Rollback %: 4.5502%
+QPS 9.0, Order Seed = 17, Arrival Seed = 1004:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1110
+  Rollback %: 4.8518%
+QPS 10.0, Order Seed = 18, Arrival Seed = 1005:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1177
+  Rollback %: 5.1447%
+QPS 11.0, Order Seed = 19, Arrival Seed = 1006:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1112
+  Rollback %: 4.8606%
+QPS 12.0, Order Seed = 20, Arrival Seed = 1007:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1057
+  Rollback %: 4.6202%
+QPS 13.0, Order Seed = 21, Arrival Seed = 1008:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1091
+  Rollback %: 4.7688%
+QPS 14.0, Order Seed = 22, Arrival Seed = 1009:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1239
+  Rollback %: 5.4157%
+QPS 15.0, Order Seed = 23, Arrival Seed = 1010:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1192
+  Rollback %: 5.2102%
+QPS 16.0, Order Seed = 24, Arrival Seed = 1011:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1297
+  Rollback %: 5.6692%
+QPS 17.0, Order Seed = 25, Arrival Seed = 1012:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1115
+  Rollback %: 4.8737%
+QPS 18.0, Order Seed = 26, Arrival Seed = 1013:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 976
+  Rollback %: 4.2661%
+QPS 19.0, Order Seed = 27, Arrival Seed = 1014:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1219
+  Rollback %: 5.3283%
+QPS 20.0, Order Seed = 28, Arrival Seed = 1015:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1075
+  Rollback %: 4.6988%
+QPS 21.0, Order Seed = 29, Arrival Seed = 1016:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1086
+  Rollback %: 4.7469%
+QPS 22.0, Order Seed = 30, Arrival Seed = 1017:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1316
+  Rollback %: 5.7523%
+QPS 23.0, Order Seed = 31, Arrival Seed = 1018:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1147
+  Rollback %: 5.0136%
+QPS 24.0, Order Seed = 32, Arrival Seed = 1019:
+  Total Output Tokens: 22878
+  Total Tokens Rolled Back: 1305
+  Rollback %: 5.7042%
+
+------------------------------------------------------------
+Pairwise Comparisons:
+------------------------------------------------------------
+qps5.0_o13_a1000 vs qps6.0_o14_a1001: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps7.0_o15_a1002: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps8.0_o16_a1003: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps9.0_o17_a1004: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps10.0_o18_a1005: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps11.0_o19_a1006: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps12.0_o20_a1007: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps13.0_o21_a1008: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps5.0_o13_a1000 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps7.0_o15_a1002: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps8.0_o16_a1003: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps9.0_o17_a1004: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps10.0_o18_a1005: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps11.0_o19_a1006: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps12.0_o20_a1007: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps13.0_o21_a1008: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps6.0_o14_a1001 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps8.0_o16_a1003: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps9.0_o17_a1004: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps10.0_o18_a1005: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps11.0_o19_a1006: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps12.0_o20_a1007: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps13.0_o21_a1008: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps7.0_o15_a1002 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps9.0_o17_a1004: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps10.0_o18_a1005: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps11.0_o19_a1006: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps12.0_o20_a1007: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps13.0_o21_a1008: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps8.0_o16_a1003 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps10.0_o18_a1005: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps11.0_o19_a1006: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps12.0_o20_a1007: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps13.0_o21_a1008: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps9.0_o17_a1004 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps11.0_o19_a1006: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps12.0_o20_a1007: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps13.0_o21_a1008: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps10.0_o18_a1005 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps12.0_o20_a1007: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps13.0_o21_a1008: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps11.0_o19_a1006 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps13.0_o21_a1008: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps12.0_o20_a1007 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps14.0_o22_a1009: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps13.0_o21_a1008 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps15.0_o23_a1010: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps14.0_o22_a1009 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps16.0_o24_a1011: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps15.0_o23_a1010 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps16.0_o24_a1011 vs qps17.0_o25_a1012: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps16.0_o24_a1011 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps16.0_o24_a1011 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps16.0_o24_a1011 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps16.0_o24_a1011 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps16.0_o24_a1011 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps16.0_o24_a1011 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps16.0_o24_a1011 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps17.0_o25_a1012 vs qps18.0_o26_a1013: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps17.0_o25_a1012 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps17.0_o25_a1012 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps17.0_o25_a1012 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps17.0_o25_a1012 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps17.0_o25_a1012 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps17.0_o25_a1012 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps18.0_o26_a1013 vs qps19.0_o27_a1014: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps18.0_o26_a1013 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps18.0_o26_a1013 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps18.0_o26_a1013 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps18.0_o26_a1013 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps18.0_o26_a1013 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps19.0_o27_a1014 vs qps20.0_o28_a1015: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps19.0_o27_a1014 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps19.0_o27_a1014 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps19.0_o27_a1014 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps19.0_o27_a1014 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps20.0_o28_a1015 vs qps21.0_o29_a1016: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps20.0_o28_a1015 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps20.0_o28_a1015 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps20.0_o28_a1015 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps21.0_o29_a1016 vs qps22.0_o30_a1017: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps21.0_o29_a1016 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps21.0_o29_a1016 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps22.0_o30_a1017 vs qps23.0_o31_a1018: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps22.0_o30_a1017 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps23.0_o31_a1018 vs qps24.0_o32_a1019: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+
+------------------------------------------------------------
+Per-Prompt Comparison:
+------------------------------------------------------------
+[hash=8628aa2caeb291de] prompt_len=14 | ✓ ALL MATCH (20/20 configs) | output_len=59
+[hash=c65d0d92dab441f4] prompt_len=13 | ✓ ALL MATCH (20/20 configs) | output_len=639
+[hash=d9695f6a5aa46a0e] prompt_len=273 | ✓ ALL MATCH (20/20 configs) | output_len=288
+[hash=f3705b9b2c12aa0d] prompt_len=422 | ✓ ALL MATCH (20/20 configs) | output_len=768
+[hash=f05287f68b02c9dc] prompt_len=187 | ✓ ALL MATCH (20/20 configs) | output_len=262
+[hash=dae67706fec2e06e] prompt_len=1985 | ✓ ALL MATCH (20/20 configs) | output_len=421
+[hash=9e176fa0504d736a] prompt_len=684 | ✓ ALL MATCH (20/20 configs) | output_len=84
+[hash=48bfb20bb274e9e5] prompt_len=30 | ✓ ALL MATCH (20/20 configs) | output_len=267
+[hash=46915e1399b3192d] prompt_len=8 | ✓ ALL MATCH (20/20 configs) | output_len=86
+[hash=e7f9d5b6c283d115] prompt_len=456 | ✓ ALL MATCH (20/20 configs) | output_len=506
+[hash=ed0a2b2276f9ea60] prompt_len=111 | ✓ ALL MATCH (20/20 configs) | output_len=6
+[hash=6b6ddb482da45e94] prompt_len=8 | ✓ ALL MATCH (20/20 configs) | output_len=365
+[hash=1801a27c72acae0f] prompt_len=311 | ✓ ALL MATCH (20/20 configs) | output_len=10
+[hash=8a0d32e3a2f1fe1b] prompt_len=1730 | ✓ ALL MATCH (20/20 configs) | output_len=589
+[hash=323e839f53d5ddd8] prompt_len=10 | ✓ ALL MATCH (20/20 configs) | output_len=511
+[hash=d3b66549c762c690] prompt_len=11 | ✓ ALL MATCH (20/20 configs) | output_len=270
+[hash=e1db8f618243e854] prompt_len=850 | ✓ ALL MATCH (20/20 configs) | output_len=268
+[hash=d0700294dd906c91] prompt_len=31 | ✓ ALL MATCH (20/20 configs) | output_len=41
+[hash=548acecb95ec6845] prompt_len=57 | ✓ ALL MATCH (20/20 configs) | output_len=215
+[hash=59f1f3874a12189c] prompt_len=318 | ✓ ALL MATCH (20/20 configs) | output_len=10
+[hash=0e6d2572f914bf6d] prompt_len=66 | ✓ ALL MATCH (20/20 configs) | output_len=746
+[hash=81ae86871a04085e] prompt_len=309 | ✓ ALL MATCH (20/20 configs) | output_len=6
+[hash=7c64e59361a90981] prompt_len=375 | ✓ ALL MATCH (20/20 configs) | output_len=9
+[hash=e5424f907675a8c3] prompt_len=532 | ✓ ALL MATCH (20/20 configs) | output_len=10
+[hash=f6392151e0e3da2a] prompt_len=3 | ✓ ALL MATCH (20/20 configs) | output_len=772
+[hash=310d24214be259fe] prompt_len=76 | ✓ ALL MATCH (20/20 configs) | output_len=55
+[hash=9c89c19e3caee1bc] prompt_len=360 | ✓ ALL MATCH (20/20 configs) | output_len=6
+[hash=bcd35a237bd0a9c2] prompt_len=321 | ✓ ALL MATCH (20/20 configs) | output_len=34
+[hash=2dd3200031e95183] prompt_len=106 | ✓ ALL MATCH (20/20 configs) | output_len=590
+[hash=67e08d61b26f688a] prompt_len=767 | ✓ ALL MATCH (20/20 configs) | output_len=16
+[hash=b2b22547dfa4eb29] prompt_len=175 | ✓ ALL MATCH (20/20 configs) | output_len=42
+[hash=09d816edcb175454] prompt_len=1285 | ✓ ALL MATCH (20/20 configs) | output_len=731
+[hash=8e23252031896e97] prompt_len=618 | ✓ ALL MATCH (20/20 configs) | output_len=310
+[hash=bb38be0fce45d3d2] prompt_len=39 | ✓ ALL MATCH (20/20 configs) | output_len=418
+[hash=b44b4ff6071ba5f6] prompt_len=16 | ✓ ALL MATCH (20/20 configs) | output_len=587
+[hash=de7acc4a86e8733e] prompt_len=21 | ✓ ALL MATCH (20/20 configs) | output_len=378
+[hash=af5e1346b5110622] prompt_len=58 | ✓ ALL MATCH (20/20 configs) | output_len=600
+[hash=4d56abd60e6d550a] prompt_len=13 | ✓ ALL MATCH (20/20 configs) | output_len=57
+[hash=3ecf6d7ac51e8384] prompt_len=18 | ✓ ALL MATCH (20/20 configs) | output_len=6
+[hash=cdeba8e37b2180ae] prompt_len=47 | ✓ ALL MATCH (20/20 configs) | output_len=436
+[hash=582d0b2edb6e284d] prompt_len=520 | ✓ ALL MATCH (20/20 configs) | output_len=33
+[hash=6ec55fe36858156d] prompt_len=143 | ✓ ALL MATCH (20/20 configs) | output_len=207
+[hash=d7ba24b4f12a620b] prompt_len=46 | ✓ ALL MATCH (20/20 configs) | output_len=6
+[hash=4c66a3f77ae14bd6] prompt_len=11 | ✓ ALL MATCH (20/20 configs) | output_len=97
+[hash=4e31d5926855f644] prompt_len=953 | ✓ ALL MATCH (20/20 configs) | output_len=599
+[hash=1f2cbddca6b1d38b] prompt_len=279 | ✓ ALL MATCH (20/20 configs) | output_len=29
+[hash=11ace8e90b60e1bd] prompt_len=299 | ✓ ALL MATCH (20/20 configs) | output_len=25
+[hash=b312cf12ecb624fa] prompt_len=162 | ✓ ALL MATCH (20/20 configs) | output_len=77
+[hash=3ecfc17c83093e03] prompt_len=229 | ✓ ALL MATCH (20/20 configs) | output_len=15
+[hash=ceaadd2a0dff4193] prompt_len=23 | ✓ ALL MATCH (20/20 configs) | output_len=310
+[hash=9d93a6dcd61fd234] prompt_len=417 | ✓ ALL MATCH (20/20 configs) | output_len=153
+[hash=36c0f05cd9480202] prompt_len=398 | ✓ ALL MATCH (20/20 configs) | output_len=12
+[hash=c3862ed7bf7d51b2] prompt_len=87 | ✓ ALL MATCH (20/20 configs) | output_len=14
+[hash=c50ae90bef68b8d2] prompt_len=327 | ✓ ALL MATCH (20/20 configs) | output_len=561
+[hash=9dfe89b8e9187c8d] prompt_len=429 | ✓ ALL MATCH (20/20 configs) | output_len=23
+[hash=9fb8a3bb6e1fbb4c] prompt_len=14 | ✓ ALL MATCH (20/20 configs) | output_len=188
+[hash=c2fb8538d3d2005d] prompt_len=52 | ✓ ALL MATCH (20/20 configs) | output_len=768
+[hash=8a541c519a9b8455] prompt_len=11 | ✓ ALL MATCH (20/20 configs) | output_len=106
+[hash=65cef40d6002d6fa] prompt_len=592 | ✓ ALL MATCH (20/20 configs) | output_len=780
+[hash=968ac39f06f255af] prompt_len=49 | ✓ ALL MATCH (20/20 configs) | output_len=37
+[hash=66448a53572dc7f4] prompt_len=5 | ✓ ALL MATCH (20/20 configs) | output_len=140
+[hash=88fda0f8c7ff0268] prompt_len=336 | ✓ ALL MATCH (20/20 configs) | output_len=18
+[hash=ab06648b5af204fc] prompt_len=14 | ✓ ALL MATCH (20/20 configs) | output_len=109
+[hash=ce2ee0d5679076a7] prompt_len=343 | ✓ ALL MATCH (20/20 configs) | output_len=19
+[hash=2c223151897a2587] prompt_len=383 | ✓ ALL MATCH (20/20 configs) | output_len=274
+[hash=99e2e163a613e92a] prompt_len=15 | ✓ ALL MATCH (20/20 configs) | output_len=206
+[hash=8f1e2d128fe48e47] prompt_len=672 | ✓ ALL MATCH (20/20 configs) | output_len=29
+[hash=909ff15b621eac22] prompt_len=11 | ✓ ALL MATCH (20/20 configs) | output_len=282
+[hash=3d2e1f63a6f7c1da] prompt_len=138 | ✓ ALL MATCH (20/20 configs) | output_len=7
+[hash=a7921dea94a46de4] prompt_len=12 | ✓ ALL MATCH (20/20 configs) | output_len=191
+[hash=6de1a5ff43937d77] prompt_len=420 | ✓ ALL MATCH (20/20 configs) | output_len=10
+[hash=dfe5480232f09c8c] prompt_len=700 | ✓ ALL MATCH (20/20 configs) | output_len=771
+[hash=d6b26aa452d80b4a] prompt_len=560 | ✓ ALL MATCH (20/20 configs) | output_len=27
+[hash=aa7299a1e42f0275] prompt_len=154 | ✓ ALL MATCH (20/20 configs) | output_len=141
+[hash=362d8124169c499e] prompt_len=161 | ✓ ALL MATCH (20/20 configs) | output_len=277
+[hash=51bab7f013e58a41] prompt_len=53 | ✓ ALL MATCH (20/20 configs) | output_len=966
+[hash=471c9d3559516fda] prompt_len=136 | ✓ ALL MATCH (20/20 configs) | output_len=306
+[hash=658b35fe6db9447e] prompt_len=767 | ✓ ALL MATCH (20/20 configs) | output_len=54
+[hash=e6d7866617ba1a15] prompt_len=535 | ✓ ALL MATCH (20/20 configs) | output_len=8
+[hash=44691a24accbdc5c] prompt_len=10 | ✓ ALL MATCH (20/20 configs) | output_len=180
+[hash=0b45c29b5b17eaa5] prompt_len=385 | ✓ ALL MATCH (20/20 configs) | output_len=30
+[hash=3cf53861eaf6bc91] prompt_len=767 | ✓ ALL MATCH (20/20 configs) | output_len=2
+[hash=80c96be5235b7869] prompt_len=63 | ✓ ALL MATCH (20/20 configs) | output_len=32
+[hash=af425da8fcbde1d9] prompt_len=228 | ✓ ALL MATCH (20/20 configs) | output_len=34
+[hash=f028b80fefc3d090] prompt_len=624 | ✓ ALL MATCH (20/20 configs) | output_len=134
+[hash=1344b219fe9bcafd] prompt_len=494 | ✓ ALL MATCH (20/20 configs) | output_len=33
+[hash=e4245b3c8857e569] prompt_len=188 | ✓ ALL MATCH (20/20 configs) | output_len=101
+[hash=15359b0f9203a0e6] prompt_len=2667 | ✓ ALL MATCH (20/20 configs) | output_len=123
+[hash=a5844c74953c3312] prompt_len=22 | ✓ ALL MATCH (20/20 configs) | output_len=242
+[hash=cdb38dd9e5ddbbc1] prompt_len=12 | ✓ ALL MATCH (20/20 configs) | output_len=351
+[hash=5533d98868dac31e] prompt_len=122 | ✓ ALL MATCH (20/20 configs) | output_len=144
+[hash=c244d3cfaae76c3a] prompt_len=201 | ✓ ALL MATCH (20/20 configs) | output_len=254
+[hash=065059f520e3cb65] prompt_len=593 | ✓ ALL MATCH (20/20 configs) | output_len=14
+[hash=0150ccaf89853f47] prompt_len=78 | ✓ ALL MATCH (20/20 configs) | output_len=441
+[hash=5ac9123670da6777] prompt_len=126 | ✓ ALL MATCH (20/20 configs) | output_len=404
+[hash=9244cd6c8afa8085] prompt_len=346 | ✓ ALL MATCH (20/20 configs) | output_len=12
+[hash=9a6abbb152989fe0] prompt_len=34 | ✓ ALL MATCH (20/20 configs) | output_len=302
+[hash=6f21e31be5b6cfd9] prompt_len=30 | ✓ ALL MATCH (20/20 configs) | output_len=100
+[hash=398016beb2114ca6] prompt_len=61 | ✓ ALL MATCH (20/20 configs) | output_len=596
+
+============================================================
+TOTAL SUMMARY
+============================================================
+Total prompts compared: 99
+Matched: 99 (100.00%)
+Mismatched: 0 (0.00%)

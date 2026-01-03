@@ -22,18 +22,18 @@ export PYTHONPATH="${PYTHONPATH:-}:${ROOT}/python"
 
 # Parse configuration
 BASE_URLS=${BASE_URLS:-"http://127.0.0.1:30005,http://127.0.0.1:30006,http://127.0.0.1:30007,http://127.0.0.1:30008"}
-QPS_VALUES=${QPS_VALUES:-"11.5,12,12.5,13"}
+QPS_VALUES=${QPS_VALUES:-"8,11,16,21,12,18,25,30,32,36,40,42,6,9,10,14,20,28,34,38"}  # Comma-separated list of QPS values
 MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
 TOKENIZER=${TOKENIZER:-}
 DATASET_PATH=${DATASET_PATH:-}
-NUM_PROMPTS_LIST=${NUM_PROMPTS_LIST:-"1024,2048,4096,6144,8192,12288,24576,32768,49152"}  # Comma-separated list of num_prompts values
+NUM_PROMPTS_LIST=${NUM_PROMPTS_LIST:-"60000"}  # Comma-separated list of num_prompts values
 SEED=${SEED:-42}
 SEQ_CONCURRENCY=${SEQ_CONCURRENCY:-1}
 SHAREGPT_CONTEXT_LEN=${SHAREGPT_CONTEXT_LEN:-16384}
 EXTRA_REQUEST_BODY=${EXTRA_REQUEST_BODY:-'{"temperature":0}'}
 BACKEND=${BACKEND:-sglang}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BASE_OUTPUT_DIR=${BASE_OUTPUT_DIR:-"${ROOT}/temp0_s32_di3_bs32_multi_qps_${TIMESTAMP}"}
+BASE_OUTPUT_DIR=${BASE_OUTPUT_DIR:-"${ROOT}/no_stream_temp0_di3_s43_bs17_fa3_${TIMESTAMP}"}
 
 # Convert comma-separated strings to arrays
 IFS=',' read -ra URLS_ARRAY <<< "$BASE_URLS"
@@ -51,10 +51,10 @@ if [ ${#QPS_ARRAY[@]} -lt 2 ]; then
     exit 1
 fi
 
-# Use the minimum of the two array sizes
+# Calculate batching for QPS values
 NUM_SERVERS=${#URLS_ARRAY[@]}
 NUM_QPS=${#QPS_ARRAY[@]}
-NUM_RUNS=$((NUM_SERVERS < NUM_QPS ? NUM_SERVERS : NUM_QPS))
+NUM_BATCHES=$(( (NUM_QPS + NUM_SERVERS - 1) / NUM_SERVERS ))  # Ceiling division
 
 mkdir -p "$BASE_OUTPUT_DIR"
 
@@ -66,12 +66,26 @@ echo "  Model:           $MODEL"
 echo "  Dataset:         ${DATASET_PATH:-ShareGPT (default)}"
 echo "  Num Prompts:     ${NUM_PROMPTS_LIST} (${#NUM_PROMPTS_ARRAY[@]} runs)"
 echo "  Seed:            $SEED"
-echo "  Num Servers:     $NUM_RUNS"
+echo "  Num Servers:     $NUM_SERVERS"
+echo "  Num QPS Values:  $NUM_QPS"
+echo "  Num Batches:     $NUM_BATCHES"
 echo "  Base Output Dir: $BASE_OUTPUT_DIR"
 echo ""
-echo "QPS to Server Mapping:"
-for ((i=0; i<NUM_RUNS; i++)); do
-    echo "  QPS ${QPS_ARRAY[$i]} -> ${URLS_ARRAY[$i]}"
+echo "QPS Batching:"
+for ((batch=0; batch<NUM_BATCHES; batch++)); do
+    start_idx=$((batch * NUM_SERVERS))
+    end_idx=$((start_idx + NUM_SERVERS))
+    if [ $end_idx -gt $NUM_QPS ]; then
+        end_idx=$NUM_QPS
+    fi
+    batch_qps=""
+    for ((i=start_idx; i<end_idx; i++)); do
+        if [ -n "$batch_qps" ]; then
+            batch_qps+=","
+        fi
+        batch_qps+="${QPS_ARRAY[$i]}"
+    done
+    echo "  Batch $((batch+1)): QPS values [$batch_qps]"
 done
 echo "=============================================="
 echo ""
@@ -99,7 +113,7 @@ trap cleanup EXIT INT TERM
 # Check server health before starting
 echo "Checking server health..."
 ALL_HEALTHY=true
-for ((i=0; i<NUM_RUNS; i++)); do
+for ((i=0; i<NUM_SERVERS; i++)); do
     URL="${URLS_ARRAY[$i]}"
     echo -n "  Checking $URL ... "
     
@@ -120,7 +134,7 @@ if [ "$ALL_HEALTHY" = false ]; then
     
     echo "Rechecking server health..."
     ALL_HEALTHY=true
-    for ((i=0; i<NUM_RUNS; i++)); do
+    for ((i=0; i<NUM_SERVERS; i++)); do
         URL="${URLS_ARRAY[$i]}"
         echo -n "  Checking $URL ... "
         
@@ -157,60 +171,90 @@ for NUM_PROMPTS in "${NUM_PROMPTS_ARRAY[@]}"; do
     echo "Output: $OUTPUT_DIR"
     echo "=============================================="
     
-    # Build command for direct QPS comparison
-    cmd=(
-        python "${ROOT}/compare_multi_qps_outputs.py"
-        --backend "${BACKEND}"
-        --base-urls "${BASE_URLS}"
-        --qps-values "${QPS_VALUES}"
-        --model "${MODEL}"
-        --num-prompts "${NUM_PROMPTS}"
-        --seed "${SEED}"
-        --deterministic-ratio 1.0
-        --output-dir "${OUTPUT_DIR}"
-        --extra-request-body "${EXTRA_REQUEST_BODY}"
-        --ignore-eos
-    )
-
-    if [[ -n "${TOKENIZER}" ]]; then
-        cmd+=(--tokenizer "${TOKENIZER}")
-    fi
-    if [[ -n "${DATASET_PATH}" ]]; then
-        cmd+=(--dataset-path "${DATASET_PATH}")
-    fi
-    if [[ -n "${SHAREGPT_CONTEXT_LEN}" ]]; then
-        cmd+=(--sharegpt-context-len "${SHAREGPT_CONTEXT_LEN}")
-    fi
-
-    # Run the comparison
-    echo "Command: ${cmd[*]}"
-    echo ""
-
-    "${cmd[@]}"
-    RESULT=$?
-
-    if [ $RESULT -eq 0 ]; then
-        echo ""
-        echo "=============================================="
-        echo "NUM_PROMPTS=$NUM_PROMPTS completed successfully!"
-        echo "=============================================="
-        echo "Results saved to: $OUTPUT_DIR"
-        echo ""
-        
-        # Display summary if available
-        SUMMARY_FILE="$OUTPUT_DIR/summary.json"
-        if [ -f "$SUMMARY_FILE" ] && command -v jq &> /dev/null; then
-            echo "Pairwise Mismatch Summary:"
-            jq -r '.pairwise_comparisons[] | "  QPS \(.qps_1) vs QPS \(.qps_2): \(.num_mismatches) mismatches"' "$SUMMARY_FILE"
-            echo ""
+    # Loop through batches of QPS values
+    for ((batch=0; batch<NUM_BATCHES; batch++)); do
+        # Calculate which QPS values are in this batch
+        start_idx=$((batch * NUM_SERVERS))
+        end_idx=$((start_idx + NUM_SERVERS))
+        if [ $end_idx -gt $NUM_QPS ]; then
+            end_idx=$NUM_QPS
         fi
-    else
+        
+        # Build comma-separated QPS values for this batch
+        batch_qps=""
+        batch_urls=""
+        batch_size=$((end_idx - start_idx))
+        for ((i=start_idx; i<end_idx; i++)); do
+            if [ -n "$batch_qps" ]; then
+                batch_qps+=","
+                batch_urls+=","
+            fi
+            batch_qps+="${QPS_ARRAY[$i]}"
+            batch_urls+="${URLS_ARRAY[$((i - start_idx))]}"
+        done
+        
+        BATCH_OUTPUT_DIR="${OUTPUT_DIR}/batch_$((batch+1))"
+        mkdir -p "$BATCH_OUTPUT_DIR"
+        
         echo ""
-        echo "=============================================="
-        echo "ERROR: NUM_PROMPTS=$NUM_PROMPTS failed with exit code $RESULT"
-        echo "=============================================="
-        OVERALL_RESULT=$RESULT
-    fi
+        echo "--- Batch $((batch+1))/$NUM_BATCHES: QPS values [$batch_qps] ---"
+        
+        # Build command for direct QPS comparison 
+        cmd=(
+            python "${ROOT}/compare_multi_qps_outputs.py"
+            --backend "${BACKEND}"
+            --base-urls "${batch_urls}"
+            --qps-values "${batch_qps}"
+            --model "${MODEL}"
+            --num-prompts "${NUM_PROMPTS}"
+            --seed "${SEED}"
+            --deterministic-ratio 1.0
+            --output-dir "${BATCH_OUTPUT_DIR}"
+            --extra-request-body "${EXTRA_REQUEST_BODY}"
+            --warmup-requests 0
+            --ignore-eos
+        )
+
+        if [[ -n "${TOKENIZER}" ]]; then
+            cmd+=(--tokenizer "${TOKENIZER}")
+        fi
+        if [[ -n "${DATASET_PATH}" ]]; then
+            cmd+=(--dataset-path "${DATASET_PATH}")
+        fi
+        if [[ -n "${SHAREGPT_CONTEXT_LEN}" ]]; then
+            cmd+=(--sharegpt-context-len "${SHAREGPT_CONTEXT_LEN}")
+        fi
+
+        # Run the comparison
+        echo "Command: ${cmd[*]}"
+        echo ""
+
+        "${cmd[@]}"
+        RESULT=$?
+
+        if [ $RESULT -eq 0 ]; then
+            echo ""
+            echo "--- Batch $((batch+1))/$NUM_BATCHES completed successfully! ---"
+            
+            # Display summary if available
+            SUMMARY_FILE="$BATCH_OUTPUT_DIR/summary.json"
+            if [ -f "$SUMMARY_FILE" ] && command -v jq &> /dev/null; then
+                echo "Pairwise Mismatch Summary (re-tokenized):"
+                jq -r '.pairwise_comparisons[] | "  QPS \(.qps_1) vs QPS \(.qps_2): \(.num_mismatches) mismatches"' "$SUMMARY_FILE"
+                echo ""
+            fi
+        else
+            echo ""
+            echo "--- ERROR: Batch $((batch+1))/$NUM_BATCHES failed with exit code $RESULT ---"
+            OVERALL_RESULT=$RESULT
+        fi
+    done  # End of batch loop
+    
+    echo ""
+    echo "=============================================="
+    echo "NUM_PROMPTS=$NUM_PROMPTS: All batches completed"
+    echo "Results saved to: $OUTPUT_DIR"
+    echo "=============================================="
     echo ""
 done
 

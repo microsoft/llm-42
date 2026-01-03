@@ -72,7 +72,6 @@ class PrefillMetadata:
     prefill_wrappers: List[BatchPrefillWithPagedKVCacheWrapper]
     use_ragged: bool
     extend_no_prefix: bool
-    #mixed_determinism: bool = False
 
 
 # Reuse this workspace buffer across all flashinfer wrappers
@@ -174,15 +173,15 @@ class FlashInferAttnBackend(AttentionBackend):
             global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
         
         if self.enable_det_infer_mode > 0 and self.enable_det_infer_mode == 3:
-            # Non-batch-invariant mode: use original settings for prefill/decode
-            # Verification mode will handle its own deterministic settings
-            # No need to increase workspace size - use default heuristics
-            self.decode_use_tensor_cores = self.original_decode_use_tensor_cores
-            # Keep prefill_split_tile_size as None (use default heuristic)
+            # Mode 3: use deterministic attention settings
+            self.verification_split_tile_size = get_int_env_var(
+                "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
+            )
+            global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
 
         # Allocate buffers
         global global_workspace_buffer
-        if global_workspace_buffer is None or global_workspace_buffer.numel() < global_config.flashinfer_workspace_size:
+        if global_workspace_buffer is None:
             # different from flashinfer zero_init_global_workspace_buffer
             global_workspace_size = global_config.flashinfer_workspace_size
             global_workspace_buffer = torch.empty(
@@ -231,6 +230,7 @@ class FlashInferAttnBackend(AttentionBackend):
         # Using two wrappers is unnecessary in the current PR, but are prepared for future PRs
         self.prefill_wrappers_paged = []
         self.prefill_wrappers_verify = []
+        self.detinfer_verification_wrappers = []
         self.decode_wrappers = []
         for _ in range(self.num_wrappers):
             if not skip_prefill:
@@ -247,6 +247,13 @@ class FlashInferAttnBackend(AttentionBackend):
                         "NHD",
                     )
                 )
+                self.detinfer_verification_wrappers.append(
+                    BatchPrefillWithPagedKVCacheWrapper(
+                        self.workspace_buffer,
+                        "NHD",
+                        backend="fa3",
+                    )
+                )
             self.decode_wrappers.append(
                 BatchDecodeWithPagedKVCacheWrapper(
                     self.workspace_buffer,
@@ -259,7 +266,7 @@ class FlashInferAttnBackend(AttentionBackend):
         if not skip_prefill:
             self.indices_updater_prefill = FlashInferIndicesUpdaterPrefill(
                 model_runner, self
-            )  # for verify
+            )
         self.indices_updater_decode = FlashInferIndicesUpdaterDecode(model_runner, self)
 
         # Other metadata
@@ -273,12 +280,14 @@ class FlashInferAttnBackend(AttentionBackend):
             # Use self.enable_deterministic which is now True for both enable_deterministic_inference
             # and enable_selective_determinism (both have batch_invariant globally enabled)
             enable_deterministic_current = self.enable_deterministic
-            if self.enable_selective_determinism > 0 or (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3):
-                # Only det_infer mode needs dynamic checking (not selective_determinism)
+            if self.enable_selective_determinism > 0:
+                # Only selective_determinism needs dynamic checking (not det_infer mode)
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 enable_deterministic_current = is_batch_invariant_mode_enabled()
 
             current_decode_split_tile_size = (self.decode_split_tile_size if enable_deterministic_current else None)
+            # For deterministic mode, also disable kv split to ensure consistent behavior
+            # current_disable_split_kv = self.disable_cuda_graph_kv_split if enable_deterministic_current else False
             self.indices_updater_decode.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
@@ -326,11 +335,10 @@ class FlashInferAttnBackend(AttentionBackend):
             # This mode is used for deterministic verification - re-running output tokens
             # to verify determinism. The input tokens are already in KV cache.
             # We need to pass prefix_lens (the length of input tokens already in cache)
-            # Always use fixed split size for verification determinism
-            # Use 2048 since verification typically processes ~32 tokens
-            current_prefill_split_tile_size = 2048
-            use_ragged = False
+            # Use fixed split size for deterministic verification with fa2 backend
             extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
+            # Always use a fixed split size for determinism
+            det_verify_split_size = self.verification_split_tile_size if self.verification_split_tile_size is not None else 4096
             
             self.indices_updater_prefill.update(
                 forward_batch.req_pool_indices,
@@ -338,14 +346,15 @@ class FlashInferAttnBackend(AttentionBackend):
                 forward_batch.seq_lens_cpu,
                 forward_batch.seq_lens_sum,
                 prefix_lens=forward_batch.extend_prefix_lens,
-                prefill_wrappers=self.prefill_wrappers_paged,
-                use_ragged=use_ragged,
+                prefill_wrappers=self.detinfer_verification_wrappers,
+                use_ragged=False,
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=None,
-                fixed_split_size=current_prefill_split_tile_size,
+                fixed_split_size=None,
+                disable_split_kv=False,
             )
             self.forward_metadata = PrefillMetadata(
-                self.prefill_wrappers_paged, use_ragged, extend_no_prefix#, self.mixed_determinism
+                self.detinfer_verification_wrappers, False, extend_no_prefix,
             )
         else:
             prefix_lens = forward_batch.extend_prefix_lens
@@ -358,10 +367,12 @@ class FlashInferAttnBackend(AttentionBackend):
                 # Use self.enable_deterministic which is now True for both enable_deterministic_inference
                 # and enable_selective_determinism (both have batch_invariant globally enabled)
                 enable_deterministic_current = self.enable_deterministic
-                if self.enable_det_infer_mode > 0 or self.enable_selective_determinism > 0:
-                    # Only det_infer mode needs dynamic checking (not selective_determinism)
+                if self.enable_selective_determinism > 0 or (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3):
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
+                # if self.enable_det_infer_mode > 0 and self.enable_det_infer_mode == 3:
+                #     # In det_infer mode 3, always use deterministic settings
+                #     enable_deterministic_current = True
                 current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
                 use_ragged = not enable_deterministic_current
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
@@ -377,9 +388,10 @@ class FlashInferAttnBackend(AttentionBackend):
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=None,
                 fixed_split_size=current_prefill_split_tile_size,
+                disable_split_kv=False,
             )
             self.forward_metadata = PrefillMetadata(
-                self.prefill_wrappers_paged, use_ragged, extend_no_prefix#, self.mixed_determinism
+                self.prefill_wrappers_paged, use_ragged, extend_no_prefix,
             )
 
     def init_cuda_graph_state(
@@ -427,18 +439,11 @@ class FlashInferAttnBackend(AttentionBackend):
         spec_info: Optional[SpecInput],
     ):
         if forward_mode.is_decode_or_idle():
-            # For det_infer mode (except mode 3), apply different settings for each graph
-            # based on is_batch_invariant_mode_enabled() during capture
-            # For selective_determinism, self.enable_deterministic is already set correctly
-            # Mode 3 uses non-batch-invariant kernels so it doesn't need dual graphs
-            uses_dual_graphs = (
-                self.enable_selective_determinism > 0 or 
-                (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3)
-            )
+            # detinfer doesn't need dual graphs
+            uses_dual_graphs = self.enable_selective_determinism > 0
             if uses_dual_graphs:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 is_deterministic_graph = is_batch_invariant_mode_enabled()
-                
                 # Choose settings based on which graph we're capturing
                 if is_deterministic_graph:
                     # Deterministic graph: use tensor cores and disable kv split
@@ -483,11 +488,6 @@ class FlashInferAttnBackend(AttentionBackend):
                 disable_split_kv=disable_split_kv,
             )
             # Store with tuple key (bs, is_deterministic) for dual graphs
-            # Mode 3 uses non-batch-invariant kernels so it doesn't need dual graphs
-            uses_dual_graphs = (
-                self.enable_selective_determinism > 0 or 
-                (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3)
-            )
             if uses_dual_graphs:
                 storage_key = (bs, is_deterministic_graph)
             else:
@@ -579,11 +579,7 @@ class FlashInferAttnBackend(AttentionBackend):
     ):
         if forward_mode.is_decode_or_idle():
             # Determine which wrappers to use based on deterministic mode
-            # Mode 3 uses non-batch-invariant kernels so it doesn't need dual graphs
-            uses_dual_graphs = (
-                self.enable_selective_determinism > 0 or 
-                (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3)
-            )
+            uses_dual_graphs = self.enable_selective_determinism > 0 
             if uses_dual_graphs and use_deterministic is not None:
                 storage_key = (bs, use_deterministic)
                 # Match the settings used during capture for this graph
@@ -591,7 +587,7 @@ class FlashInferAttnBackend(AttentionBackend):
             else:
                 storage_key = bs
                 # For static deterministic mode, use the same restrictive settings
-                if self.enable_deterministic > 0 or self.enable_det_infer_mode > 0 or self.enable_selective_determinism > 0:
+                if self.enable_deterministic > 0:
                     disable_split_kv = self.disable_cuda_graph_kv_split
                 else:
                     disable_split_kv = False
@@ -648,6 +644,7 @@ class FlashInferAttnBackend(AttentionBackend):
         forward_batch: ForwardBatch,
         save_kv_cache=True,
     ):
+        wrapper = None
         prefill_wrapper_paged = self.forward_metadata.prefill_wrappers[
             self._get_wrapper_idx(layer)
         ]
@@ -1081,6 +1078,7 @@ class FlashInferIndicesUpdaterPrefill:
         encoder_lens: Optional[torch.Tensor],
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
     ):
         # Keep the signature for type checking. It will be assigned during runtime.
         raise NotImplementedError()
@@ -1097,6 +1095,7 @@ class FlashInferIndicesUpdaterPrefill:
         encoder_lens: Optional[torch.Tensor],
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
     ):
         if use_ragged:
             # TODO: remove this device sync, we can use forward_batch.extend_prefix_lens_cpu
@@ -1121,6 +1120,7 @@ class FlashInferIndicesUpdaterPrefill:
             use_ragged,
             spec_info,
             fixed_split_size=fixed_split_size,
+            disable_split_kv=disable_split_kv,
         )
 
     def update_sliding_window(
@@ -1135,6 +1135,7 @@ class FlashInferIndicesUpdaterPrefill:
         encoder_lens: Optional[torch.Tensor],
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
     ):
         for wrapper_id in range(2):
             if wrapper_id == 0:
@@ -1168,6 +1169,7 @@ class FlashInferIndicesUpdaterPrefill:
                 use_ragged,
                 spec_info,
                 use_sliding_window_kv_pool=use_sliding_window_kv_pool,
+                disable_split_kv=disable_split_kv,
             )
 
     def update_cross_attention(
@@ -1182,6 +1184,7 @@ class FlashInferIndicesUpdaterPrefill:
         encoder_lens: Optional[torch.Tensor],
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
     ):
         for wrapper_id in range(2):
             if wrapper_id == 0:
@@ -1208,6 +1211,7 @@ class FlashInferIndicesUpdaterPrefill:
                 self.qo_indptr[wrapper_id],
                 use_ragged,
                 spec_info,
+                disable_split_kv=disable_split_kv,
             )
 
     def call_begin_forward(
@@ -1226,6 +1230,7 @@ class FlashInferIndicesUpdaterPrefill:
         spec_info: Optional[SpecInput],
         use_sliding_window_kv_pool: bool = False,
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
     ):
         bs = len(seq_lens)
         if spec_info is None:
@@ -1295,6 +1300,9 @@ class FlashInferIndicesUpdaterPrefill:
             custom_mask=custom_mask,
             non_blocking=True,
             fixed_split_size=fixed_split_size,
+            disable_split_kv=(
+                disable_split_kv if disable_split_kv is not None else False
+            ),
         )
 
 

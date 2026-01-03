@@ -55,7 +55,7 @@ def build_base_args(cli_args: argparse.Namespace) -> dict:
         "output_details": True,
         "output_latencies": None,
         "disable_tqdm": False,
-        "disable_stream": False,
+        "disable_stream": True,
         "return_logprob": False,
         "seed": cli_args.seed,
         "disable_ignore_eos": not cli_args.ignore_eos,
@@ -119,13 +119,16 @@ def run_experiment_process(idx: int, base: dict, url: str, qps: float, output_di
         output_file=output_file,
     )
     
-    print(f"[{idx+1}] QPS={qps} benchmark completed, tokenizing outputs...", flush=True)
+    # print(f"[{idx+1}] QPS={qps} benchmark completed", flush=True)
     
-    # Tokenize outputs
-    tokenizer = bench_serving.get_tokenizer(tokenizer_id or args.model)
-    print(f"[{idx+1}] QPS={qps} tokenizer loaded", flush=True)
-    tokens = tokenize(result["generated_texts"], tokenizer)
-    print(f"[{idx+1}] QPS={qps} tokenization done", flush=True)
+    # Use output_ids directly from server (avoids BPE re-tokenization non-determinism)
+    tokens = result.get("output_ids", [])
+    if not tokens or not any(tokens):
+        # Fallback to re-tokenization if output_ids not available
+        print(f"[{idx+1}] QPS={qps} output_ids not available, falling back to re-tokenization...", flush=True)
+        tokenizer = bench_serving.get_tokenizer(tokenizer_id or args.model)
+        tokens = tokenize(result["generated_texts"], tokenizer)
+    # print(f"[{idx+1}] QPS={qps} got {len(tokens)} token sequences", flush=True)
     
     # Get prompt lengths from benchmark result
     prompt_lens = result.get("input_lens", [None] * len(tokens))
