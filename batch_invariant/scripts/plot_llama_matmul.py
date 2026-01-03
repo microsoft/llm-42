@@ -60,25 +60,28 @@ for op_name in full_results.keys():
     tflops_results = full_results[op_name]
     x = list(tflops_results.keys())
 
-    plt.figure(figsize=(8, 4))
+    plt.figure(figsize=(8, 6))
 
     torch_vals = [tflops_results[b].get('PyTorch', 0.0) for b in x]
     bi_vals = [tflops_results[b].get('ThinkingMachines', 0.0) for b in x]
     bi_fused_vals = [tflops_results[b].get('Ours', 0.0) for b in x]
-    plt.plot(x, torch_vals, marker='o', label='PyTorch')
-    plt.plot(x, bi_vals, marker='s', label='ThinkingMachines (Invariant)')
-    plt.plot(x, bi_fused_vals, marker='^', label='Ours (Invariant)')
+    plt.plot(x, torch_vals, marker='o', label='Non-batch-invarinat (cuBLAS)', color='tab:blue')
+    plt.plot(x, bi_vals, marker='s', label='Batch-invariant (Triton)', color='tab:green')
+    # plt.plot(x, bi_fused_vals, marker='^', label='Ours (Invariant)')
 
     print(x, flush=True)
     plt.xscale('log', base=2)
-    plt.xticks(x, [str(b) for b in x], rotation=45, fontsize=14)
+    plt.xticks(x, [str(b) for b in x], rotation=45, fontsize=20)
     plt.yscale('log', base=10)
-    plt.xlabel('Tokens', fontsize=16, fontweight='bold')
-    plt.ylabel('TFLOPS', fontsize=16, fontweight='bold')
+    plt.yticks(fontsize=20)
+    plt.xlabel('Tokens', fontsize=24, fontweight='bold')
+    plt.ylabel('TFLOPS', fontsize=24, fontweight='bold')
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-    plt.legend(fontsize=16, loc='best')
+    plt.legend(fontsize=20, loc='best', frameon=False)
     plt.tight_layout()
 
-    outfile = f'figures/tflops_vs_batch_{op_name}.png'
+    outfile = f'../llm42-plots/microbenchmarks/matmul/tflops_vs_batch_{op_name}.pdf'
+    import os
+    os.makedirs(os.path.dirname(outfile), exist_ok=True)
     plt.savefig(outfile, dpi=1200)
     print(f"  Saved plot to {outfile}")
