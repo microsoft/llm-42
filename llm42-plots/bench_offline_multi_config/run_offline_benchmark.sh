@@ -143,11 +143,12 @@ run_benchmark() {
         --deterministic-seed "$DETERMINISTIC_SEED" \
         --extra-request-body "$EXTRA_BODY" \
         --output-file "$temp_result" \
+        --output-details \
         2>&1 | tee "${OUTPUT_DIR}/log_${config_name}_det${det_ratio}.log"
     
     # Extract metrics and append to results
     if [ -f "$temp_result" ]; then
-        # Parse the JSONL output and add metadata
+        # Parse the JSONL output and add metadata including rollback stats
         python -c "
 import json
 import sys
@@ -164,6 +165,33 @@ with open('$temp_result', 'r') as f:
                 result['output_len'] = $OUTPUT_LEN_FOR_RESULT
                 result['deterministic_ratio'] = $det_ratio
                 result['server_url'] = '$url'
+                
+                # Extract rollback stats from meta_info
+                meta_info_list = result.get('meta_info', [])
+                output_lens = result.get('output_lens', [])
+                if meta_info_list:
+                    det_num_rollbacks = [m.get('det_infer_num_rollbacks', 0) for m in meta_info_list if m]
+                    det_tokens_rolled_back = [m.get('det_infer_tokens_rolled_back', 0) for m in meta_info_list if m]
+                    
+                    num_requests = len(det_num_rollbacks)
+                    total_output_tokens = sum(output_lens) if output_lens else result.get('total_output_tokens', 0)
+                    if num_requests > 0:
+                        result['rollback_stats'] = {
+                            'total_rollbacks': sum(det_num_rollbacks),
+                            'total_tokens_rolled_back': sum(det_tokens_rolled_back),
+                            'total_output_tokens': total_output_tokens,
+                            'avg_rollbacks_per_request': sum(det_num_rollbacks) / num_requests,
+                            'avg_tokens_rolled_back_per_request': sum(det_tokens_rolled_back) / num_requests,
+                            'max_rollbacks_per_request': max(det_num_rollbacks) if det_num_rollbacks else 0,
+                            'max_tokens_rolled_back_per_request': max(det_tokens_rolled_back) if det_tokens_rolled_back else 0,
+                            'requests_with_rollbacks': sum(1 for x in det_num_rollbacks if x > 0),
+                            'num_requests': num_requests,
+                        }
+                
+                # Remove verbose fields to keep results file manageable
+                for key in ['meta_info', 'generated_texts', 'output_ids', 'itls', 'errors']:
+                    result.pop(key, None)
+                
                 print(json.dumps(result))
             except json.JSONDecodeError:
                 pass
@@ -218,3 +246,16 @@ echo "=============================================="
 echo "Benchmarking Complete!"
 echo "Results saved to: $RESULTS_FILE"
 echo "=============================================="
+# Export per-request data to CSV
+CSV_FILE="${OUTPUT_DIR}/per_request_data.csv"
+echo ""
+echo "Exporting per-request data to CSV..."
+python "${ROOT}/export_per_request_csv.py" \
+    --input "$RESULTS_FILE" \
+    --output "$CSV_FILE"
+
+echo ""
+echo "Per-request CSV: $CSV_FILE"
+echo "Fields: config_name, dataset_name, det_ratio, request_idx, prompt_hash,"
+echo "        is_deterministic, input_len, output_len, rollbacks, tokens_rolled_back,"
+echo "        ttft_s, latency_s, error"

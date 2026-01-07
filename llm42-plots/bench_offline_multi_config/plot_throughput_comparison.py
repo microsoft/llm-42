@@ -68,14 +68,14 @@ def parse_dataset_config_from_dir(dir_name: str) -> str:
 
 # Bar labels and their properties
 BAR_CONFIGS = [
-    ('non_det', 'Non-Deterministic', 'tab:green', '||'),
-    ('global_det', 'Global-Deterministic', 'tab:pink', '//'),
-    ('detinfer_0.02', 'LLM-42\n@2%', 'tab:blue', '\\\\'),
-    ('detinfer_0.05', 'LLM-42\n@5%', 'tab:blue', '++'),
-    ('detinfer_0.1', 'LLM-42\n@10%', 'tab:blue', '//'),
-    ('detinfer_0.2', 'LLM-42\n@20%', 'tab:blue', '--'),
-    ('detinfer_0.5', 'LLM-42\n@50%', 'tab:blue', '..'),
-    ('detinfer_1.0', 'LLM-42\n@100%', 'tab:blue', 'xx'),
+    ('non_det', 'Non-Deterministic', 'tab:green', '|||'),
+    ('global_det', 'Global-Deterministic', 'tab:red', '////'),
+    ('detinfer_0.02', 'LLM-42\n@2%', 'tab:purple', '\\\\\\\\'),
+    ('detinfer_0.05', 'LLM-42\n@5%', 'tab:purple', '+++'),
+    ('detinfer_0.1', 'LLM-42\n@10%', 'tab:purple', '///'),
+    ('detinfer_0.2', 'LLM-42\n@20%', 'tab:purple', '---'),
+    ('detinfer_0.5', 'LLM-42\n@50%', 'tab:purple', '...'),
+    ('detinfer_1.0', 'LLM-42\n@100%', 'tab:purple', 'xxxx'),
 ]
 
 
@@ -100,7 +100,7 @@ def plot_throughput_comparison(
     n_bars = len(BAR_CONFIGS)
     
     # Create figure
-    fig, ax = plt.subplots(figsize=(max(26, n_datasets * 3), 7.5))
+    fig, ax = plt.subplots(figsize=(max(18, n_datasets * 3), 6))
     
     # Bar width and positions - scale based on figure size
     bar_width = 0.20
@@ -108,6 +108,14 @@ def plot_throughput_comparison(
     
     # X positions for each dataset group
     x_positions = np.arange(n_datasets) * (group_width + 0.25)
+    
+    # Get non-det throughputs for speedup calculation
+    non_det_throughputs = []
+    for dataset_config in dataset_configs:
+        if 'non_det' in data[dataset_config]:
+            non_det_throughputs.append(data[dataset_config]['non_det'])
+        else:
+            non_det_throughputs.append(0)
     
     # Plot bars for each config
     for i, (bar_key, label, color, hatch) in enumerate(BAR_CONFIGS):
@@ -129,23 +137,30 @@ def plot_throughput_comparison(
                       hatch=hatch,
                       label=label if i == 0 or BAR_CONFIGS[i-1][2] != color else None)  # Only label first of each color
         
-        # Add value labels on top of bars
-        # for bar, val in zip(bars, throughputs):
-        #     if val > 0:
-        #         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 50,
-        #                f'{val:.0f}', ha='center', va='bottom', fontsize=16, rotation=90)
+        # Add value labels on top of bars with speedup (skip non-det)
+        if bar_key != 'non_det':
+            for bar, val, non_det_val in zip(bars, throughputs, non_det_throughputs):
+                if val > 0:
+                    # Calculate speedup relative to non-det
+                    if non_det_val > 0:
+                        speedup = val / non_det_val
+                        speedup_str = f'{speedup:.2f}x'
+                    else:
+                        speedup_str = ''
+                    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 50,
+                           f'{speedup_str}', ha='center', va='bottom', fontsize=16,rotation=90)
     # ax.set_ylim(ymax=ax.get_ylim()[1] * 1.1)  
     # Customize plot
-    ax.set_ylabel('Total Throughput (tokens/s)', fontsize=24, fontweight='bold')
+    ax.set_ylabel('Throughput (tokens/s)', fontsize=20, fontweight='bold')
     
-    title = f'Total Throughput by Dataset ({title_suffix})'
+    title = f'Throughput by Dataset ({title_suffix})'
     # ax.set_title(title, fontsize=20, fontweight='bold')
     
     # Set x-ticks at center of each group
     group_centers = x_positions + (n_bars - 1) * bar_width / 2
     ax.set_xticks(group_centers)
-    ax.set_xticklabels(dataset_configs, fontsize=24, fontweight='bold')
-    ax.tick_params(axis='y', labelsize=20)
+    ax.set_xticklabels(dataset_configs, fontsize=20, fontweight='bold')
+    ax.tick_params(axis='y', labelsize=16)
     # Create custom legend
     from matplotlib.patches import Patch
     legend_elements = []
@@ -155,14 +170,21 @@ def plot_throughput_comparison(
                   linewidth=2.0, label=label.replace('\n', ' '))
         )
     
-    ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=4, fontsize=22, frameon=False)
+    ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.22), ncol=4, fontsize=20, frameon=False)
     
     # Grid
     ax.yaxis.grid(True, linestyle='--', alpha=0.3)
     ax.set_axisbelow(True)
     
+    # Keep only x-axis and y-axis lines (remove top and right spines)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
     # Set y-axis to start from 0
-    ax.set_ylim(bottom=0)
+    ax.set_ylim(bottom=0, top=ax.get_ylim()[1] * 1.15)
+    
+    # Reduce x-axis margins to minimize gap between y-axis and first bar
+    ax.set_xlim(left=-bar_width, right=x_positions[-1] + n_bars * bar_width)
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=1200, bbox_inches='tight')

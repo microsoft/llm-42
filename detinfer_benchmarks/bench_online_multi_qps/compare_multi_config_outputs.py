@@ -99,6 +99,7 @@ def build_base_args(cli_args: argparse.Namespace) -> dict:
         "disable_tqdm": False,
         "disable_stream": False,
         "return_logprob": False,
+        "deterministic_seed": 42,
         "seed": cli_args.select_seed,  # Base seed (for backward compat)
         "select_seed": cli_args.select_seed,  # Same prompts across all configs
         "order_seed": None,  # Will be set per config

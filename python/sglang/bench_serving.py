@@ -90,11 +90,13 @@ class RequestFuncOutput:
     output_len: int = 0
     output_ids: List[int] = field(default_factory=list)  # Output token IDs
     meta_info: Dict[str, Any] = field(default_factory=dict)  # Response meta_info
+    is_deterministic: bool = False  # Whether this request was marked as deterministic
 
     @staticmethod
     def init_new(request_func_input: RequestFuncInput):
         output = RequestFuncOutput()
         output.prompt_len = request_func_input.prompt_len
+        output.is_deterministic = request_func_input.extra_request_body.get("is_deterministic", False)
         return output
 
 
@@ -2138,6 +2140,7 @@ async def benchmark(
         "errors": [output.error for output in outputs],
         "meta_info": [output.meta_info for output in outputs],
         "prompt_hashes": [req.prompt_hash for req in input_requests] if hasattr(input_requests[0], 'prompt_hash') and input_requests[0].prompt_hash else [],
+        "is_deterministic": [output.is_deterministic for output in outputs],
     }
 
     # Append results to a JSONL file
