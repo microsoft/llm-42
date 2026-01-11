@@ -1,0 +1,1092 @@
+============================================================
+Multi-Config Comparison Summary
+============================================================
+
+Num Prompts: 99
+Select Seed: 42
+Configs: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17']
+
+------------------------------------------------------------
+Per-Config Output & Rollback Stats:
+------------------------------------------------------------
+QPS 8.0, Order Seed = 130, Arrival Seed = 10:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 0
+  Rollback %: 0.0000%
+QPS 9.0, Order Seed = 131, Arrival Seed = 11:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 0
+  Rollback %: 0.0000%
+QPS 10.0, Order Seed = 132, Arrival Seed = 12:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 0
+  Rollback %: 0.0000%
+QPS 11.0, Order Seed = 133, Arrival Seed = 13:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 0
+  Rollback %: 0.0000%
+QPS 12.0, Order Seed = 134, Arrival Seed = 14:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 0
+  Rollback %: 0.0000%
+QPS 13.0, Order Seed = 135, Arrival Seed = 15:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 0
+  Rollback %: 0.0000%
+QPS 14.0, Order Seed = 136, Arrival Seed = 16:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 0
+  Rollback %: 0.0000%
+QPS 15.0, Order Seed = 137, Arrival Seed = 17:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 0
+  Rollback %: 0.0000%
+
+------------------------------------------------------------
+Pairwise Comparisons:
+------------------------------------------------------------
+qps8.0_o130_a10 vs qps9.0_o131_a11: 36 mismatches, 29 deltas > 32, 25 deltas > 64, 19 deltas > 128, 13 deltas > 256
+qps8.0_o130_a10 vs qps10.0_o132_a12: 39 mismatches, 35 deltas > 32, 27 deltas > 64, 20 deltas > 128, 14 deltas > 256
+qps8.0_o130_a10 vs qps11.0_o133_a13: 37 mismatches, 31 deltas > 32, 28 deltas > 64, 24 deltas > 128, 16 deltas > 256
+qps8.0_o130_a10 vs qps12.0_o134_a14: 37 mismatches, 31 deltas > 32, 27 deltas > 64, 20 deltas > 128, 14 deltas > 256
+qps8.0_o130_a10 vs qps13.0_o135_a15: 37 mismatches, 28 deltas > 32, 27 deltas > 64, 22 deltas > 128, 14 deltas > 256
+qps8.0_o130_a10 vs qps14.0_o136_a16: 39 mismatches, 32 deltas > 32, 28 deltas > 64, 22 deltas > 128, 14 deltas > 256
+qps8.0_o130_a10 vs qps15.0_o137_a17: 34 mismatches, 30 deltas > 32, 25 deltas > 64, 20 deltas > 128, 12 deltas > 256
+qps9.0_o131_a11 vs qps10.0_o132_a12: 36 mismatches, 30 deltas > 32, 23 deltas > 64, 16 deltas > 128, 10 deltas > 256
+qps9.0_o131_a11 vs qps11.0_o133_a13: 34 mismatches, 27 deltas > 32, 23 deltas > 64, 19 deltas > 128, 9 deltas > 256
+qps9.0_o131_a11 vs qps12.0_o134_a14: 34 mismatches, 30 deltas > 32, 25 deltas > 64, 19 deltas > 128, 12 deltas > 256
+qps9.0_o131_a11 vs qps13.0_o135_a15: 35 mismatches, 27 deltas > 32, 23 deltas > 64, 20 deltas > 128, 11 deltas > 256
+qps9.0_o131_a11 vs qps14.0_o136_a16: 34 mismatches, 29 deltas > 32, 25 deltas > 64, 20 deltas > 128, 12 deltas > 256
+qps9.0_o131_a11 vs qps15.0_o137_a17: 30 mismatches, 26 deltas > 32, 23 deltas > 64, 16 deltas > 128, 10 deltas > 256
+qps10.0_o132_a12 vs qps11.0_o133_a13: 35 mismatches, 30 deltas > 32, 26 deltas > 64, 21 deltas > 128, 13 deltas > 256
+qps10.0_o132_a12 vs qps12.0_o134_a14: 34 mismatches, 30 deltas > 32, 25 deltas > 64, 17 deltas > 128, 11 deltas > 256
+qps10.0_o132_a12 vs qps13.0_o135_a15: 35 mismatches, 31 deltas > 32, 24 deltas > 64, 18 deltas > 128, 8 deltas > 256
+qps10.0_o132_a12 vs qps14.0_o136_a16: 38 mismatches, 32 deltas > 32, 27 deltas > 64, 19 deltas > 128, 11 deltas > 256
+qps10.0_o132_a12 vs qps15.0_o137_a17: 33 mismatches, 29 deltas > 32, 25 deltas > 64, 16 deltas > 128, 10 deltas > 256
+qps11.0_o133_a13 vs qps12.0_o134_a14: 33 mismatches, 30 deltas > 32, 26 deltas > 64, 21 deltas > 128, 14 deltas > 256
+qps11.0_o133_a13 vs qps13.0_o135_a15: 34 mismatches, 25 deltas > 32, 22 deltas > 64, 19 deltas > 128, 11 deltas > 256
+qps11.0_o133_a13 vs qps14.0_o136_a16: 36 mismatches, 33 deltas > 32, 28 deltas > 64, 21 deltas > 128, 13 deltas > 256
+qps11.0_o133_a13 vs qps15.0_o137_a17: 31 mismatches, 28 deltas > 32, 24 deltas > 64, 18 deltas > 128, 12 deltas > 256
+qps12.0_o134_a14 vs qps13.0_o135_a15: 29 mismatches, 23 deltas > 32, 21 deltas > 64, 15 deltas > 128, 10 deltas > 256
+qps12.0_o134_a14 vs qps14.0_o136_a16: 29 mismatches, 24 deltas > 32, 23 deltas > 64, 16 deltas > 128, 10 deltas > 256
+qps12.0_o134_a14 vs qps15.0_o137_a17: 30 mismatches, 26 deltas > 32, 23 deltas > 64, 19 deltas > 128, 13 deltas > 256
+qps13.0_o135_a15 vs qps14.0_o136_a16: 33 mismatches, 27 deltas > 32, 24 deltas > 64, 17 deltas > 128, 10 deltas > 256
+qps13.0_o135_a15 vs qps15.0_o137_a17: 36 mismatches, 29 deltas > 32, 25 deltas > 64, 18 deltas > 128, 11 deltas > 256
+qps14.0_o136_a16 vs qps15.0_o137_a17: 34 mismatches, 26 deltas > 32, 26 deltas > 64, 18 deltas > 128, 11 deltas > 256
+
+------------------------------------------------------------
+Per-Prompt Comparison:
+------------------------------------------------------------
+[hash=64315a30fe6261fa] prompt_len=9 | ✓ ALL MATCH (8/8 configs) | output_len=213
+
+[hash=7daccc8078c8ca8b] prompt_len=164 | ✗ MISMATCH (5 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=471
+  group2: ['qps9.0_o131_a11', 'qps10.0_o132_a12'] | output_len=471
+  group3: ['qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15'] | output_len=471
+  group4: ['qps14.0_o136_a16'] | output_len=471
+  group5: ['qps15.0_o137_a17'] | output_len=471
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps10.0_o132_a12']: delta=0, first_mismatch_idx=62
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15']: delta=0, first_mismatch_idx=62
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=60
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=76
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12'] vs ['qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15']: delta=0, first_mismatch_idx=333
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=60
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=62
+    ['qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=60
+    ['qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=62
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=60
+
+
+[hash=006eeccba470032a] prompt_len=11 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=224
+  group2: ['qps10.0_o132_a12'] | output_len=224
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=169
+
+
+[hash=4a4ca84935ddfb96] prompt_len=1098 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] | output_len=345
+  group2: ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] | output_len=345
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=57
+
+[hash=3abc57308e4de932] prompt_len=742 | ✓ ALL MATCH (8/8 configs) | output_len=12
+
+[hash=128c2ace9d2dbb07] prompt_len=70 | ✗ MISMATCH (3 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=196
+  group2: ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=196
+  group3: ['qps10.0_o132_a12'] | output_len=196
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=143
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=108
+    ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=108
+
+
+[hash=c22f4763b2cb6971] prompt_len=256 | ✗ MISMATCH (5 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=292
+  group2: ['qps9.0_o131_a11'] | output_len=292
+  group3: ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=292
+  group4: ['qps11.0_o133_a13'] | output_len=292
+  group5: ['qps13.0_o135_a15'] | output_len=292
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=74
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=74
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=74
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=74
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=223
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=162
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=86
+    ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=162
+    ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=86
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=86
+
+
+[hash=525e07bd56273b35] prompt_len=24 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=271
+  group2: ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=271
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=252
+
+[hash=b4d10ef781251459] prompt_len=37 | ✓ ALL MATCH (8/8 configs) | output_len=9
+
+[hash=0da707d98bdb055b] prompt_len=325 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps13.0_o135_a15'] | output_len=63
+  group2: ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=63
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps13.0_o135_a15'] vs ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=10
+
+[hash=1b6c686a91cbc0a3] prompt_len=289 | ✓ ALL MATCH (8/8 configs) | output_len=33
+[hash=acd167dbaf7bce42] prompt_len=78 | ✓ ALL MATCH (8/8 configs) | output_len=201
+[hash=112695a3f5a48850] prompt_len=21 | ✓ ALL MATCH (8/8 configs) | output_len=3
+[hash=7fa1f5b0ea059f81] prompt_len=7 | ✓ ALL MATCH (8/8 configs) | output_len=402
+
+[hash=0496a205ac41293a] prompt_len=729 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=121
+  group2: ['qps10.0_o132_a12'] | output_len=121
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=21
+
+[hash=c140e6fb83b7e1ab] prompt_len=385 | ✓ ALL MATCH (8/8 configs) | output_len=17
+
+[hash=8037af9f17ab19c0] prompt_len=4275 | ✗ MISMATCH (3 groups)
+  group1: ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15'] | output_len=92
+  group2: ['qps9.0_o131_a11', 'qps14.0_o136_a16'] | output_len=92
+  group3: ['qps15.0_o137_a17'] | output_len=92
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15'] vs ['qps9.0_o131_a11', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=28
+    ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=28
+    ['qps9.0_o131_a11', 'qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=73
+
+[hash=6dd3e383341f4bc3] prompt_len=332 | ✓ ALL MATCH (8/8 configs) | output_len=52
+
+[hash=eee7b1310459dc2c] prompt_len=2473 | ✗ MISMATCH (5 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=111
+  group2: ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] | output_len=111
+  group3: ['qps12.0_o134_a14'] | output_len=111
+  group4: ['qps13.0_o135_a15'] | output_len=111
+  group5: ['qps14.0_o136_a16'] | output_len=111
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=75
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=96
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=96
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=19
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=75
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=75
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=19
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=106
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=19
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=19
+
+[hash=c3ab7db928b4497f] prompt_len=315 | ✓ ALL MATCH (8/8 configs) | output_len=45
+
+[hash=0e856a15e9621998] prompt_len=401 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=214
+  group2: ['qps9.0_o131_a11'] | output_len=214
+  group3: ['qps10.0_o132_a12'] | output_len=214
+  group4: ['qps11.0_o133_a13'] | output_len=214
+  group5: ['qps12.0_o134_a14'] | output_len=214
+  group6: ['qps13.0_o135_a15'] | output_len=214
+  group7: ['qps14.0_o136_a16'] | output_len=214
+  group8: ['qps15.0_o137_a17'] | output_len=214
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=144
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=176
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=51
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=15
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=22
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=15
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=68
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=144
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=51
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=15
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=22
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=15
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=68
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=51
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=15
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=22
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=15
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=68
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=15
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=22
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=15
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=51
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=15
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=107
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=15
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=15
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=22
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=15
+
+
+[hash=5ebb66fede52ecd0] prompt_len=507 | ✗ MISMATCH (4 groups)
+  group1: ['qps8.0_o130_a10', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] | output_len=407
+  group2: ['qps9.0_o131_a11', 'qps11.0_o133_a13'] | output_len=407
+  group3: ['qps10.0_o132_a12'] | output_len=407
+  group4: ['qps15.0_o137_a17'] | output_len=407
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] vs ['qps9.0_o131_a11', 'qps11.0_o133_a13']: delta=0, first_mismatch_idx=12
+    ['qps8.0_o130_a10', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=12
+    ['qps8.0_o130_a10', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=37
+    ['qps9.0_o131_a11', 'qps11.0_o133_a13'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=42
+    ['qps9.0_o131_a11', 'qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=12
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=12
+
+
+[hash=4d7c802455395c41] prompt_len=42 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps15.0_o137_a17'] | output_len=3
+  group2: ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] | output_len=3
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=1
+
+
+[hash=1781dd727357062c] prompt_len=679 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] | output_len=90
+  group2: ['qps11.0_o133_a13', 'qps14.0_o136_a16'] | output_len=90
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] vs ['qps11.0_o133_a13', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=79
+
+[hash=e65785ea077f70af] prompt_len=386 | ✓ ALL MATCH (8/8 configs) | output_len=5
+
+[hash=239733b96b42b7e5] prompt_len=21 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] | output_len=378
+  group2: ['qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] | output_len=378
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] vs ['qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=367
+
+[hash=c8bb6790b4084e8c] prompt_len=30 | ✓ ALL MATCH (8/8 configs) | output_len=97
+
+[hash=fe6561b67dc1a22c] prompt_len=14 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=574
+  group2: ['qps9.0_o131_a11'] | output_len=574
+  group3: ['qps10.0_o132_a12'] | output_len=574
+  group4: ['qps11.0_o133_a13'] | output_len=574
+  group5: ['qps12.0_o134_a14'] | output_len=574
+  group6: ['qps13.0_o135_a15'] | output_len=574
+  group7: ['qps14.0_o136_a16'] | output_len=574
+  group8: ['qps15.0_o137_a17'] | output_len=574
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=371
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=501
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=348
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=501
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=371
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=371
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=371
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=371
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=348
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=371
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=419
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=376
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=419
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=348
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=534
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=371
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=371
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=371
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=348
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=348
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=348
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=348
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=371
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=371
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=371
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=376
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=420
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=376
+
+
+[hash=f2dda485833ba06e] prompt_len=335 | ✗ MISMATCH (5 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=367
+  group2: ['qps9.0_o131_a11'] | output_len=367
+  group3: ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] | output_len=367
+  group4: ['qps12.0_o134_a14', 'qps14.0_o136_a16'] | output_len=367
+  group5: ['qps13.0_o135_a15'] | output_len=367
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=78
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=78
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=17
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=78
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=292
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=17
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=224
+    ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] vs ['qps12.0_o134_a14', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=17
+    ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=224
+    ['qps12.0_o134_a14', 'qps14.0_o136_a16'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=17
+
+
+[hash=fd3a5954420cbd11] prompt_len=412 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=31
+  group2: ['qps13.0_o135_a15'] | output_len=31
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=20
+
+[hash=b070523287a7d0ce] prompt_len=20 | ✓ ALL MATCH (8/8 configs) | output_len=316
+
+[hash=fa207d5e23525ed4] prompt_len=548 | ✗ MISMATCH (5 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=122
+  group2: ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps13.0_o135_a15'] | output_len=122
+  group3: ['qps11.0_o133_a13', 'qps12.0_o134_a14'] | output_len=122
+  group4: ['qps14.0_o136_a16'] | output_len=122
+  group5: ['qps15.0_o137_a17'] | output_len=122
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps13.0_o135_a15']: delta=0, first_mismatch_idx=105
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13', 'qps12.0_o134_a14']: delta=0, first_mismatch_idx=104
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=9
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=3
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps13.0_o135_a15'] vs ['qps11.0_o133_a13', 'qps12.0_o134_a14']: delta=0, first_mismatch_idx=104
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=9
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=3
+    ['qps11.0_o133_a13', 'qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=9
+    ['qps11.0_o133_a13', 'qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=3
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=3
+
+[hash=71a6d94edb8ecb72] prompt_len=11 | ✓ ALL MATCH (8/8 configs) | output_len=83
+
+[hash=b8e53e3a5f7f500d] prompt_len=5 | ✗ MISMATCH (6 groups)
+  group1: ['qps8.0_o130_a10', 'qps15.0_o137_a17'] | output_len=621
+  group2: ['qps9.0_o131_a11', 'qps14.0_o136_a16'] | output_len=621
+  group3: ['qps10.0_o132_a12'] | output_len=621
+  group4: ['qps11.0_o133_a13'] | output_len=621
+  group5: ['qps12.0_o134_a14'] | output_len=621
+  group6: ['qps13.0_o135_a15'] | output_len=621
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps15.0_o137_a17'] vs ['qps9.0_o131_a11', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=547
+    ['qps8.0_o130_a10', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=418
+    ['qps8.0_o130_a10', 'qps15.0_o137_a17'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=323
+    ['qps8.0_o130_a10', 'qps15.0_o137_a17'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=418
+    ['qps8.0_o130_a10', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=323
+    ['qps9.0_o131_a11', 'qps14.0_o136_a16'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=418
+    ['qps9.0_o131_a11', 'qps14.0_o136_a16'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=323
+    ['qps9.0_o131_a11', 'qps14.0_o136_a16'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=418
+    ['qps9.0_o131_a11', 'qps14.0_o136_a16'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=323
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=323
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=423
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=323
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=323
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=618
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=323
+
+
+[hash=bd75f92d7873c615] prompt_len=2048 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=300
+  group2: ['qps9.0_o131_a11'] | output_len=300
+  group3: ['qps10.0_o132_a12'] | output_len=300
+  group4: ['qps11.0_o133_a13'] | output_len=300
+  group5: ['qps12.0_o134_a14'] | output_len=300
+  group6: ['qps13.0_o135_a15'] | output_len=300
+  group7: ['qps14.0_o136_a16'] | output_len=300
+  group8: ['qps15.0_o137_a17'] | output_len=300
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=40
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=221
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=5
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=242
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=61
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=5
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=117
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=40
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=5
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=40
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=40
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=5
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=40
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=5
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=221
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=61
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=5
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=117
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=5
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=5
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=40
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=5
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=61
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=5
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=117
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=5
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=61
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=5
+
+[hash=fe04d983b5c415b0] prompt_len=20 | ✓ ALL MATCH (8/8 configs) | output_len=55
+
+[hash=44ffaa4696d3ab00] prompt_len=835 | ✗ MISMATCH (4 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=168
+  group2: ['qps9.0_o131_a11', 'qps10.0_o132_a12'] | output_len=168
+  group3: ['qps11.0_o133_a13', 'qps15.0_o137_a17'] | output_len=168
+  group4: ['qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] | output_len=168
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps10.0_o132_a12']: delta=0, first_mismatch_idx=9
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=6
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=32
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12'] vs ['qps11.0_o133_a13', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=6
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12'] vs ['qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=9
+    ['qps11.0_o133_a13', 'qps15.0_o137_a17'] vs ['qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=6
+
+[hash=7d20539b57d5c489] prompt_len=27 | ✓ ALL MATCH (8/8 configs) | output_len=142
+
+[hash=df2650e149d2e058] prompt_len=135 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=423
+  group2: ['qps9.0_o131_a11'] | output_len=423
+  group3: ['qps10.0_o132_a12'] | output_len=423
+  group4: ['qps11.0_o133_a13'] | output_len=423
+  group5: ['qps12.0_o134_a14'] | output_len=423
+  group6: ['qps13.0_o135_a15'] | output_len=423
+  group7: ['qps14.0_o136_a16'] | output_len=423
+  group8: ['qps15.0_o137_a17'] | output_len=423
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=336
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=384
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=333
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=333
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=333
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=333
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=333
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=336
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=333
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=333
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=333
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=333
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=333
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=333
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=333
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=333
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=333
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=333
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=358
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=406
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=351
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=358
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=358
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=351
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=399
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=351
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=358
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=351
+
+[hash=80f9e21d7c61f3be] prompt_len=772 | ✓ ALL MATCH (8/8 configs) | output_len=44
+
+[hash=a9f90554d407acde] prompt_len=403 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=24
+  group2: ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=24
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=10
+
+[hash=d378ecb64cbd8b68] prompt_len=5 | ✓ ALL MATCH (8/8 configs) | output_len=36
+
+[hash=53eadb9d0b557849] prompt_len=227 | ✗ MISMATCH (4 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=337
+  group2: ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] | output_len=337
+  group3: ['qps11.0_o133_a13'] | output_len=337
+  group4: ['qps15.0_o137_a17'] | output_len=337
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=40
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=40
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=40
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=272
+    ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=55
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=55
+
+
+[hash=3b38215bfd60c1aa] prompt_len=249 | ✗ MISMATCH (6 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=354
+  group2: ['qps9.0_o131_a11'] | output_len=354
+  group3: ['qps10.0_o132_a12', 'qps13.0_o135_a15'] | output_len=354
+  group4: ['qps11.0_o133_a13'] | output_len=354
+  group5: ['qps12.0_o134_a14'] | output_len=354
+  group6: ['qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=354
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=63
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12', 'qps13.0_o135_a15']: delta=0, first_mismatch_idx=63
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=63
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=63
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=63
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12', 'qps13.0_o135_a15']: delta=0, first_mismatch_idx=242
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=242
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=263
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=242
+    ['qps10.0_o132_a12', 'qps13.0_o135_a15'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=329
+    ['qps10.0_o132_a12', 'qps13.0_o135_a15'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=242
+    ['qps10.0_o132_a12', 'qps13.0_o135_a15'] vs ['qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=278
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=242
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=278
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=242
+
+[hash=9bb632ddc2a4bbe8] prompt_len=61 | ✓ ALL MATCH (8/8 configs) | output_len=353
+[hash=eb52ecd6400782e2] prompt_len=13 | ✓ ALL MATCH (8/8 configs) | output_len=527
+[hash=41f6f49ce4339ff0] prompt_len=4 | ✓ ALL MATCH (8/8 configs) | output_len=248
+[hash=a7c8eefa009b1f9d] prompt_len=26 | ✓ ALL MATCH (8/8 configs) | output_len=395
+
+[hash=2113a8167ff37b63] prompt_len=289 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=83
+  group2: ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=83
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=16
+
+
+[hash=a1eb22cdc3c422e2] prompt_len=57 | ✗ MISMATCH (7 groups)
+  group1: ['qps8.0_o130_a10', 'qps14.0_o136_a16'] | output_len=441
+  group2: ['qps9.0_o131_a11'] | output_len=441
+  group3: ['qps10.0_o132_a12'] | output_len=441
+  group4: ['qps11.0_o133_a13'] | output_len=441
+  group5: ['qps12.0_o134_a14'] | output_len=441
+  group6: ['qps13.0_o135_a15'] | output_len=441
+  group7: ['qps15.0_o137_a17'] | output_len=441
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps14.0_o136_a16'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=309
+    ['qps8.0_o130_a10', 'qps14.0_o136_a16'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=353
+    ['qps8.0_o130_a10', 'qps14.0_o136_a16'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=333
+    ['qps8.0_o130_a10', 'qps14.0_o136_a16'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=333
+    ['qps8.0_o130_a10', 'qps14.0_o136_a16'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=333
+    ['qps8.0_o130_a10', 'qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=333
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=309
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=309
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=309
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=309
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=309
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=333
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=333
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=333
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=333
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=353
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=366
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=353
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=353
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=366
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=353
+
+
+[hash=3558a7e16e68541c] prompt_len=88 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=225
+  group2: ['qps13.0_o135_a15'] | output_len=225
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=122
+
+[hash=2b09f2f04bbcc9be] prompt_len=21 | ✓ ALL MATCH (8/8 configs) | output_len=199
+
+[hash=8554f055a07aaa28] prompt_len=24 | ✗ MISMATCH (5 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] | output_len=573
+  group2: ['qps11.0_o133_a13'] | output_len=573
+  group3: ['qps12.0_o134_a14'] | output_len=573
+  group4: ['qps13.0_o135_a15'] | output_len=573
+  group5: ['qps14.0_o136_a16'] | output_len=573
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=435
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=446
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=565
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=391
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=435
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=435
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=391
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=446
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=391
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=391
+
+[hash=700d398ad598bc9f] prompt_len=17 | ✓ ALL MATCH (8/8 configs) | output_len=111
+[hash=0a8ad23910176c05] prompt_len=183 | ✓ ALL MATCH (8/8 configs) | output_len=3
+
+[hash=79540b60f87c2599] prompt_len=158 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=775
+  group2: ['qps9.0_o131_a11'] | output_len=775
+  group3: ['qps10.0_o132_a12'] | output_len=775
+  group4: ['qps11.0_o133_a13'] | output_len=775
+  group5: ['qps12.0_o134_a14'] | output_len=775
+  group6: ['qps13.0_o135_a15'] | output_len=775
+  group7: ['qps14.0_o136_a16'] | output_len=775
+  group8: ['qps15.0_o137_a17'] | output_len=775
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=359
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=310
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=137
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=302
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=302
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=30
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=302
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=310
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=137
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=302
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=302
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=30
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=302
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=137
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=302
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=302
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=30
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=302
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=137
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=137
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=30
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=137
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=370
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=30
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=408
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=30
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=370
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=30
+
+[hash=4c2cc1ccf83ff4a9] prompt_len=268 | ✓ ALL MATCH (8/8 configs) | output_len=26
+
+[hash=aeda1c2c6388c482] prompt_len=667 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=798
+  group2: ['qps9.0_o131_a11'] | output_len=798
+  group3: ['qps10.0_o132_a12'] | output_len=798
+  group4: ['qps11.0_o133_a13'] | output_len=798
+  group5: ['qps12.0_o134_a14'] | output_len=798
+  group6: ['qps13.0_o135_a15'] | output_len=798
+  group7: ['qps14.0_o136_a16'] | output_len=798
+  group8: ['qps15.0_o137_a17'] | output_len=798
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=137
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=55
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=186
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=55
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=155
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=137
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=137
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=55
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=137
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=55
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=137
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=298
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=303
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=55
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=94
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=55
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=55
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=55
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=55
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=155
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=137
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=137
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=55
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=55
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=55
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=137
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=137
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=298
+
+
+[hash=573c0d61be40bb89] prompt_len=14 | ✗ MISMATCH (4 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=646
+  group2: ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] | output_len=646
+  group3: ['qps10.0_o132_a12'] | output_len=646
+  group4: ['qps14.0_o136_a16'] | output_len=646
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=438
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=130
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=464
+    ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=130
+    ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=438
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=130
+
+[hash=9fbb2b45ae4ec2e2] prompt_len=36 | ✓ ALL MATCH (8/8 configs) | output_len=104
+
+[hash=0ce4a45102f4d776] prompt_len=245 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] | output_len=33
+  group2: ['qps14.0_o136_a16'] | output_len=33
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=29
+
+[hash=e791337db9a5304f] prompt_len=20 | ✓ ALL MATCH (8/8 configs) | output_len=144
+[hash=8d1bfaa7f9a2d226] prompt_len=25 | ✓ ALL MATCH (8/8 configs) | output_len=268
+[hash=067cfa315c01ba6f] prompt_len=17 | ✓ ALL MATCH (8/8 configs) | output_len=330
+
+[hash=a8311b318579f8f8] prompt_len=743 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=42
+  group2: ['qps13.0_o135_a15'] | output_len=42
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=20
+
+
+[hash=75f601d0b93ec17c] prompt_len=1276 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=565
+  group2: ['qps9.0_o131_a11'] | output_len=565
+  group3: ['qps10.0_o132_a12'] | output_len=565
+  group4: ['qps11.0_o133_a13'] | output_len=565
+  group5: ['qps12.0_o134_a14'] | output_len=565
+  group6: ['qps13.0_o135_a15'] | output_len=565
+  group7: ['qps14.0_o136_a16'] | output_len=565
+  group8: ['qps15.0_o137_a17'] | output_len=565
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=64
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=225
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=83
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=183
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=83
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=225
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=243
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=64
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=64
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=64
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=64
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=64
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=64
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=83
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=183
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=83
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=252
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=225
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=83
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=89
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=83
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=83
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=83
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=183
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=183
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=83
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=83
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=225
+
+[hash=c54e2c3de5916a69] prompt_len=414 | ✓ ALL MATCH (8/8 configs) | output_len=6
+[hash=850e77e02693d94f] prompt_len=58 | ✓ ALL MATCH (8/8 configs) | output_len=241
+
+[hash=fc5bda834ef062f0] prompt_len=788 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps13.0_o135_a15'] | output_len=10
+  group2: ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=10
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps13.0_o135_a15'] vs ['qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps14.0_o136_a16', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=6
+
+[hash=337e729493424640] prompt_len=75 | ✓ ALL MATCH (8/8 configs) | output_len=166
+[hash=6f68c677e8b07132] prompt_len=501 | ✓ ALL MATCH (8/8 configs) | output_len=11
+
+[hash=4ff7788e31cd7e88] prompt_len=262 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] | output_len=15
+  group2: ['qps9.0_o131_a11', 'qps15.0_o137_a17'] | output_len=15
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16'] vs ['qps9.0_o131_a11', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=8
+
+
+[hash=25f258f601ec9594] prompt_len=85 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=478
+  group2: ['qps12.0_o134_a14'] | output_len=478
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=82
+
+[hash=e379ee65590ad5dd] prompt_len=755 | ✓ ALL MATCH (8/8 configs) | output_len=3
+
+[hash=ea96912593d5c0d6] prompt_len=1648 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=141
+  group2: ['qps9.0_o131_a11'] | output_len=141
+  group3: ['qps10.0_o132_a12'] | output_len=141
+  group4: ['qps11.0_o133_a13'] | output_len=141
+  group5: ['qps12.0_o134_a14'] | output_len=141
+  group6: ['qps13.0_o135_a15'] | output_len=141
+  group7: ['qps14.0_o136_a16'] | output_len=141
+  group8: ['qps15.0_o137_a17'] | output_len=141
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=14
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=12
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=12
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=14
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=12
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=12
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=12
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=12
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=12
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=50
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=12
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=12
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=12
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=12
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=12
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=37
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=36
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=13
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=12
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=12
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=12
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=12
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=12
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=12
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=12
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=36
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=13
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=13
+
+
+[hash=ee1c756ebaf98cb2] prompt_len=161 | ✗ MISMATCH (3 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=790
+  group2: ['qps10.0_o132_a12'] | output_len=790
+  group3: ['qps11.0_o133_a13'] | output_len=790
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=538
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=69
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=69
+
+[hash=4f909ec20c89881d] prompt_len=59 | ✓ ALL MATCH (8/8 configs) | output_len=390
+[hash=a9686d3b56a9199a] prompt_len=58 | ✓ ALL MATCH (8/8 configs) | output_len=488
+
+[hash=071dbfbcbb4a29be] prompt_len=17 | ✗ MISMATCH (3 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=376
+  group2: ['qps9.0_o131_a11', 'qps14.0_o136_a16'] | output_len=376
+  group3: ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] | output_len=376
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=283
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=283
+    ['qps9.0_o131_a11', 'qps14.0_o136_a16'] vs ['qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=371
+
+
+[hash=3f4f23a51bcce4d9] prompt_len=63 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=722
+  group2: ['qps9.0_o131_a11'] | output_len=722
+  group3: ['qps10.0_o132_a12'] | output_len=722
+  group4: ['qps11.0_o133_a13'] | output_len=722
+  group5: ['qps12.0_o134_a14'] | output_len=722
+  group6: ['qps13.0_o135_a15'] | output_len=722
+  group7: ['qps14.0_o136_a16'] | output_len=722
+  group8: ['qps15.0_o137_a17'] | output_len=722
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=140
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=281
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=281
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=281
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=281
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=281
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=281
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=140
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=140
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=140
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=140
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=140
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=140
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=344
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=417
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=429
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=344
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=344
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=344
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=344
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=627
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=630
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=417
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=344
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=344
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=344
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=344
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=627
+
+[hash=95e71aa67b49946e] prompt_len=181 | ✓ ALL MATCH (8/8 configs) | output_len=11
+[hash=0a21e0ed2c52f7dd] prompt_len=691 | ✓ ALL MATCH (8/8 configs) | output_len=32
+[hash=f0fe09bff1ee31c6] prompt_len=379 | ✓ ALL MATCH (8/8 configs) | output_len=29
+
+[hash=6b055db7573f9a8c] prompt_len=187 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=670
+  group2: ['qps9.0_o131_a11'] | output_len=670
+  group3: ['qps10.0_o132_a12'] | output_len=670
+  group4: ['qps11.0_o133_a13'] | output_len=670
+  group5: ['qps12.0_o134_a14'] | output_len=670
+  group6: ['qps13.0_o135_a15'] | output_len=670
+  group7: ['qps14.0_o136_a16'] | output_len=670
+  group8: ['qps15.0_o137_a17'] | output_len=670
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=206
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=206
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=46
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=43
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=206
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=206
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=206
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=274
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=46
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=43
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=274
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=270
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=274
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=46
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=43
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=443
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=270
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=307
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=43
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=46
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=46
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=46
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=43
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=43
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=43
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=270
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=307
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=270
+
+[hash=db3c81569a9a5f68] prompt_len=38 | ✓ ALL MATCH (8/8 configs) | output_len=379
+[hash=00c1eaae8d3b3696] prompt_len=28 | ✓ ALL MATCH (8/8 configs) | output_len=50
+[hash=3190d0d049fc65cf] prompt_len=58 | ✓ ALL MATCH (8/8 configs) | output_len=156
+
+[hash=e5a7498189ce4566] prompt_len=22 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=418
+  group2: ['qps10.0_o132_a12', 'qps11.0_o133_a13'] | output_len=418
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12', 'qps11.0_o133_a13']: delta=0, first_mismatch_idx=367
+
+
+[hash=3abfaa5a03f34b25] prompt_len=188 | ✗ MISMATCH (2 groups)
+  group1: ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=27
+  group2: ['qps9.0_o131_a11'] | output_len=27
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps10.0_o132_a12', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=5
+
+
+[hash=7c49d78916336582] prompt_len=11 | ✗ MISMATCH (5 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=574
+  group2: ['qps9.0_o131_a11'] | output_len=574
+  group3: ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] | output_len=574
+  group4: ['qps11.0_o133_a13'] | output_len=574
+  group5: ['qps14.0_o136_a16'] | output_len=574
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=254
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=254
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=254
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=254
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17']: delta=0, first_mismatch_idx=394
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=351
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=351
+    ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=351
+    ['qps10.0_o132_a12', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps15.0_o137_a17'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=351
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=420
+
+
+[hash=dee68999260638e0] prompt_len=110 | ✗ MISMATCH (5 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] | output_len=767
+  group2: ['qps11.0_o133_a13'] | output_len=767
+  group3: ['qps12.0_o134_a14'] | output_len=767
+  group4: ['qps13.0_o135_a15'] | output_len=767
+  group5: ['qps14.0_o136_a16'] | output_len=767
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=420
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=420
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=420
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps10.0_o132_a12', 'qps15.0_o137_a17'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=420
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=430
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=453
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=430
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=430
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=446
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=430
+
+[hash=08db611f2beb188e] prompt_len=306 | ✓ ALL MATCH (8/8 configs) | output_len=7
+
+[hash=b76da741854fd1ca] prompt_len=2742 | ✗ MISMATCH (7 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=192
+  group2: ['qps9.0_o131_a11'] | output_len=192
+  group3: ['qps10.0_o132_a12'] | output_len=192
+  group4: ['qps11.0_o133_a13'] | output_len=192
+  group5: ['qps12.0_o134_a14'] | output_len=192
+  group6: ['qps13.0_o135_a15', 'qps14.0_o136_a16'] | output_len=192
+  group7: ['qps15.0_o137_a17'] | output_len=192
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=31
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=31
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=31
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=31
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=31
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=31
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=134
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=134
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=75
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=144
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=75
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=161
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=75
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=134
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=75
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=75
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=134
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=75
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15', 'qps14.0_o136_a16']: delta=0, first_mismatch_idx=75
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=154
+    ['qps13.0_o135_a15', 'qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=75
+
+[hash=02533f82e4926848] prompt_len=48 | ✓ ALL MATCH (8/8 configs) | output_len=382
+
+[hash=3e63e3b61afaf026] prompt_len=343 | ✗ MISMATCH (4 groups)
+  group1: ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps13.0_o135_a15'] | output_len=42
+  group2: ['qps10.0_o132_a12', 'qps12.0_o134_a14'] | output_len=42
+  group3: ['qps14.0_o136_a16'] | output_len=42
+  group4: ['qps15.0_o137_a17'] | output_len=42
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps13.0_o135_a15'] vs ['qps10.0_o132_a12', 'qps12.0_o134_a14']: delta=0, first_mismatch_idx=6
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=6
+    ['qps8.0_o130_a10', 'qps9.0_o131_a11', 'qps11.0_o133_a13', 'qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=6
+    ['qps10.0_o132_a12', 'qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=14
+    ['qps10.0_o132_a12', 'qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=14
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=41
+
+
+[hash=435299c85a7ad8de] prompt_len=666 | ✗ MISMATCH (8 groups)
+  group1: ['qps8.0_o130_a10'] | output_len=494
+  group2: ['qps9.0_o131_a11'] | output_len=494
+  group3: ['qps10.0_o132_a12'] | output_len=494
+  group4: ['qps11.0_o133_a13'] | output_len=494
+  group5: ['qps12.0_o134_a14'] | output_len=494
+  group6: ['qps13.0_o135_a15'] | output_len=494
+  group7: ['qps14.0_o136_a16'] | output_len=494
+  group8: ['qps15.0_o137_a17'] | output_len=494
+  pairwise deltas:
+    ['qps8.0_o130_a10'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=219
+    ['qps8.0_o130_a10'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=81
+    ['qps8.0_o130_a10'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=219
+    ['qps8.0_o130_a10'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=33
+    ['qps8.0_o130_a10'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=81
+    ['qps8.0_o130_a10'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=81
+    ['qps8.0_o130_a10'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=81
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=81
+    ['qps9.0_o131_a11'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=261
+    ['qps9.0_o131_a11'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=33
+    ['qps9.0_o131_a11'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=81
+    ['qps9.0_o131_a11'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=81
+    ['qps9.0_o131_a11'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=81
+    ['qps10.0_o132_a12'] vs ['qps11.0_o133_a13']: delta=0, first_mismatch_idx=81
+    ['qps10.0_o132_a12'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=33
+    ['qps10.0_o132_a12'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=327
+    ['qps10.0_o132_a12'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=327
+    ['qps10.0_o132_a12'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=378
+    ['qps11.0_o133_a13'] vs ['qps12.0_o134_a14']: delta=0, first_mismatch_idx=33
+    ['qps11.0_o133_a13'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=81
+    ['qps11.0_o133_a13'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=81
+    ['qps11.0_o133_a13'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=81
+    ['qps12.0_o134_a14'] vs ['qps13.0_o135_a15']: delta=0, first_mismatch_idx=33
+    ['qps12.0_o134_a14'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=33
+    ['qps12.0_o134_a14'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=33
+    ['qps13.0_o135_a15'] vs ['qps14.0_o136_a16']: delta=0, first_mismatch_idx=335
+    ['qps13.0_o135_a15'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=327
+    ['qps14.0_o136_a16'] vs ['qps15.0_o137_a17']: delta=0, first_mismatch_idx=327
+
+[hash=4ced07f68206e74b] prompt_len=384 | ✓ ALL MATCH (8/8 configs) | output_len=28
+[hash=3bfec8f0c1e3c463] prompt_len=273 | ✓ ALL MATCH (8/8 configs) | output_len=12
+
+[hash=fdc38a3e60e53f0a] prompt_len=335 | ✗ MISMATCH (3 groups)
+  group1: ['qps8.0_o130_a10', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] | output_len=49
+  group2: ['qps9.0_o131_a11'] | output_len=49
+  group3: ['qps10.0_o132_a12'] | output_len=49
+  pairwise deltas:
+    ['qps8.0_o130_a10', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps9.0_o131_a11']: delta=0, first_mismatch_idx=16
+    ['qps8.0_o130_a10', 'qps11.0_o133_a13', 'qps12.0_o134_a14', 'qps13.0_o135_a15', 'qps14.0_o136_a16', 'qps15.0_o137_a17'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=2
+    ['qps9.0_o131_a11'] vs ['qps10.0_o132_a12']: delta=0, first_mismatch_idx=2
+
+
+============================================================
+TOTAL SUMMARY
+============================================================
+Total prompts compared: 99
+Matched: 47 (47.47%)
+Mismatched: 52 (52.53%)

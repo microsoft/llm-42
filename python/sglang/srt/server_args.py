@@ -51,6 +51,33 @@ from sglang.utils import is_in_ci
 
 logger = logging.getLogger(__name__)
 
+# NOTE: This is a global variable to hold the server args for scheduler.
+# This pattern is needed to provide server args to modules during initialization
+# (e.g., CUDA graph capture) when they don't have direct access to ServerArgs.
+_global_server_args: Optional["ServerArgs"] = None
+
+
+def set_global_server_args(server_args: "ServerArgs"):
+    """Set the global server args. Called by scheduler during initialization."""
+    global _global_server_args
+    _global_server_args = server_args
+
+
+# Aliases for compatibility
+set_global_server_args_for_scheduler = set_global_server_args
+set_global_server_args_for_tokenizer = set_global_server_args
+
+
+def get_global_server_args() -> "ServerArgs":
+    """Get the global server args.
+    
+    Returns the ServerArgs if set, otherwise returns None.
+    This is used by modules that need server args during initialization
+    but may be called before the scheduler sets the global args.
+    """
+    return _global_server_args
+
+
 # Define constants
 LOAD_FORMAT_CHOICES = [
     "auto",

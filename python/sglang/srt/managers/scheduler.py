@@ -152,7 +152,7 @@ from sglang.srt.model_executor.forward_batch_info import (
     PPProxyTensors,
 )
 from sglang.srt.parser.reasoning_parser import ReasoningParser
-from sglang.srt.server_args import PortArgs, ServerArgs
+from sglang.srt.server_args import PortArgs, ServerArgs, set_global_server_args
 from sglang.srt.speculative.spec_info import SpeculativeAlgorithm
 from sglang.srt.torch_memory_saver_adapter import TorchMemorySaverAdapter
 from sglang.srt.tracing.trace import (
@@ -273,6 +273,9 @@ class Scheduler(
         pp_rank: int,
         dp_rank: Optional[int],
     ):
+        # Set global server args early so they're available during model loading and CUDA graph capture
+        set_global_server_args(server_args)
+        
         # Parse args
         self.server_args = server_args
         self.tp_rank = tp_rank

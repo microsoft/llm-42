@@ -11,19 +11,40 @@ import triton
 
 from sglang.srt.utils import get_device_name, is_hip
 
+# Import global_server_args_dict for deterministic inference check
+# This dict is populated early in server startup and remains valid during CUDA graph capture
+def _get_deterministic_flags():
+    """Get deterministic inference flags from global_server_args_dict.
+    
+    Returns (enable_deterministic_inference, enable_det_infer) tuple.
+    Falls back to (0, 0) if dict is not available (e.g., in tuning scripts).
+    """
+    try:
+        from sglang.srt.managers.schedule_batch import global_server_args_dict
+        enable_det_infer = global_server_args_dict.get("enable_det_infer", 0) or 0
+        enable_deterministic_inference = global_server_args_dict.get("enable_deterministic_inference", 0) or 0
+        return enable_deterministic_inference, enable_det_infer
+    except (ImportError, KeyError):
+        return 0, 0
+
 logger = logging.getLogger(__name__)
 _is_hip = is_hip()
 
 
 def get_config_file_name(
-    E: int, N: int, dtype: Optional[str], block_shape: Optional[int] = None
+    E: int,
+    N: int,
+    dtype: Optional[str],
+    block_shape: Optional[List[int]] = None,
+    per_channel_quant: bool = False,
 ) -> str:
     device_name = get_device_name().replace(" ", "_")
     dtype_selector = "" if not dtype else f",dtype={dtype}"
     block_shape_selector = (
         "" if not block_shape or not all(block_shape) else f",block_shape={block_shape}"
     )
-    return f"E={E},N={N},device_name={device_name}{dtype_selector}{block_shape_selector}.json"
+    per_channel_quant_selector = ",per_channel_quant=True" if per_channel_quant else ""
+    return f"E={E},N={N},device_name={device_name}{dtype_selector}{block_shape_selector}{per_channel_quant_selector}.json"
 
 
 @functools.lru_cache
@@ -33,6 +54,7 @@ def get_moe_configs(
     dtype: Optional[str],
     block_n: Optional[int] = 0,
     block_k: Optional[int] = 0,
+    per_channel_quant: bool = False,
 ) -> Optional[Dict[int, Any]]:
     """
     Return optimized configurations for the fused MoE kernel.
@@ -42,6 +64,19 @@ def get_moe_configs(
     kernel on a given batch size bs, the closest batch size in the grid should
     be picked and the associated configuration chosen to invoke the kernel.
     """
+    # Check for deterministic inference - use default config for batch invariance
+    # Mode 3 (enable_det_infer=3) uses non-batch-invariant kernels, so skip this check
+    enable_deterministic_inference, enable_det_infer = _get_deterministic_flags()
+    logger.info(f"Checking deterministic inference settings in get_moe_configs...")
+    logger.info(f"  enable_deterministic_inference: {enable_deterministic_inference}, enable_det_infer: {enable_det_infer}")
+    if enable_deterministic_inference > 0 or (enable_det_infer > 0 and enable_det_infer != 3):
+        logger.warning(
+            "Deterministic inference is enabled (enable_deterministic_inference=%d, enable_det_infer=%d), "
+            "using default MoE kernel config for batch invariance.",
+            enable_deterministic_inference, enable_det_infer
+        )
+        return None
+
     # Supported Triton versions, should be sorted from the newest to the oldest
     supported_triton_versions = ["3.4.0", "3.3.1", "3.2.0", "3.1.0"]
 
@@ -114,6 +149,18 @@ def get_default_config(
     is_marlin: bool,
     block_shape: Optional[List[int]] = None,
 ) -> Dict[str, int]:
+    # Check for deterministic inference - use fixed config for batch invariance
+    # Mode 3 (enable_det_infer=3) uses non-batch-invariant kernels, so skip this check
+    enable_deterministic_inference, enable_det_infer = _get_deterministic_flags()
+    if enable_deterministic_inference > 0 or (enable_det_infer > 0 and enable_det_infer != 3):
+        # Return fixed config regardless of M, E, dtype for batch invariance
+        return {
+            "BLOCK_SIZE_M": 64,
+            "BLOCK_SIZE_N": 64,
+            "BLOCK_SIZE_K": 32,
+            "GROUP_SIZE_M": 8,
+        }
+
     if dtype == "fp8_w8a8":
         if block_shape is None:
             config = {
