@@ -824,6 +824,7 @@ class BatchTokenIDOutput(BaseBatchReq):
     # Deterministic verification stats
     det_infer_num_rollbacks: List[int]
     det_infer_tokens_rolled_back: List[int]
+    det_infer_num_verification_windows: List[int]
 
     # Logprobs
     input_token_logprobs_val: List[float]
@@ -894,6 +895,7 @@ class BatchStrOutput(BaseBatchReq):
     # Deterministic verification stats
     det_infer_num_rollbacks: List[int]
     det_infer_tokens_rolled_back: List[int]
+    det_infer_num_verification_windows: List[int]
 
     # Logprobs
     input_token_logprobs_val: List[float]

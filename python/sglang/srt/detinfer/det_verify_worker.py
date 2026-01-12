@@ -518,6 +518,8 @@ class DeterministicVerificationWorker:
             # Collect rollback results
             rollback_results = []
             for req, info in zip(real_reqs, rollback_info):
+                # Increment verification window count for this request
+                req.det_infer_num_verification_windows += 1
                 if info is not None and info[1] > 0:
                     req.det_infer_num_rollbacks += 1
                     req.det_infer_tokens_rolled_back += info[1]
@@ -680,6 +682,8 @@ class DeterministicVerificationWorker:
             # Collect rollback info for KV cache freeing (will be done by caller)
             rollback_results = []
             for req, info in zip(reqs, rollback_info):
+                # Increment verification window count for this request
+                req.det_infer_num_verification_windows += 1
                 if info is not None and info[1] > 0:
                     # Track per-request stats
                     req.det_infer_num_rollbacks += 1

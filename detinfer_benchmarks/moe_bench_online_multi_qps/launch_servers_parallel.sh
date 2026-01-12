@@ -9,7 +9,7 @@ set -e
 NUM_GPUS="${NUM_GPUS:-4}"
 TP_SIZE="${SGLANG_TP_SIZE:-2}"
 NUM_SERVERS=$((NUM_GPUS / TP_SIZE))  # Calculate servers based on available GPUs and TP size
-MODEL_PATH="${SGLANG_TEST_MODEL:-Qwen/Qwen3-30B-A3B}"
+MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"

@@ -27,7 +27,7 @@ ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
 NUM_PROMPTS="${NUM_PROMPTS:-4096}"
 SHAREGPT_CONTEXT_LEN="${SHAREGPT_CONTEXT_LEN:-16384}"
 DETERMINISTIC_SEED="${DETERMINISTIC_SEED:-42}"
-REQUEST_RATE="${REQUEST_RATE:-11}"
+REQUEST_RATE="${REQUEST_RATE:-12}"
 
 # Output directory
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -171,6 +171,7 @@ with open('$temp_result', 'r') as f:
                 if meta_info_list:
                     det_num_rollbacks = [m.get('det_infer_num_rollbacks', 0) for m in meta_info_list if m]
                     det_tokens_rolled_back = [m.get('det_infer_tokens_rolled_back', 0) for m in meta_info_list if m]
+                    det_num_verification_windows = [m.get('det_infer_num_verification_windows', 0) for m in meta_info_list if m]
                     
                     num_requests = len(det_num_rollbacks)
                     total_output_tokens = sum(output_lens) if output_lens else result.get('total_output_tokens', 0)
@@ -178,6 +179,7 @@ with open('$temp_result', 'r') as f:
                         result['rollback_stats'] = {
                             'total_rollbacks': sum(det_num_rollbacks),
                             'total_tokens_rolled_back': sum(det_tokens_rolled_back),
+                            'total_verification_windows': sum(det_num_verification_windows),
                             'total_output_tokens': total_output_tokens,
                             'avg_rollbacks_per_request': sum(det_num_rollbacks) / num_requests,
                             'avg_tokens_rolled_back_per_request': sum(det_tokens_rolled_back) / num_requests,
@@ -189,6 +191,7 @@ with open('$temp_result', 'r') as f:
                         # Save per-request rollback data for CDF plots
                         result['per_request_rollbacks'] = det_num_rollbacks
                         result['per_request_tokens_rolled_back'] = det_tokens_rolled_back
+                        result['per_request_verification_windows'] = det_num_verification_windows
                 
                 # Remove verbose fields to keep results file manageable
                 for key in ['meta_info', 'generated_texts', 'output_ids', 'itls', 'errors']:

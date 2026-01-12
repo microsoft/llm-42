@@ -235,6 +235,7 @@ class DetokenizerManager(MultiHttpWorkerDetokenizerMixin):
             spec_verify_ct=recv_obj.spec_verify_ct,
             det_infer_num_rollbacks=recv_obj.det_infer_num_rollbacks,
             det_infer_tokens_rolled_back=recv_obj.det_infer_tokens_rolled_back,
+            det_infer_num_verification_windows=recv_obj.det_infer_num_verification_windows,
             input_token_logprobs_val=recv_obj.input_token_logprobs_val,
             input_token_logprobs_idx=recv_obj.input_token_logprobs_idx,
             output_token_logprobs_val=recv_obj.output_token_logprobs_val,

@@ -130,6 +130,16 @@ def extract_metrics(results: list) -> dict:
         # First try the new fields (per_request_rollbacks, per_request_tokens_rolled_back)
         per_req_rollbacks = result.get('per_request_rollbacks', [])
         per_req_tokens = result.get('per_request_tokens_rolled_back', [])
+        per_req_verification_windows = result.get('per_request_verification_windows', [])
+        
+        # Compute rollback rate per request: rollbacks / verification_windows
+        rollback_rates = []
+        if per_req_rollbacks and per_req_verification_windows:
+            for rb, vw in zip(per_req_rollbacks, per_req_verification_windows):
+                if vw > 0:
+                    rollback_rates.append(rb / vw)
+                else:
+                    rollback_rates.append(0.0)
         
         # Also extract latencies and ttfts for CDF plots
         latencies = result.get('latencies', [])
@@ -138,6 +148,8 @@ def extract_metrics(results: list) -> dict:
         per_request_data[(ws, bs)] = {
             'rollbacks': per_req_rollbacks if per_req_rollbacks else [],
             'tokens_rolled_back': per_req_tokens if per_req_tokens else [],
+            'verification_windows': per_req_verification_windows if per_req_verification_windows else [],
+            'rollback_rate': rollback_rates,  # rollbacks / verification_windows per request
             'e2e_latency': [x * 1000 for x in latencies if x is not None],  # Convert to ms
             'ttft': [x * 1000 for x in ttfts if x is not None],  # Convert to ms
         }
@@ -745,17 +757,20 @@ def main():
         output_path=plot_dir / 'heatmap_combined.pdf',
     )
     
-    # Plot CDF plots for rollbacks and tokens recomputed (only WS=64, BS=1)
+    # Plot CDF plots for rollback rate and tokens recomputed
     if metrics['per_request_data']:
         print("\n=== Generating CDF plots ===")
         
-        # List of (ws, bs) configs to plot CDFs for - all plotted together with different colors/legends
-        cdf_configs = [(64, 1), (128, 1)]
+        # List of (ws, bs) configs to plot CDFs for - window sizes 32, 64, 128, 256 with BS=1
+        cdf_configs = [(32, 1), (64, 1), (128, 1), (256, 1)]
         
-        # Individual CDF plots - rollbacks
-        plot_cdf_rollbacks(
+        # CDF of rollback rate (rollbacks / verification_windows per request)
+        plot_cdf(
             metrics['per_request_data'],
-            output_path=plot_dir / 'cdf_rollbacks.pdf',
+            metric_key='rollback_rate',
+            xlabel='Rollbacks per Verification Window',
+            ylabel='CDF',
+            output_path=plot_dir / 'cdf_rollback_rate.pdf',
             configs_to_plot=cdf_configs,
         )
         
@@ -788,11 +803,12 @@ def main():
         print("\nNo per-request data available for CDF plots.")
         print("Re-run the benchmark with the updated run_matrix_ablation.sh to collect per-request rollback data.")
     
-    # Plot bar chart of recompute ratio for BS=1
+    # Plot bar chart of recompute ratio for BS=1 with window sizes 32, 64, 128, 256
     print("\n=== Generating bar plot (BS=1) ===")
+    bar_window_sizes = [32, 64, 128, 256]
     plot_recompute_ratio_bar_bs1(
         metrics['recompute_ratio'],
-        WINDOW_SIZES,
+        bar_window_sizes,
         output_path=plot_dir / 'bar_recompute_ratio_bs1.pdf',
     )
     

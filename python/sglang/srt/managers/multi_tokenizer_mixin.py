@@ -130,6 +130,21 @@ def _handle_output_by_index(output, i):
             spec_verify_ct=(
                 [output.spec_verify_ct[i]] if len(output.spec_verify_ct) > i else None
             ),
+            det_infer_num_rollbacks=(
+                [output.det_infer_num_rollbacks[i]]
+                if output.det_infer_num_rollbacks and len(output.det_infer_num_rollbacks) > i
+                else None
+            ),
+            det_infer_tokens_rolled_back=(
+                [output.det_infer_tokens_rolled_back[i]]
+                if output.det_infer_tokens_rolled_back and len(output.det_infer_tokens_rolled_back) > i
+                else None
+            ),
+            det_infer_num_verification_windows=(
+                [output.det_infer_num_verification_windows[i]]
+                if output.det_infer_num_verification_windows and len(output.det_infer_num_verification_windows) > i
+                else None
+            ),
             input_token_logprobs_val=(
                 [output.input_token_logprobs_val[i]]
                 if output.input_token_logprobs_val
@@ -245,6 +260,21 @@ def _handle_output_by_index(output, i):
             ),
             spec_verify_ct=(
                 [output.spec_verify_ct[i]] if len(output.spec_verify_ct) > i else None
+            ),
+            det_infer_num_rollbacks=(
+                [output.det_infer_num_rollbacks[i]]
+                if output.det_infer_num_rollbacks and len(output.det_infer_num_rollbacks) > i
+                else None
+            ),
+            det_infer_tokens_rolled_back=(
+                [output.det_infer_tokens_rolled_back[i]]
+                if output.det_infer_tokens_rolled_back and len(output.det_infer_tokens_rolled_back) > i
+                else None
+            ),
+            det_infer_num_verification_windows=(
+                [output.det_infer_num_verification_windows[i]]
+                if output.det_infer_num_verification_windows and len(output.det_infer_num_verification_windows) > i
+                else None
             ),
             input_token_logprobs_val=(
                 [output.input_token_logprobs_val[i]]

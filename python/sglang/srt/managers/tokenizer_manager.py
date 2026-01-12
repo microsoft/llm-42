@@ -1350,6 +1350,7 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                         "cached_tokens": recv_obj.cached_tokens[i],
                         "det_infer_num_rollbacks": recv_obj.det_infer_num_rollbacks[i],
                         "det_infer_tokens_rolled_back": recv_obj.det_infer_tokens_rolled_back[i],
+                        "det_infer_num_verification_windows": recv_obj.det_infer_num_verification_windows[i],
                     }
                 )
 

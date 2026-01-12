@@ -593,6 +593,7 @@ class SchedulerOutputProcessorMixin:
         spec_verify_ct = []
         det_infer_num_rollbacks = []
         det_infer_tokens_rolled_back = []
+        det_infer_num_verification_windows = []
         output_hidden_states = None
 
         if return_logprob:
@@ -718,6 +719,7 @@ class SchedulerOutputProcessorMixin:
                 cached_tokens.append(req.cached_tokens)
                 det_infer_num_rollbacks.append(req.det_infer_num_rollbacks)
                 det_infer_tokens_rolled_back.append(req.det_infer_tokens_rolled_back)
+                det_infer_num_verification_windows.append(req.det_infer_num_verification_windows)
 
                 if not self.spec_algorithm.is_none():
                     spec_verify_ct.append(req.spec_verify_ct)
@@ -837,6 +839,7 @@ class SchedulerOutputProcessorMixin:
                     spec_verify_ct,
                     det_infer_num_rollbacks,
                     det_infer_tokens_rolled_back,
+                    det_infer_num_verification_windows,
                     input_token_logprobs_val,
                     input_token_logprobs_idx,
                     output_token_logprobs_val,

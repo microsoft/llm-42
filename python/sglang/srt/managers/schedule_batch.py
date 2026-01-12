@@ -635,7 +635,8 @@ class Req:
         self.det_infer_verified_tokens: int = 0  # Number of tokens that have been verified
         # Request-level rollback stats
         self.det_infer_num_rollbacks: int = 0  # Number of rollback events for this request
-        self.det_infer_tokens_rolled_back: int = 0  # Total tokens rolled back for this request 
+        self.det_infer_tokens_rolled_back: int = 0  # Total tokens rolled back for this request
+        self.det_infer_num_verification_windows: int = 0  # Number of verification windows executed for this request 
         
     
         # For metrics
@@ -870,7 +871,8 @@ class Req:
             logger.info(
                 f"Det Rollback Stats(rid={self.rid}): "
                 f"rollbacks={self.det_infer_num_rollbacks}, "
-                f"tokens_rolled_back={self.det_infer_tokens_rolled_back}"
+                f"tokens_rolled_back={self.det_infer_tokens_rolled_back}, "
+                f"verification_windows={self.det_infer_num_verification_windows}"
             )
 
     def set_finish_with_abort(self, error_msg: str):
