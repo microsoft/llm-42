@@ -2,7 +2,9 @@
 Test to confirm non-determinism of default NCCL all-reduce with batch size invariance.
 
 This test uses the default torch.distributed.all_reduce (NCCL) which can be
-NON-DETERMINISTIC due to tree-based reduction algorithms that don't guarantee
+NON-DETERMINISTIC. NCCL auto-selects algorithms (ring, tree, etc.) based on
+message size and topology. Ring is typically used for large messages and is
+deterministic, but tree algorithms (used for smaller messages) don't guarantee
 fixed accumulation order for bfloat16/float16.
 
 This test compares:
@@ -150,8 +152,8 @@ def test3_position_invariance(rank, device, num_trials, hidden_dim, fixed_batch_
         print("Batches: [a,x,x,...], [x,a,x,...], [x,x,a,...], ...")
         print(f"{'='*70}")
     dist.barrier()
-    results_position_invariance = []
     for fixed_bs in fixed_batch_sizes:
+        results_position_invariance = []  # Reset for each batch size
         if rank == 0:
             print(f"\n  Testing batch size: {fixed_bs}")
         dist.barrier()
@@ -187,14 +189,27 @@ def test3_position_invariance(rank, device, num_trials, hidden_dim, fixed_batch_
                     print(f"    Position {pos} DIFFERS! ref_sum={ref_sum:.6f}, got={s:.6f}")
 
             if all_trials_match:
-                print(f"    ✓ DEFAULT ALL_REDUCE (position invariance, BS={fixed_bs}): POSITION-INVARIANT")
+                print(f"    ✓ DEFAULT ALL_REDUCE (position invariance, BS={fixed_bs}): POSITION-INVARIANT", flush=True)
             else:
-                print(f"    ✗ DEFAULT ALL_REDUCE (position invariance, BS={fixed_bs}): NOT POSITION-INVARIANT")
+                print(f"    ✗ DEFAULT ALL_REDUCE (position invariance, BS={fixed_bs}): NOT POSITION-INVARIANT", flush=True)
 
         dist.barrier()
 
 
 def worker(world_size, rank, port, tests_to_run):
+    import os
+    os.environ["NCCL_ALGO"] = "allreduce:tree"  # Force ring algorithm for deterministic reduction order
+    # # NCCL determinism settings
+    os.environ["NCCL_LAUNCH_MODE"] = "GROUP"
+    os.environ["NCCL_COLLNET_ENABLE"] = "0"
+    os.environ["NCCL_NVLS_ENABLE"] = "0"
+    os.environ["NCCL_P2P_NET_DISABLE"] = "1"
+    os.environ["NCCL_MIN_NCHANNELS"] = "1"
+    os.environ["NCCL_MAX_NCHANNELS"] = "1"
+    os.environ["NCCL_PROTO"] = "Simple"
+    os.environ["NCCL_ALGO"] = "allreduce:tree"
+    os.environ["NCCL_NTHREADS"] = "1"
+    os.environ["NCCL_SOCKET_NTHREADS"] = "1"
     device = torch.device(f"cuda:{rank}")
     torch.cuda.set_device(device)
 
@@ -223,7 +238,7 @@ def worker(world_size, rank, port, tests_to_run):
         test2_different_batch_size(rank, device, num_trials, BS, hidden_dim)
 
     if 3 in tests_to_run:
-        test3_position_invariance(rank, device, num_trials, hidden_dim, fixed_batch_sizes=[8, 128, 256, 512, 8192, 32768])
+        test3_position_invariance(rank, device, num_trials, hidden_dim, fixed_batch_sizes=[8, 128, 256, 512, 617, 1999, 2772, 4096, 8192, 9199, 17689, 24576, 32768, 49786])
 
     dist.destroy_process_group()
 
@@ -250,7 +265,7 @@ def main():
     print("=" * 70)
     print(f"Available GPUs: {available_gpus}")
     print(f"Using world_size: {world_size}")
-    print(f"Running tests: {sorted(tests_to_run)}")
+    print(f"Running tests: {sorted(tests_to_run)}", flush=True)
 
     if available_gpus < world_size:
         print(
@@ -261,7 +276,7 @@ def main():
     if world_size < 2:
         print("ERROR: Need at least 2 GPUs for this test")
         return
-    world_size = 2
+
     mp.set_start_method("spawn", force=True)
     port = get_open_port()
 
