@@ -1,0 +1,4 @@
+config,batch_size,output_throughput
+global_det,11,303.75
+non_det,10,756.97
+non_det,11,850.82
