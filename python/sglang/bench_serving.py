@@ -1915,20 +1915,36 @@ async def benchmark(
     else:
         request_generator = get_request(input_requests, request_rate)
 
-    # Pre-compute which requests will be deterministic (exact count)
+    # Pre-compute which requests will be deterministic based on prompt_hash
+    # This ensures the SAME prompts are marked deterministic across different order_seeds
     # Use deterministic_seed for reproducible selection across different server configs
     num_requests = len(input_requests) if args.dataset_name != "mooncake" else len(input_requests) * mooncake_num_rounds
     num_deterministic = int(num_requests * deterministic_ratio)
+    deterministic_hashes = set()
     if num_deterministic > 0:
-        # Use a separate Random instance with deterministic_seed for reproducible selection
-        det_rng = random.Random(deterministic_seed)
-        deterministic_indices = set(det_rng.sample(range(num_requests), num_deterministic))
-        print(f"Deterministic requests: {num_deterministic}/{num_requests} ({deterministic_ratio*100:.1f}%) [seed={deterministic_seed}]")
+        # Collect all prompt hashes and select deterministic ones based on hash
+        all_hashes = []
+        for req in input_requests:
+            if hasattr(req, 'prompt_hash') and req.prompt_hash:
+                all_hashes.append(req.prompt_hash)
+        
+        if all_hashes:
+            # Use a separate Random instance with deterministic_seed for reproducible selection
+            det_rng = random.Random(deterministic_seed)
+            # Sort hashes to ensure consistent ordering across runs
+            sorted_hashes = sorted(set(all_hashes))
+            num_to_select = min(num_deterministic, len(sorted_hashes))
+            deterministic_hashes = set(det_rng.sample(sorted_hashes, num_to_select))
+            print(f"Deterministic requests: {num_to_select}/{num_requests} ({deterministic_ratio*100:.1f}%) [seed={deterministic_seed}] (by prompt_hash)")
+        else:
+            # Fallback to index-based if no hashes available
+            det_rng = random.Random(deterministic_seed)
+            deterministic_indices = set(det_rng.sample(range(num_requests), num_deterministic))
+            print(f"Deterministic requests: {num_deterministic}/{num_requests} ({deterministic_ratio*100:.1f}%) [seed={deterministic_seed}] (by index, no hashes)")
     else:
         deterministic_indices = set()
 
     pbar = None if disable_tqdm else tqdm(total=pbar_total)
-    request_idx = 0
     async for request in request_generator:
         if lora_names is not None and len(lora_names) != 0:
             idx = random.randint(0, len(lora_names) - 1)
@@ -1936,11 +1952,10 @@ async def benchmark(
         else:
             lora_name = None
 
-        # Apply deterministic flag based on pre-computed indices
+        # Apply deterministic flag based on prompt_hash
         req_extra_body = extra_request_body.copy()
-        if request_idx in deterministic_indices:
+        if hasattr(request, 'prompt_hash') and request.prompt_hash in deterministic_hashes:
             req_extra_body["is_deterministic"] = True
-        request_idx += 1
 
         request_func_input = RequestFuncInput(
             model=model_id,

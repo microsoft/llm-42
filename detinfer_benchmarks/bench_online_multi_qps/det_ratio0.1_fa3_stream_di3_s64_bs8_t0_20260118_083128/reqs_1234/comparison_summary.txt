@@ -1,0 +1,163 @@
+============================================================
+Multi-Config Comparison Summary
+============================================================
+
+Num Prompts: 1234
+Select Seed: 42
+Configs: ['qps4.0_o132_a16', 'qps5.5_o133_a17', 'qps7.0_o134_a18', 'qps8.5_o135_a19']
+
+------------------------------------------------------------
+Per-Config Output & Rollback Stats:
+------------------------------------------------------------
+QPS 4.0, Order Seed = 132, Arrival Seed = 16:
+  Total Output Tokens: 243281
+  Total Tokens Rolled Back: 2857
+  Rollback %: 1.1744%
+QPS 5.5, Order Seed = 133, Arrival Seed = 17:
+  Total Output Tokens: 243281
+  Total Tokens Rolled Back: 3638
+  Rollback %: 1.4954%
+QPS 7.0, Order Seed = 134, Arrival Seed = 18:
+  Total Output Tokens: 243281
+  Total Tokens Rolled Back: 3016
+  Rollback %: 1.2397%
+QPS 8.5, Order Seed = 135, Arrival Seed = 19:
+  Total Output Tokens: 243281
+  Total Tokens Rolled Back: 3080
+  Rollback %: 1.2660%
+
+------------------------------------------------------------
+Per-Prompt Comparison:
+------------------------------------------------------------
+[hash=ff3c68fdf5001d94] prompt_len=390 | output_len=85 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=60faec58d29cd29b] prompt_len=768 | output_len=48 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=fc13cc905fffba69] prompt_len=17 | output_len=386 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=3ef4c79e3d860e2c] prompt_len=712 | output_len=62 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=5457a2c177909886] prompt_len=304 | output_len=10 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=d245ae2b47995394] prompt_len=308 | output_len=134 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=23fff151a8d7bdb6] prompt_len=361 | output_len=50 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=915c6b0c096b7471] prompt_len=542 | output_len=12 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=57077bb048e46da0] prompt_len=290 | output_len=84 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=404c16661f363b70] prompt_len=35 | output_len=29 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=67193704c2943701] prompt_len=1984 | output_len=188 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=9ec27e7a0e80c6c3] prompt_len=9 | output_len=284 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=f5fe31124cfc3eda] prompt_len=537 | output_len=12 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=2219e34c30bd43ba] prompt_len=9 | output_len=47 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=1a9d7fc841990ec1] prompt_len=262 | output_len=17 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=9c028b464a4a15bd] prompt_len=94 | output_len=385 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=a4073f45ba7ab5c8] prompt_len=1554 | output_len=55 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=d2e4128061cd26ea] prompt_len=498 | output_len=555 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=7d6bc3bbb472c80d] prompt_len=397 | output_len=7 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=f983d6ad1002f75b] prompt_len=7 | output_len=20 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=6788f2075e7fd8e6] prompt_len=218 | output_len=351 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=bb509607a8134bcb] prompt_len=12 | output_len=82 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=89e3fd8866f0858e] prompt_len=122 | output_len=258 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=bce2fd22ef9008e6] prompt_len=15 | output_len=82 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=94ccba7e8ff0e44d] prompt_len=2 | output_len=10 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=0f1a6c8bf0da4669] prompt_len=309 | output_len=25 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=71addad29f12344e] prompt_len=31 | output_len=368 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=67d2b38c78f12c0d] prompt_len=19 | output_len=476 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=249d8dc1952866b5] prompt_len=315 | output_len=8 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=562dd0970ec18370] prompt_len=122 | output_len=88 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=21b2ffb77bca1b54] prompt_len=18 | output_len=155 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=e4a33629626ff156] prompt_len=83 | output_len=55 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=158dd701cbf3cdfa] prompt_len=531 | output_len=208 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=811dbe5b18567d82] prompt_len=48 | output_len=284 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=bcfe45e1b69c0a82] prompt_len=83 | output_len=51 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=084e473b153ddfcc] prompt_len=275 | output_len=16 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=98f93c72128353af] prompt_len=43 | output_len=230 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=dd1c765146eee0f0] prompt_len=48 | output_len=256 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=ef6c80e0ba78f654] prompt_len=106 | output_len=1835 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=a3408616c8131036] prompt_len=40 | output_len=447 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=938ec214fcc1556e] prompt_len=15 | output_len=242 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=c0c28d1b6d479215] prompt_len=791 | output_len=135 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=b392ce813ecee715] prompt_len=8 | output_len=279 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=ecf129c6dc433109] prompt_len=161 | output_len=467 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=401f39c108b7ddd9] prompt_len=31 | output_len=348 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=dee68999260638e0] prompt_len=111 | output_len=768 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=02884971ad2c13b2] prompt_len=1313 | output_len=439 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=9c9cc3ef7dce63b6] prompt_len=770 | output_len=7 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=4ed367181e8891d5] prompt_len=13 | output_len=381 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=1fda0b803a412802] prompt_len=691 | output_len=18 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=59430f7f1bfb33a3] prompt_len=47 | output_len=231 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=23449c3fb3fb1db5] prompt_len=23 | output_len=144 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=29b50cb0742eb8b6] prompt_len=5 | output_len=72 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=94cef96650b26f24] prompt_len=14 | output_len=520 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=1677e31ceee53f68] prompt_len=400 | output_len=13 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=216b3b10742b73e3] prompt_len=391 | output_len=350 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=0e16238d3fe2e7cf] prompt_len=8 | output_len=185 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=9dd3ca4221ee6664] prompt_len=75 | output_len=600 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=ba2d47f3ce2db825] prompt_len=15 | output_len=147 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=580e675b94db05eb] prompt_len=482 | output_len=5 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=cf69af96df680c85] prompt_len=3475 | output_len=45 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=7d3259634794e934] prompt_len=204 | output_len=26 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=bb1fc0dba2c06dbd] prompt_len=622 | output_len=52 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=0924e709533665a4] prompt_len=381 | output_len=6 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=1a3338c9871b1b11] prompt_len=346 | output_len=519 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=604a245a12dcfd09] prompt_len=44 | output_len=599 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=018d99af6f295982] prompt_len=64 | output_len=288 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=66091d68ff66aff2] prompt_len=20 | output_len=14 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=6287d65b63f2eb88] prompt_len=535 | output_len=643 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=6d22c8d26a5bdfd5] prompt_len=227 | output_len=208 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=8bb05f958d5641f1] prompt_len=724 | output_len=13 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=3c5d51b130b63be9] prompt_len=62 | output_len=75 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=7302cd19e8290929] prompt_len=9 | output_len=48 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=5531c7d286111b86] prompt_len=7 | output_len=249 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=36d88b1dc7174b11] prompt_len=430 | output_len=34 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=e57da0e021da4025] prompt_len=14 | output_len=249 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=e8112e7ae564248e] prompt_len=265 | output_len=27 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=3686c2f99a8a7938] prompt_len=18 | output_len=230 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=b01505893353d7bb] prompt_len=234 | output_len=3 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=be3b40ded92004d9] prompt_len=16 | output_len=145 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=3e9a3bcd48990c32] prompt_len=18 | output_len=144 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=5b38bc425869d624] prompt_len=149 | output_len=314 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=ceddf48552c6810f] prompt_len=257 | output_len=91 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=183a038b11e8c1e4] prompt_len=191 | output_len=4 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=cc2b5607a8b7b3d0] prompt_len=233 | output_len=360 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=9c62624da7c12483] prompt_len=7 | output_len=129 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=07e39d7fa7699126] prompt_len=375 | output_len=369 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=4c4d1b3e01e6fe48] prompt_len=386 | output_len=18 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=3edf904aa6c13723] prompt_len=285 | output_len=145 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=f59d24a007012d91] prompt_len=53 | output_len=145 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=dd9fa898e6e3ba3c] prompt_len=500 | output_len=2 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=53b6c30ed4eea29f] prompt_len=18 | output_len=393 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=129e717119492beb] prompt_len=3 | output_len=10 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=2c4df6c0622fdb11] prompt_len=82 | output_len=262 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=dd82298fe201edf8] prompt_len=24 | output_len=20 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=ad8908f8646b840d] prompt_len=413 | output_len=525 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=2efa2caa21479aeb] prompt_len=30 | output_len=1164 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=fbd0a93a79b7be8c] prompt_len=738 | output_len=9 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=16ee36917dd017e4] prompt_len=11 | output_len=336 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=a242e9545f1ca8b8] prompt_len=234 | output_len=18 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=ae96ebfd8e45480e] prompt_len=43 | output_len=319 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=37c80d3bd9fdec61] prompt_len=712 | output_len=49 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=56b8eb516fb197ec] prompt_len=570 | output_len=909 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=8cccc7c4b267feda] prompt_len=6 | output_len=35 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=68f77fe76161c6fd] prompt_len=55 | output_len=51 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=da38e8692c98f240] prompt_len=585 | output_len=69 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=962f7ac105d52c1b] prompt_len=569 | output_len=10 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=03736ee4b98622f8] prompt_len=136 | output_len=423 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=5497bea20ac291f7] prompt_len=390 | output_len=12 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=43375b0c6724ca58] prompt_len=13 | output_len=170 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=0edabf8b14a980fd] prompt_len=23 | output_len=419 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=f9d70606c68fc18d] prompt_len=769 | output_len=4 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=28590195b08d2537] prompt_len=14 | output_len=771 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=737061047eeb172c] prompt_len=290 | output_len=8 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=6b5b80b709a4cc9e] prompt_len=366 | output_len=17 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=66b04e82b7405b51] prompt_len=13 | output_len=135 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=3b8210ed075e9350] prompt_len=480 | output_len=858 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=074ce3459ce45e11] prompt_len=394 | output_len=19 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=599ade36054b2aa8] prompt_len=19 | output_len=124 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=e1e96d358ea7642b] prompt_len=115 | output_len=7 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=ae8d72df5a37aaa0] prompt_len=387 | output_len=369 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=6690bed6dffbae0d] prompt_len=699 | output_len=11 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+[hash=f2d121e78765d921] prompt_len=566 | output_len=17 | Text: ✓ ALL MATCH (4/4 configs) | Tokens: ✓ ALL MATCH (4/4 configs) | ✓ ALL MATCH
+
+============================================================
+TOTAL SUMMARY
+============================================================
+Total prompts compared: 123
+Text Matched: 123 (100.00%)
+Tokens Matched: 123 (100.00%)
+Overall Matched (text OR tokens): 123 (100.00%)
+Mismatched: 0 (0.00%)

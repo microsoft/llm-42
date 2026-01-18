@@ -1,0 +1,147 @@
+============================================================
+Multi-Config Comparison Summary
+============================================================
+
+Num Prompts: 99
+Select Seed: 42
+Configs: ['qps2.0_o130_a10', 'qps3.0_o131_a11', 'qps4.0_o132_a12', 'qps5.0_o133_a13']
+
+------------------------------------------------------------
+Per-Config Output & Rollback Stats:
+------------------------------------------------------------
+QPS 2.0, Order Seed = 130, Arrival Seed = 10:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 3304
+  Rollback %: 14.1142%
+QPS 3.0, Order Seed = 131, Arrival Seed = 11:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 4163
+  Rollback %: 17.7838%
+QPS 4.0, Order Seed = 132, Arrival Seed = 12:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 4051
+  Rollback %: 17.3053%
+QPS 5.0, Order Seed = 133, Arrival Seed = 13:
+  Total Output Tokens: 23409
+  Total Tokens Rolled Back: 4134
+  Rollback %: 17.6599%
+
+------------------------------------------------------------
+Pairwise Comparisons:
+------------------------------------------------------------
+qps2.0_o130_a10 vs qps3.0_o131_a11: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps2.0_o130_a10 vs qps4.0_o132_a12: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps2.0_o130_a10 vs qps5.0_o133_a13: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps3.0_o131_a11 vs qps4.0_o132_a12: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps3.0_o131_a11 vs qps5.0_o133_a13: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+qps4.0_o132_a12 vs qps5.0_o133_a13: 0 mismatches, 0 deltas > 32, 0 deltas > 64, 0 deltas > 128, 0 deltas > 256
+
+------------------------------------------------------------
+Per-Prompt Comparison:
+------------------------------------------------------------
+[hash=64315a30fe6261fa] prompt_len=9 | ✓ ALL MATCH (4/4 configs) | output_len=213
+[hash=7daccc8078c8ca8b] prompt_len=164 | ✓ ALL MATCH (4/4 configs) | output_len=471
+[hash=006eeccba470032a] prompt_len=11 | ✓ ALL MATCH (4/4 configs) | output_len=224
+[hash=4a4ca84935ddfb96] prompt_len=1098 | ✓ ALL MATCH (4/4 configs) | output_len=345
+[hash=3abc57308e4de932] prompt_len=742 | ✓ ALL MATCH (4/4 configs) | output_len=12
+[hash=128c2ace9d2dbb07] prompt_len=70 | ✓ ALL MATCH (4/4 configs) | output_len=196
+[hash=c22f4763b2cb6971] prompt_len=256 | ✓ ALL MATCH (4/4 configs) | output_len=292
+[hash=525e07bd56273b35] prompt_len=24 | ✓ ALL MATCH (4/4 configs) | output_len=271
+[hash=b4d10ef781251459] prompt_len=37 | ✓ ALL MATCH (4/4 configs) | output_len=9
+[hash=0da707d98bdb055b] prompt_len=325 | ✓ ALL MATCH (4/4 configs) | output_len=63
+[hash=1b6c686a91cbc0a3] prompt_len=289 | ✓ ALL MATCH (4/4 configs) | output_len=33
+[hash=acd167dbaf7bce42] prompt_len=78 | ✓ ALL MATCH (4/4 configs) | output_len=201
+[hash=112695a3f5a48850] prompt_len=21 | ✓ ALL MATCH (4/4 configs) | output_len=3
+[hash=7fa1f5b0ea059f81] prompt_len=7 | ✓ ALL MATCH (4/4 configs) | output_len=402
+[hash=0496a205ac41293a] prompt_len=729 | ✓ ALL MATCH (4/4 configs) | output_len=121
+[hash=c140e6fb83b7e1ab] prompt_len=385 | ✓ ALL MATCH (4/4 configs) | output_len=17
+[hash=8037af9f17ab19c0] prompt_len=4275 | ✓ ALL MATCH (4/4 configs) | output_len=92
+[hash=6dd3e383341f4bc3] prompt_len=332 | ✓ ALL MATCH (4/4 configs) | output_len=52
+[hash=eee7b1310459dc2c] prompt_len=2473 | ✓ ALL MATCH (4/4 configs) | output_len=111
+[hash=c3ab7db928b4497f] prompt_len=315 | ✓ ALL MATCH (4/4 configs) | output_len=45
+[hash=0e856a15e9621998] prompt_len=401 | ✓ ALL MATCH (4/4 configs) | output_len=214
+[hash=5ebb66fede52ecd0] prompt_len=507 | ✓ ALL MATCH (4/4 configs) | output_len=407
+[hash=4d7c802455395c41] prompt_len=42 | ✓ ALL MATCH (4/4 configs) | output_len=3
+[hash=1781dd727357062c] prompt_len=679 | ✓ ALL MATCH (4/4 configs) | output_len=90
+[hash=e65785ea077f70af] prompt_len=386 | ✓ ALL MATCH (4/4 configs) | output_len=5
+[hash=239733b96b42b7e5] prompt_len=21 | ✓ ALL MATCH (4/4 configs) | output_len=378
+[hash=c8bb6790b4084e8c] prompt_len=30 | ✓ ALL MATCH (4/4 configs) | output_len=97
+[hash=fe6561b67dc1a22c] prompt_len=14 | ✓ ALL MATCH (4/4 configs) | output_len=574
+[hash=f2dda485833ba06e] prompt_len=335 | ✓ ALL MATCH (4/4 configs) | output_len=367
+[hash=fd3a5954420cbd11] prompt_len=412 | ✓ ALL MATCH (4/4 configs) | output_len=31
+[hash=b070523287a7d0ce] prompt_len=20 | ✓ ALL MATCH (4/4 configs) | output_len=316
+[hash=fa207d5e23525ed4] prompt_len=548 | ✓ ALL MATCH (4/4 configs) | output_len=122
+[hash=71a6d94edb8ecb72] prompt_len=11 | ✓ ALL MATCH (4/4 configs) | output_len=83
+[hash=b8e53e3a5f7f500d] prompt_len=5 | ✓ ALL MATCH (4/4 configs) | output_len=621
+[hash=bd75f92d7873c615] prompt_len=2048 | ✓ ALL MATCH (4/4 configs) | output_len=300
+[hash=fe04d983b5c415b0] prompt_len=20 | ✓ ALL MATCH (4/4 configs) | output_len=55
+[hash=44ffaa4696d3ab00] prompt_len=835 | ✓ ALL MATCH (4/4 configs) | output_len=168
+[hash=7d20539b57d5c489] prompt_len=27 | ✓ ALL MATCH (4/4 configs) | output_len=142
+[hash=df2650e149d2e058] prompt_len=135 | ✓ ALL MATCH (4/4 configs) | output_len=423
+[hash=80f9e21d7c61f3be] prompt_len=772 | ✓ ALL MATCH (4/4 configs) | output_len=44
+[hash=a9f90554d407acde] prompt_len=403 | ✓ ALL MATCH (4/4 configs) | output_len=24
+[hash=d378ecb64cbd8b68] prompt_len=5 | ✓ ALL MATCH (4/4 configs) | output_len=36
+[hash=53eadb9d0b557849] prompt_len=227 | ✓ ALL MATCH (4/4 configs) | output_len=337
+[hash=3b38215bfd60c1aa] prompt_len=249 | ✓ ALL MATCH (4/4 configs) | output_len=354
+[hash=9bb632ddc2a4bbe8] prompt_len=61 | ✓ ALL MATCH (4/4 configs) | output_len=353
+[hash=eb52ecd6400782e2] prompt_len=13 | ✓ ALL MATCH (4/4 configs) | output_len=527
+[hash=41f6f49ce4339ff0] prompt_len=4 | ✓ ALL MATCH (4/4 configs) | output_len=248
+[hash=a7c8eefa009b1f9d] prompt_len=26 | ✓ ALL MATCH (4/4 configs) | output_len=395
+[hash=2113a8167ff37b63] prompt_len=289 | ✓ ALL MATCH (4/4 configs) | output_len=83
+[hash=a1eb22cdc3c422e2] prompt_len=57 | ✓ ALL MATCH (4/4 configs) | output_len=441
+[hash=3558a7e16e68541c] prompt_len=88 | ✓ ALL MATCH (4/4 configs) | output_len=225
+[hash=2b09f2f04bbcc9be] prompt_len=21 | ✓ ALL MATCH (4/4 configs) | output_len=199
+[hash=8554f055a07aaa28] prompt_len=24 | ✓ ALL MATCH (4/4 configs) | output_len=573
+[hash=700d398ad598bc9f] prompt_len=17 | ✓ ALL MATCH (4/4 configs) | output_len=111
+[hash=0a8ad23910176c05] prompt_len=183 | ✓ ALL MATCH (4/4 configs) | output_len=3
+[hash=79540b60f87c2599] prompt_len=158 | ✓ ALL MATCH (4/4 configs) | output_len=775
+[hash=4c2cc1ccf83ff4a9] prompt_len=268 | ✓ ALL MATCH (4/4 configs) | output_len=26
+[hash=aeda1c2c6388c482] prompt_len=667 | ✓ ALL MATCH (4/4 configs) | output_len=798
+[hash=573c0d61be40bb89] prompt_len=14 | ✓ ALL MATCH (4/4 configs) | output_len=646
+[hash=9fbb2b45ae4ec2e2] prompt_len=36 | ✓ ALL MATCH (4/4 configs) | output_len=104
+[hash=0ce4a45102f4d776] prompt_len=245 | ✓ ALL MATCH (4/4 configs) | output_len=33
+[hash=e791337db9a5304f] prompt_len=20 | ✓ ALL MATCH (4/4 configs) | output_len=144
+[hash=8d1bfaa7f9a2d226] prompt_len=25 | ✓ ALL MATCH (4/4 configs) | output_len=268
+[hash=067cfa315c01ba6f] prompt_len=17 | ✓ ALL MATCH (4/4 configs) | output_len=330
+[hash=a8311b318579f8f8] prompt_len=743 | ✓ ALL MATCH (4/4 configs) | output_len=42
+[hash=75f601d0b93ec17c] prompt_len=1276 | ✓ ALL MATCH (4/4 configs) | output_len=565
+[hash=c54e2c3de5916a69] prompt_len=414 | ✓ ALL MATCH (4/4 configs) | output_len=6
+[hash=850e77e02693d94f] prompt_len=58 | ✓ ALL MATCH (4/4 configs) | output_len=241
+[hash=fc5bda834ef062f0] prompt_len=788 | ✓ ALL MATCH (4/4 configs) | output_len=10
+[hash=337e729493424640] prompt_len=75 | ✓ ALL MATCH (4/4 configs) | output_len=166
+[hash=6f68c677e8b07132] prompt_len=501 | ✓ ALL MATCH (4/4 configs) | output_len=11
+[hash=4ff7788e31cd7e88] prompt_len=262 | ✓ ALL MATCH (4/4 configs) | output_len=15
+[hash=25f258f601ec9594] prompt_len=85 | ✓ ALL MATCH (4/4 configs) | output_len=478
+[hash=e379ee65590ad5dd] prompt_len=755 | ✓ ALL MATCH (4/4 configs) | output_len=3
+[hash=ea96912593d5c0d6] prompt_len=1648 | ✓ ALL MATCH (4/4 configs) | output_len=141
+[hash=ee1c756ebaf98cb2] prompt_len=161 | ✓ ALL MATCH (4/4 configs) | output_len=790
+[hash=4f909ec20c89881d] prompt_len=59 | ✓ ALL MATCH (4/4 configs) | output_len=390
+[hash=a9686d3b56a9199a] prompt_len=58 | ✓ ALL MATCH (4/4 configs) | output_len=488
+[hash=071dbfbcbb4a29be] prompt_len=17 | ✓ ALL MATCH (4/4 configs) | output_len=376
+[hash=3f4f23a51bcce4d9] prompt_len=63 | ✓ ALL MATCH (4/4 configs) | output_len=722
+[hash=95e71aa67b49946e] prompt_len=181 | ✓ ALL MATCH (4/4 configs) | output_len=11
+[hash=0a21e0ed2c52f7dd] prompt_len=691 | ✓ ALL MATCH (4/4 configs) | output_len=32
+[hash=f0fe09bff1ee31c6] prompt_len=379 | ✓ ALL MATCH (4/4 configs) | output_len=29
+[hash=6b055db7573f9a8c] prompt_len=187 | ✓ ALL MATCH (4/4 configs) | output_len=670
+[hash=db3c81569a9a5f68] prompt_len=38 | ✓ ALL MATCH (4/4 configs) | output_len=379
+[hash=00c1eaae8d3b3696] prompt_len=28 | ✓ ALL MATCH (4/4 configs) | output_len=50
+[hash=3190d0d049fc65cf] prompt_len=58 | ✓ ALL MATCH (4/4 configs) | output_len=156
+[hash=e5a7498189ce4566] prompt_len=22 | ✓ ALL MATCH (4/4 configs) | output_len=418
+[hash=3abfaa5a03f34b25] prompt_len=188 | ✓ ALL MATCH (4/4 configs) | output_len=27
+[hash=7c49d78916336582] prompt_len=11 | ✓ ALL MATCH (4/4 configs) | output_len=574
+[hash=dee68999260638e0] prompt_len=110 | ✓ ALL MATCH (4/4 configs) | output_len=767
+[hash=08db611f2beb188e] prompt_len=306 | ✓ ALL MATCH (4/4 configs) | output_len=7
+[hash=b76da741854fd1ca] prompt_len=2742 | ✓ ALL MATCH (4/4 configs) | output_len=192
+[hash=02533f82e4926848] prompt_len=48 | ✓ ALL MATCH (4/4 configs) | output_len=382
+[hash=3e63e3b61afaf026] prompt_len=343 | ✓ ALL MATCH (4/4 configs) | output_len=42
+[hash=435299c85a7ad8de] prompt_len=666 | ✓ ALL MATCH (4/4 configs) | output_len=494
+[hash=4ced07f68206e74b] prompt_len=384 | ✓ ALL MATCH (4/4 configs) | output_len=28
+[hash=3bfec8f0c1e3c463] prompt_len=273 | ✓ ALL MATCH (4/4 configs) | output_len=12
+[hash=fdc38a3e60e53f0a] prompt_len=335 | ✓ ALL MATCH (4/4 configs) | output_len=49
+
+============================================================
+TOTAL SUMMARY
+============================================================
+Total prompts compared: 99
+Matched: 99 (100.00%)
+Mismatched: 0 (0.00%)

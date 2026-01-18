@@ -4,12 +4,13 @@ set -euo pipefail
 # Multi-Config Comparison Script
 # Runs multiple (QPS, order_seed, arrival_seed) configurations and compares outputs by prompt hash.
 # Uses the same prompts (via select_seed) but different arrival orders (via order_seed).
+# Designed for dense models requiring TP=4 where only 1 server can run on 4 GPUs.
 #
 # Environment overrides:
-#   BASE_URLS (comma-separated list, default: http://127.0.0.1:30005,http://127.0.0.1:30006,http://127.0.0.1:30007,http://127.0.0.1:30008)
+#   BASE_URLS (comma-separated list, default: http://127.0.0.1:30005 - single server for dense TP=4)
 #   CONFIGS (semicolon-separated, e.g., "qps=6,order=40;qps=6,order=242;qps=12,order=34;qps=12,order=123")
 #   SELECT_SEED (default: 42) - Same for all configs to get same prompts
-#   MODEL (default: meta-llama/Llama-3.1-8B-Instruct)
+#   MODEL (default: Qwen/Qwen3-30B-A3B)
 #   TOKENIZER (default: empty = same as model)
 #   DATASET_PATH (optional local ShareGPT JSON)
 #   NUM_PROMPTS (default: 100)
@@ -21,21 +22,22 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 export PYTHONPATH="${PYTHONPATH:-}:${ROOT}/python"
 
 # Parse configuration
-BASE_URLS=${BASE_URLS:-"http://127.0.0.1:30005,http://127.0.0.1:30006,http://127.0.0.1:30007,http://127.0.0.1:30008"}
+# Single server setup for dense model with TP=4
+BASE_URLS=${BASE_URLS:-"http://127.0.0.1:30005"}
 
 # Generate CONFIGS if not provided
 # Configurable parameters for auto-generation:
-#   NUM_CONFIGS_TO_GENERATE (default: 16)
+#   NUM_CONFIGS_TO_GENERATE (default: 30)
 #   QPS_START (default: 4.0) - Starting QPS value
 #   QPS_STEP (default: 0.5) - QPS increment per config
-#   ORDER_SEED_START (default: 132) - Starting seed for order
-#   ARRIVAL_SEED_START (default: 16) - Starting seed for arrival
+#   ORDER_SEED_START (default: 130) - Starting seed for order
+#   ARRIVAL_SEED_START (default: 10) - Starting seed for arrival
 if [[ -z "${CONFIGS:-}" ]]; then
-    NUM_CONFIGS_TO_GENERATE=${NUM_CONFIGS_TO_GENERATE:-4}
-    QPS_START=${QPS_START:-4.0}
-    QPS_STEP=${QPS_STEP:-1.5}
-    ORDER_SEED_START=${ORDER_SEED_START:-132}
-    ARRIVAL_SEED_START=${ARRIVAL_SEED_START:-16}
+    NUM_CONFIGS_TO_GENERATE=${NUM_CONFIGS_TO_GENERATE:-8}
+    QPS_START=${QPS_START:-3.0}
+    QPS_STEP=${QPS_STEP:-1.0}
+    ORDER_SEED_START=${ORDER_SEED_START:-130}
+    ARRIVAL_SEED_START=${ARRIVAL_SEED_START:-10}
     
     CONFIGS=""
     for ((i=0; i<NUM_CONFIGS_TO_GENERATE; i++)); do
@@ -52,18 +54,17 @@ if [[ -z "${CONFIGS:-}" ]]; then
 fi
 
 SELECT_SEED=${SELECT_SEED:-42}
-MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
+MODEL=${MODEL:-Qwen/Qwen3-14B}
 TOKENIZER=${TOKENIZER:-}
 DATASET_PATH=${DATASET_PATH:-}
-NUM_PROMPTS_ARRAY=${NUM_PROMPTS_ARRAY:-"1234"}
+NUM_PROMPTS_ARRAY=${NUM_PROMPTS_ARRAY:-"100,4192,16384"}
 SHAREGPT_CONTEXT_LEN=${SHAREGPT_CONTEXT_LEN:-16384}
 EXTRA_REQUEST_BODY=${EXTRA_REQUEST_BODY:-'{"temperature":0}'}
 BACKEND=${BACKEND:-sglang}
-DETERMINISTIC_RATIO=${DETERMINISTIC_RATIO:-0.5}
-COMPARE_DETERMINISTIC_ONLY=${COMPARE_DETERMINISTIC_ONLY:-true}
+DETERMINISTIC_RATIO=${DETERMINISTIC_RATIO:-1.0}
 WARMUP_REQUESTS=${WARMUP_REQUESTS:-0}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BASE_OUTPUT_DIR=${OUTPUT_DIR:-"${ROOT}/det_ratio${DETERMINISTIC_RATIO}_fa3_stream_di3_s64_bs8_t0_${TIMESTAMP}"}
+BASE_OUTPUT_DIR=${OUTPUT_DIR:-"${ROOT}/tp4_qwen_fa3_stream_di3_w64_bs8_t0_${TIMESTAMP}_n${NUM_PROMPTS_ARRAY}"}
 
 # Convert comma-separated strings to arrays for display
 IFS=',' read -ra URLS_ARRAY <<< "$BASE_URLS"
@@ -169,10 +170,6 @@ for NUM_PROMPTS in "${NUM_PROMPTS_ARRAY[@]}"; do
         --warmup-requests "${WARMUP_REQUESTS}"
         --ignore-eos
     )
-
-    if [[ "${COMPARE_DETERMINISTIC_ONLY}" == "true" ]]; then
-        cmd+=(--compare-deterministic-only)
-    fi
 
     if [[ -n "${TOKENIZER}" ]]; then
         cmd+=(--tokenizer "${TOKENIZER}")

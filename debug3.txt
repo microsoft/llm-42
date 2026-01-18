@@ -1,0 +1,54 @@
+======================================================================
+Default NCCL All-Reduce Determinism Test
+======================================================================
+Available GPUs: 4
+Using world_size: 4
+Running tests: [3]
+
+======================================================================
+TEST 3: Default NCCL all_reduce (position invariance)
+Fixed batch size, element 'a' at different positions
+Batches: [a,x,x,...], [x,a,x,...], [x,x,a,...], ...
+======================================================================
+
+  Testing batch size: 8
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=8): POSITION-INVARIANT
+
+  Testing batch size: 128
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=128): POSITION-INVARIANT
+
+  Testing batch size: 256
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=256): POSITION-INVARIANT
+
+  Testing batch size: 512
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=512): POSITION-INVARIANT
+
+  Testing batch size: 617
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=617): POSITION-INVARIANT
+
+  Testing batch size: 1999
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=1999): POSITION-INVARIANT
+
+  Testing batch size: 2772
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=2772): POSITION-INVARIANT
+
+  Testing batch size: 4096
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=4096): POSITION-INVARIANT
+
+  Testing batch size: 8192
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=8192): POSITION-INVARIANT
+
+  Testing batch size: 9199
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=9199): POSITION-INVARIANT
+
+  Testing batch size: 17689
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=17689): POSITION-INVARIANT
+
+  Testing batch size: 24576
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=24576): POSITION-INVARIANT
+
+  Testing batch size: 32768
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=32768): POSITION-INVARIANT
+
+  Testing batch size: 49786
+    ✓ DEFAULT ALL_REDUCE (position invariance, BS=49786): POSITION-INVARIANT

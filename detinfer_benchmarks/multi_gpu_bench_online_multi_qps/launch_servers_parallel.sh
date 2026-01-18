@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# Launch multiple SGLang servers for parallel batch invariance testing
-# This script starts N servers (one per GPU) with deterministic inference enabled
+# Launch SGLang server(s) for batch invariance testing with dense model
+# Number of servers is calculated as NUM_GPUS / TP_SIZE
 
 set -e
 
 # Configuration
 NUM_GPUS="${NUM_GPUS:-4}"
-MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
+TP_SIZE="${SGLANG_TP_SIZE:-4}"
+NUM_SERVERS=$((NUM_GPUS / TP_SIZE))  # Calculate servers based on available GPUs and TP size
+MODEL_PATH="${SGLANG_TEST_MODEL:-Qwen/Qwen3-14B}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
-TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
-LOG_DIR="${LOG_DIR:-./server_logs_${ATTENTION_BACKEND}_TP${TP_SIZE}}"
+LOG_DIR="${LOG_DIR:-./server_logs_dense_tp${TP_SIZE}}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -28,12 +29,14 @@ fi
 mkdir -p "$LOG_DIR"
 
 echo "=============================================="
-echo "Starting $NUM_GPUS SGLang Servers for Parallel Batch Invariance Testing"
+echo "Starting $NUM_SERVERS SGLang Server(s) (NUM_GPUS=$NUM_GPUS, TP=$TP_SIZE)"
 echo "=============================================="
 echo "Model: $MODEL_PATH"
 echo "Host: $HOST"
 echo "Base Port: $BASE_PORT"
-echo "TP Size per server: $TP_SIZE"
+echo "Num GPUs: $NUM_GPUS"
+echo "TP Size: $TP_SIZE"
+echo "Num Servers: $NUM_SERVERS (= $NUM_GPUS / $TP_SIZE)"
 echo "Attention Backend: $ATTENTION_BACKEND"
 echo "Log Directory: $LOG_DIR"
 echo "=============================================="
@@ -58,16 +61,21 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-# Launch servers
-for ((i=0; i<NUM_GPUS; i++)); do
+# Launch server(s)
+for ((i=0; i<NUM_SERVERS; i++)); do
     PORT=$((BASE_PORT + i))
-    GPU_ID=$i
-    LOG_FILE="$LOG_DIR/server_gpu${GPU_ID}_port${PORT}.log"
+    LOG_FILE="$LOG_DIR/server_${i}_port${PORT}.log"
     
-    echo "Starting server on GPU $GPU_ID, port $PORT..."
+    # Calculate GPU range for this server (e.g., server 0 gets GPUs 0-3, server 1 gets GPUs 4-7)
+    START_GPU=$((i * TP_SIZE))
+    END_GPU=$((START_GPU + TP_SIZE - 1))
+    GPU_IDS=$(seq -s, $START_GPU $END_GPU)
+    
+    echo "Starting server $i on GPUs $GPU_IDS, port $PORT with TP=$TP_SIZE..."
     echo "Log file: $LOG_FILE"
     
-    CUDA_VISIBLE_DEVICES=$GPU_ID $PYTHON_CMD -m sglang.launch_server \
+    # Assign specific GPUs for this server
+    CUDA_VISIBLE_DEVICES=$GPU_IDS $PYTHON_CMD -m sglang.launch_server \
         --model-path "$MODEL_PATH" \
         --host "$HOST" \
         --port "$PORT" \
@@ -87,7 +95,7 @@ for ((i=0; i<NUM_GPUS; i++)); do
     SERVER_PID=$!
     PIDS+=($SERVER_PID)
     
-    echo "  → Server started with PID $SERVER_PID on GPU $GPU_ID (port $PORT)"
+    echo "  → Server $i started with PID $SERVER_PID (GPUs $GPU_IDS, port $PORT)"
     
     # Small delay between launches to avoid race conditions
     sleep 2
@@ -95,17 +103,17 @@ done
 
 echo ""
 echo "=============================================="
-echo "All $NUM_GPUS servers launched successfully!"
+echo "$NUM_SERVERS server(s) launched successfully!"
 echo "=============================================="
-echo "Server URLs:"
-for ((i=0; i<NUM_GPUS; i++)); do
+echo "Server URL(s):"
+for ((i=0; i<NUM_SERVERS; i++)); do
     PORT=$((BASE_PORT + i))
-    echo "  GPU $i: http://$HOST:$PORT"
+    echo "  Server $i: http://$HOST:$PORT"
 done
 echo ""
 echo "To use with run_compare_mismatches_multi_qps.sh:"
 URLS=""
-for ((i=0; i<NUM_GPUS; i++)); do
+for ((i=0; i<NUM_SERVERS; i++)); do
     PORT=$((BASE_PORT + i))
     if [ $i -eq 0 ]; then
         URLS="http://127.0.0.1:$PORT"
@@ -113,8 +121,8 @@ for ((i=0; i<NUM_GPUS; i++)); do
         URLS="$URLS,http://127.0.0.1:$PORT"
     fi
 done
-echo "  ./run_compare_mismatches_multi_qps.sh"
-echo "  (or with custom QPS: QPS_VALUES=\"1,3,6,10\" ./run_compare_mismatches_multi_qps.sh)"
+echo "  BASE_URLS=\"$URLS\" ./run_compare_mismatches_multi_qps.sh"
+echo "  (QPS values will be run sequentially on the single server)"
 echo ""
 echo "Press Ctrl+C to stop all servers..."
 echo "=============================================="

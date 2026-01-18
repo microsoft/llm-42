@@ -215,6 +215,7 @@ def run_experiment_process(idx: int, base: dict, url: str, config: ConfigSpec,
         "det_num_rollbacks": det_num_rollbacks,
         "det_tokens_rolled_back": det_tokens_rolled_back,
         "rollback_stats": rollback_stats,
+        "is_deterministic": result.get("is_deterministic", []),
     }
 
 
@@ -291,114 +292,87 @@ def write_per_config_logs(result: dict, output_dir: Path):
 def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argparse.Namespace):
     """Compare outputs across all configs and write unified comparison report."""
     
+    compare_det_only = getattr(cli_args, 'compare_deterministic_only', False)
+    
     # Build hash -> {config_name: (tokens, text, output_len, prompt_len)} mapping
     hash_to_outputs: Dict[str, Dict[str, Tuple]] = defaultdict(dict)
+    # Track which hashes are deterministic (from first config that has it)
+    hash_is_deterministic: Dict[str, bool] = {}
     
     for result in results:
         config_name = result["config"]["name"]
+        is_det_flags = result.get("is_deterministic", [False] * len(result["prompt_hashes"]))
         for i, (prompt_hash, tokens, text, prompt_len) in enumerate(zip(
             result["prompt_hashes"], result["tokens"], result["texts"], result["prompt_lens"]
         )):
             if prompt_hash:
+                is_det = is_det_flags[i] if i < len(is_det_flags) else False
+                # Record deterministic status (first occurrence wins)
+                if prompt_hash not in hash_is_deterministic:
+                    hash_is_deterministic[prompt_hash] = is_det
                 hash_to_outputs[prompt_hash][config_name] = (tokens, text, len(tokens), prompt_len)
+    
+    # Filter to only deterministic prompts if requested
+    if compare_det_only:
+        original_count = len(hash_to_outputs)
+        hash_to_outputs = {h: v for h, v in hash_to_outputs.items() if hash_is_deterministic.get(h, False)}
+        filtered_count = len(hash_to_outputs)
+        print(f"\nFiltering to deterministic prompts only: {filtered_count}/{original_count} prompts")
     
     # Get all config names
     config_names = [r["config"]["name"] for r in results]
     num_configs = len(config_names)
     
-    # Pairwise comparison
-    pairwise_stats = {}
-    for i in range(num_configs):
-        for j in range(i + 1, num_configs):
-            config_i = config_names[i]
-            config_j = config_names[j]
-            key = f"{config_i} vs {config_j}"
-            
-            mismatches = 0
-            deltas_gt_32 = 0
-            deltas_gt_64 = 0
-            deltas_gt_128 = 0
-            deltas_gt_256 = 0
-            
-            for prompt_hash, outputs in hash_to_outputs.items():
-                if config_i in outputs and config_j in outputs:
-                    tokens_i, _, _, _ = outputs[config_i]
-                    tokens_j, _, _, _ = outputs[config_j]
-                    
-                    fm_idx = first_mismatch(tokens_i, tokens_j)
-                    delta = max(len(tokens_i), len(tokens_j)) - fm_idx
-                    
-                    if delta > 0:
-                        mismatches += 1
-                    if delta > 32:
-                        deltas_gt_32 += 1
-                    if delta > 64:
-                        deltas_gt_64 += 1
-                    if delta > 128:
-                        deltas_gt_128 += 1
-                    if delta > 256:
-                        deltas_gt_256 += 1
-            
-            pairwise_stats[key] = {
-                "mismatches": mismatches,
-                "deltas_gt_32": deltas_gt_32,
-                "deltas_gt_64": deltas_gt_64,
-                "deltas_gt_128": deltas_gt_128,
-                "deltas_gt_256": deltas_gt_256,
-            }
-    
-    # Per-prompt analysis
+    # Per-prompt analysis - compare ALL configs together (not pairwise)
     prompt_results = []
     for prompt_hash, outputs in hash_to_outputs.items():
         if len(outputs) < 2:
             continue
         
-        # Get prompt_len (should be same across configs)
-        prompt_len = list(outputs.values())[0][3]
+        # Get prompt_len and output_len (should be same across configs if matching)
+        first_output = list(outputs.values())[0]
+        prompt_len = first_output[3]
+        output_len = first_output[2]
         
-        # Group configs by identical output
-        output_groups: Dict[tuple, List[str]] = defaultdict(list)
-        for config_name, (tokens, text, output_len, _) in outputs.items():
-            output_groups[tuple(tokens)].append(config_name)
+        # Check if all texts match
+        all_texts = [text for (tokens, text, output_len, _) in outputs.values()]
+        text_match = len(set(all_texts)) == 1
         
-        groups = [{"configs": configs, "output_len": len(tokens)} 
-                  for tokens, configs in output_groups.items()]
+        # Check if all tokens match
+        all_tokens = [tuple(tokens) for (tokens, text, output_len, _) in outputs.values()]
+        tokens_match = len(set(all_tokens)) == 1
         
-        if len(groups) == 1:
+        # Overall match if either text OR tokens match
+        overall_match = text_match or tokens_match
+        
+        # Determine status
+        if tokens_match:
             status = "match"
-            output_len = groups[0]["output_len"]
-            prompt_results.append({
-                "hash": prompt_hash,
-                "prompt_len": prompt_len,
-                "status": status,
-                "output_len": output_len,
-                "groups": groups,
-            })
         else:
             status = "mismatch"
-            # Calculate pairwise deltas between groups
-            group_outputs = [(tuple(k), v) for k, v in output_groups.items()]
-            pairwise_deltas = []
-            for gi in range(len(group_outputs)):
-                for gj in range(gi + 1, len(group_outputs)):
-                    tokens_i = list(group_outputs[gi][0])
-                    tokens_j = list(group_outputs[gj][0])
-                    fm_idx = first_mismatch(tokens_i, tokens_j)
-                    delta = abs(len(tokens_i) - len(tokens_j))
-                    pairwise_deltas.append({
-                        "group1": output_groups[group_outputs[gi][0]],
-                        "group2": output_groups[group_outputs[gj][0]],
-                        "delta": delta,
-                        "first_mismatch_idx": fm_idx,
-                    })
-            
-            prompt_results.append({
-                "hash": prompt_hash,
-                "prompt_len": prompt_len,
-                "status": status,
-                "groups": groups,
-                "pairwise_deltas": pairwise_deltas,
-            })
+        
+        # Group configs by identical token output (for mismatch details)
+        token_groups: Dict[tuple, List[str]] = defaultdict(list)
+        text_groups: Dict[str, List[str]] = defaultdict(list)
+        for config_name, (tokens, text, ol, _) in outputs.items():
+            token_groups[tuple(tokens)].append(config_name)
+            text_groups[text].append(config_name)
+        
+        prompt_results.append({
+            "hash": prompt_hash,
+            "prompt_len": prompt_len,
+            "output_len": output_len,
+            "text_match": text_match,
+            "tokens_match": tokens_match,
+            "overall_match": overall_match,
+            "status": status,
+            "num_configs": len(outputs),
+            "num_token_groups": len(token_groups),
+            "num_text_groups": len(text_groups),
+            "token_groups": [{"configs": configs, "output_len": len(tokens)} 
+                           for tokens, configs in token_groups.items()],
+            "text_groups": [{"configs": configs} for text, configs in text_groups.items()],
+        })
     
     # Calculate per-config rollback stats
     config_stats = []
@@ -414,10 +388,12 @@ def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argpars
             "rollback_pct": rollback_pct,
         })
     
-    # Count matches vs mismatches
-    num_match = sum(1 for p in prompt_results if p["status"] == "match")
-    num_mismatch = sum(1 for p in prompt_results if p["status"] == "mismatch")
-    total = num_match + num_mismatch
+    # Count matches vs mismatches (for tokens, text, and overall)
+    num_tokens_match = sum(1 for p in prompt_results if p["tokens_match"])
+    num_text_match = sum(1 for p in prompt_results if p["text_match"])
+    num_overall_match = sum(1 for p in prompt_results if p["overall_match"])
+    num_mismatch = sum(1 for p in prompt_results if not p["overall_match"])
+    total = len(prompt_results)
     
     # Write summary log
     summary_path = output_dir / "comparison_summary.txt"
@@ -441,41 +417,31 @@ def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argpars
             f.write(f"  Rollback %: {stat['rollback_pct']:.4f}%\n")
         f.write("\n")
         
-        f.write("-" * 60 + "\n")
-        f.write("Pairwise Comparisons:\n")
-        f.write("-" * 60 + "\n")
-        for key, stats in pairwise_stats.items():
-            f.write(f"{key}: {stats['mismatches']} mismatches, "
-                   f"{stats['deltas_gt_32']} deltas > 32, "
-                   f"{stats['deltas_gt_64']} deltas > 64, "
-                   f"{stats['deltas_gt_128']} deltas > 128, "
-                   f"{stats['deltas_gt_256']} deltas > 256\n")
-        f.write("\n")
-        
-        # Per-prompt details
+        # Per-prompt details with text and token comparison
         f.write("-" * 60 + "\n")
         f.write("Per-Prompt Comparison:\n")
         f.write("-" * 60 + "\n")
         for pr in prompt_results:
-            if pr["status"] == "match":
-                f.write(f"[hash={pr['hash']}] prompt_len={pr['prompt_len']} | "
-                       f"✓ ALL MATCH ({num_configs}/{num_configs} configs) | output_len={pr['output_len']}\n")
-            else:
-                f.write(f"\n[hash={pr['hash']}] prompt_len={pr['prompt_len']} | "
-                       f"✗ MISMATCH ({len(pr['groups'])} groups)\n")
-                for gi, group in enumerate(pr["groups"]):
-                    f.write(f"  group{gi+1}: {group['configs']} | output_len={group['output_len']}\n")
-                if pr.get("pairwise_deltas"):
-                    f.write("  pairwise deltas:\n")
-                    for pd in pr["pairwise_deltas"]:
-                        f.write(f"    {pd['group1']} vs {pd['group2']}: delta={pd['delta']}, first_mismatch_idx={pd['first_mismatch_idx']}\n")
-                f.write("\n")
+            n_cfgs = pr["num_configs"]
+            text_status = f"✓ ALL MATCH ({n_cfgs}/{n_cfgs} configs)" if pr["text_match"] else f"✗ MISMATCH ({pr['num_text_groups']} groups)"
+            tokens_status = f"✓ ALL MATCH ({n_cfgs}/{n_cfgs} configs)" if pr["tokens_match"] else f"✗ MISMATCH ({pr['num_token_groups']} groups)"
+            overall_status = "✓ ALL MATCH" if pr["overall_match"] else "✗ MISMATCH"
+            
+            f.write(f"[hash={pr['hash']}] prompt_len={pr['prompt_len']} | output_len={pr['output_len']} | "
+                   f"Text: {text_status} | Tokens: {tokens_status} | {overall_status}\n")
+            
+            # Show group details for mismatches
+            if not pr["tokens_match"]:
+                for gi, group in enumerate(pr["token_groups"]):
+                    f.write(f"  token_group{gi+1}: {group['configs']} | output_len={group['output_len']}\n")
         
         f.write("\n" + "=" * 60 + "\n")
         f.write("TOTAL SUMMARY\n")
         f.write("=" * 60 + "\n")
         f.write(f"Total prompts compared: {total}\n")
-        f.write(f"Matched: {num_match} ({100*num_match/total:.2f}%)\n")
+        f.write(f"Text Matched: {num_text_match} ({100*num_text_match/total:.2f}%)\n")
+        f.write(f"Tokens Matched: {num_tokens_match} ({100*num_tokens_match/total:.2f}%)\n")
+        f.write(f"Overall Matched (text OR tokens): {num_overall_match} ({100*num_overall_match/total:.2f}%)\n")
         f.write(f"Mismatched: {num_mismatch} ({100*num_mismatch/total:.2f}%)\n")
     
     # Write detailed JSON
@@ -485,13 +451,16 @@ def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argpars
             "select_seed": cli_args.select_seed,
             "configs": [r["config"] for r in results],
             "config_stats": config_stats,
-            "pairwise_stats": pairwise_stats,
             "prompt_results": prompt_results,
             "summary": {
                 "total": total,
-                "matched": num_match,
+                "text_matched": num_text_match,
+                "tokens_matched": num_tokens_match,
+                "overall_matched": num_overall_match,
                 "mismatched": num_mismatch,
-                "match_rate": num_match / total if total > 0 else 0,
+                "text_match_rate": num_text_match / total if total > 0 else 0,
+                "tokens_match_rate": num_tokens_match / total if total > 0 else 0,
+                "overall_match_rate": num_overall_match / total if total > 0 else 0,
             },
         }
         json.dump(detailed, f, indent=2)
@@ -507,16 +476,11 @@ def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argpars
         print(f"  {cfg['name']}: {stat['total_output_tokens']} output tokens, "
               f"{stat['total_tokens_rolled_back']} rolled back ({stat['rollback_pct']:.4f}%)")
     
-    print("\nPairwise Comparisons:")
-    for key, stats in pairwise_stats.items():
-        print(f"  {key}: {stats['mismatches']} mismatches, "
-              f"{stats['deltas_gt_32']} deltas > 32, "
-              f"{stats['deltas_gt_64']} deltas > 64, "
-              f"{stats['deltas_gt_128']} deltas > 128, "
-              f"{stats['deltas_gt_256']} deltas > 256")
-    
-    print(f"\nTotal: {total} prompts | {num_match} match ({100*num_match/total:.2f}%) | "
-          f"{num_mismatch} mismatch ({100*num_mismatch/total:.2f}%)")
+    print(f"\nTotal: {total} prompts")
+    print(f"  Text Matched: {num_text_match} ({100*num_text_match/total:.2f}%)")
+    print(f"  Tokens Matched: {num_tokens_match} ({100*num_tokens_match/total:.2f}%)")
+    print(f"  Overall Matched (text OR tokens): {num_overall_match} ({100*num_overall_match/total:.2f}%)")
+    print(f"  Mismatched: {num_mismatch} ({100*num_mismatch/total:.2f}%)")
     print(f"\nResults saved to: {output_dir}")
 
 
@@ -543,6 +507,8 @@ def main():
     parser.add_argument("--flush-cache", action="store_true")
     parser.add_argument("--warmup-requests", type=int, default=1)
     parser.add_argument("--ignore-eos", action="store_true")
+    parser.add_argument("--compare-deterministic-only", action="store_true",
+                       help="Only compare prompts that were marked as deterministic")
 
     cli_args = parser.parse_args()
     cli_args.output_dir.mkdir(parents=True, exist_ok=True)
