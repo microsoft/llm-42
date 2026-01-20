@@ -1271,22 +1271,28 @@ class ServerArgs:
                     f"Currently radix cache is not compatible with {self.attention_backend} attention backend for deterministic inference. It will be supported in the future."
                 )
 
-            # Check TP size
-            if self.tp_size > 1:
-                self.disable_custom_all_reduce = True
-                os.environ["NCCL_LAUNCH_MODE"] = "GROUP"
-                os.environ["NCCL_COLLNET_ENABLE"] = "0"
-                os.environ["NCCL_NVLS_ENABLE"] = "0"
-                os.environ["NCCL_P2P_NET_DISABLE"] = "1"
-                os.environ["NCCL_MIN_NCHANNELS"] = "1"
-                os.environ["NCCL_MAX_NCHANNELS"] = "1"
-                os.environ["NCCL_PROTO"] = "Simple"
-                os.environ["NCCL_ALGO"] = "allreduce:tree"
-                os.environ["NCCL_NTHREADS"] = "1"
-                os.environ["NCCL_SOCKET_NTHREADS"] = "1"
-                logger.warning(
-                    "NCCL_ALGO is set to 'allreduce:tree' and custom all reduce is disabled for deterministic inference when TP size > 1."
-                )
+        # Check TP size
+        if self.tp_size > 1:
+            self.disable_custom_all_reduce = True
+            # os.environ["NCCL_LAUNCH_MODE"] = "GROUP"
+            # os.environ["NCCL_COLLNET_ENABLE"] = "0"
+            # os.environ["NCCL_NVLS_ENABLE"] = "0"
+            # os.environ["NCCL_P2P_NET_DISABLE"] = "1"
+            # os.environ["NCCL_MIN_NCHANNELS"] = "1"
+            # os.environ["NCCL_MAX_NCHANNELS"] = "1"
+            # os.environ["NCCL_PROTO"] = "Simple"
+            # os.environ["NCCL_ALGO"] = "allreduce:tree"
+            # os.environ["NCCL_NTHREADS"] = "1"
+            # os.environ["NCCL_SOCKET_NTHREADS"] = "1"
+            os.environ["NCCL_ALGO"] = "allreduce:tree"
+            os.environ["NCCL_COLLNET_ENABLE"] = "0"
+            os.environ["NCCL_NVLS_ENABLE"] = "0"
+            os.environ["NCCL_P2P_NET_DISABLE"] = "1"
+            os.environ["NCCL_MIN_NCHANNELS"] = "1"
+            os.environ["NCCL_MAX_NCHANNELS"] = "1"
+            logger.warning(
+                "NCCL_ALGO is set to 'allreduce:tree' and custom all reduce is disabled for deterministic inference when TP size > 1."
+            )
 
     def _handle_other_validations(self):
         pass
