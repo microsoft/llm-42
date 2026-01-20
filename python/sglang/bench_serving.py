@@ -1402,11 +1402,13 @@ def sample_random_requests(
             input_content = input_ids
             if return_text:
                 input_content = tokenizer.decode(input_content)
+            prompt_hash = _compute_prompt_hash(str(input_content), index=i)
             input_requests.append(
                 DatasetRow(
                     prompt=input_content,
                     prompt_len=int(input_lens[i]),
                     output_len=int(output_lens[i]),
+                    prompt_hash=prompt_hash,
                 )
             )
     else:
@@ -1420,11 +1422,13 @@ def sample_random_requests(
             ]
             if return_text:
                 input_content = tokenizer.decode(input_content)
+            prompt_hash = _compute_prompt_hash(str(input_content), index=i)
             input_requests.append(
                 DatasetRow(
                     prompt=input_content,
                     prompt_len=int(input_lens[i]),
                     output_len=int(output_lens[i]),
+                    prompt_hash=prompt_hash,
                 )
             )
 

@@ -22,7 +22,6 @@ echo ""
 
 # Dataset configurations
 declare -a DATASET_CONFIGS=(
-    "arxiv"
     "sharegpt"
     "random_in512_out256"
     "random_in1024_out256"
@@ -30,6 +29,7 @@ declare -a DATASET_CONFIGS=(
     "random_in2048_out256"
     "random_in2048_out512"
     "random_in4096_out512"
+    "arxiv"
 )
 
 # Run each dataset configuration

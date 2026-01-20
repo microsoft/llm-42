@@ -184,9 +184,10 @@ def main():
             duration = r.get('duration', 1)
             total_tp = (total_input + total_output) / duration if duration > 0 else 0
             
-            # Get rollback metrics
-            rollbacks = r.get('total_rollbacks', 0)
-            recomputed_tokens = r.get('total_recomputed_tokens', 0)
+            # Get rollback metrics (can be at top level or nested in rollback_stats)
+            rollback_stats = r.get('rollback_stats', {})
+            rollbacks = r.get('total_rollbacks', rollback_stats.get('total_rollbacks', 0))
+            recomputed_tokens = r.get('total_recomputed_tokens', rollback_stats.get('total_tokens_rolled_back', 0))
             
             # Determine config key
             if config_name == 'sglang_non_deterministic':

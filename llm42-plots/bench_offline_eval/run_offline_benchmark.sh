@@ -140,6 +140,7 @@ run_benchmark() {
         $DATASET_ARGS \
         --num-prompts "$NUM_PROMPTS" \
         --request-rate inf \
+        --disable-stream \
         --deterministic-ratio "$det_ratio" \
         --deterministic-seed "$DETERMINISTIC_SEED" \
         --extra-request-body "$EXTRA_BODY" \

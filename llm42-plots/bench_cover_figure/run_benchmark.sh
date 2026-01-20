@@ -9,12 +9,15 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # Server configuration
 NON_DET_PORT=${NON_DET_PORT:-30005}
 GLOBAL_DET_PORT=${GLOBAL_DET_PORT:-30006}
+DETINFER_PORT=${DETINFER_PORT:-30007}
 NON_DET_URL="http://127.0.0.1:${NON_DET_PORT}"
 GLOBAL_DET_URL="http://127.0.0.1:${GLOBAL_DET_PORT}"
+DETINFER_URL="http://127.0.0.1:${DETINFER_PORT}"
 
 # GPU assignment (use different GPUs for each server)
 NON_DET_GPU=${NON_DET_GPU:-0}
 GLOBAL_DET_GPU=${GLOBAL_DET_GPU:-1}
+DETINFER_GPU=${DETINFER_GPU:-2}
 
 # Model and server parameters
 MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
@@ -28,7 +31,7 @@ DETERMINISTIC_SEED=42
 BACKEND=sglang
 
 # Batch sizes to test
-BATCH_SIZES="10 11"
+BATCH_SIZES="11"
 
 # Output directory
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -40,6 +43,7 @@ mkdir -p "$OUTPUT_DIR"
 # PIDs for cleanup
 NON_DET_PID=""
 GLOBAL_DET_PID=""
+DETINFER_PID=""
 
 # Function to check server health
 check_server_health() {
@@ -81,7 +85,7 @@ launch_server() {
         --enable-metrics \
         --random-seed 42 \
         --chunked-prefill-size -1 \
-        --max-running-requests 16 \
+        --max-running-requests 64 \
         $config_args \
         > "$log_file" 2>&1 &
     
@@ -100,7 +104,7 @@ stop_servers() {
     
     echo ""
     echo "Stopping servers..."
-    for pid in $NON_DET_PID $GLOBAL_DET_PID; do
+    for pid in $NON_DET_PID $GLOBAL_DET_PID $DETINFER_PID; do
         if [ -n "$pid" ]; then
             echo "  Killing PID $pid and children..."
             pkill -P "$pid" 2>/dev/null || true
@@ -111,6 +115,7 @@ stop_servers() {
     # Also kill any remaining sglang processes on our ports
     fuser -k ${NON_DET_PORT}/tcp 2>/dev/null || true
     fuser -k ${GLOBAL_DET_PORT}/tcp 2>/dev/null || true
+    fuser -k ${DETINFER_PORT}/tcp 2>/dev/null || true
     sleep 2
     echo "Servers stopped."
 }
@@ -135,8 +140,9 @@ echo "TP Size: $TP_SIZE"
 echo "Input Length: $INPUT_LEN"
 echo "Output Length: $OUTPUT_LEN"
 echo "Batch Sizes: $BATCH_SIZES"
-echo "Non-Det Server: $NON_DET_URL"
-echo "Global-Det Server: $GLOBAL_DET_URL"
+echo "Non-Det Server: $NON_DET_URL (GPU $NON_DET_GPU)"
+echo "Global-Det Server: $GLOBAL_DET_URL (GPU $GLOBAL_DET_GPU)"
+echo "DetInfer Server: $DETINFER_URL (GPU $DETINFER_GPU)"
 echo "Output Dir: $OUTPUT_DIR"
 echo "=============================================="
 echo ""
@@ -151,6 +157,10 @@ echo "  Non-Det PID: $NON_DET_PID"
 # Global-deterministic server on GPU 1
 GLOBAL_DET_PID=$(launch_server "$GLOBAL_DET_PORT" "global_det" "--enable-deterministic-inference 2" "$GLOBAL_DET_GPU")
 echo "  Global-Det PID: $GLOBAL_DET_PID"
+
+# DetInfer server on GPU 2 (ws=64, bs=8)
+DETINFER_PID=$(launch_server "$DETINFER_PORT" "detinfer" "--enable-det-infer 3 --det-infer-window-size 64 --det-infer-verify-batch-size 8" "$DETINFER_GPU")
+echo "  DetInfer PID: $DETINFER_PID"
 
 # Wait for servers to be ready
 echo ""
@@ -174,6 +184,15 @@ else
     exit 1
 fi
 
+echo -n "  Checking DetInfer server... "
+if check_server_health "$DETINFER_URL" 120 5; then
+    echo "✓"
+else
+    echo "✗ FAILED"
+    echo "ERROR: DetInfer server failed to start. Check log: ${OUTPUT_DIR}/server_detinfer.log"
+    exit 1
+fi
+
 echo "All servers ready!"
 echo ""
 
@@ -182,10 +201,11 @@ run_benchmark() {
     local url="$1"
     local config_name="$2"
     local batch_size="$3"
+    local det_ratio="${4:-1.0}"  # Default to 1.0 for global-det
     
     local temp_result="${OUTPUT_DIR}/temp_${config_name}_bs${batch_size}.jsonl"
     
-    echo "[${config_name}] Running batch_size=$batch_size..."
+    echo "[${config_name}] Running batch_size=$batch_size, det_ratio=$det_ratio..."
     
     python -m sglang.bench_serving \
         --backend "$BACKEND" \
@@ -197,7 +217,7 @@ run_benchmark() {
         --random-range-ratio 1.0 \
         --num-prompts "$batch_size" \
         --request-rate inf \
-        --deterministic-ratio 1.0 \
+        --deterministic-ratio "$det_ratio" \
         --deterministic-seed "$DETERMINISTIC_SEED" \
         --extra-request-body '{"ignore_eos": true, "temperature": 0}' \
         --output-file "$temp_result" \
@@ -233,20 +253,27 @@ with open('$temp_result', 'r') as f:
     echo "[${config_name}] Completed batch_size=$batch_size"
 }
 
-# Run benchmarks for each batch size
-for batch_size in $BATCH_SIZES; do
-    echo ""
-    echo "========== Batch Size: $batch_size =========="
-    
-    # Run non-deterministic and global-deterministic in parallel
-    run_benchmark "$NON_DET_URL" "non_det" "$batch_size" &
-    pid1=$!
-    run_benchmark "$GLOBAL_DET_URL" "global_det" "$batch_size" &
-    pid2=$!
-    
-    wait $pid1
-    wait $pid2
-done
+# Run benchmarks
+echo ""
+echo "========== Batch Size: 10 (Non-Det only) =========="
+run_benchmark "$NON_DET_URL" "non_det" "10" "1.0"
+
+echo ""
+echo "========== Batch Size: 11 (All configs) =========="
+# Run all 3 configs in parallel
+# Non-det: det_ratio doesn't matter (no deterministic processing)
+# Global-det: det_ratio=1.0 (all deterministic)
+# DetInfer: det_ratio=0.09 (1 out of 11 requests deterministic)
+run_benchmark "$NON_DET_URL" "non_det" "11" "1.0" &
+pid1=$!
+run_benchmark "$GLOBAL_DET_URL" "global_det" "11" "1.0" &
+pid2=$!
+run_benchmark "$DETINFER_URL" "detinfer" "11" "0.09" &
+pid3=$!
+
+wait $pid1
+wait $pid2
+wait $pid3
 
 echo ""
 echo "=============================================="

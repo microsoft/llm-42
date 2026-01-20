@@ -41,10 +41,6 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
         batch_size = r.get('batch_size', r.get('num_prompts', 0))
         throughput = r.get('output_throughput', 0)
         
-        # For global_det, only include batch size 11
-        if config == 'global_det' and batch_size != 11:
-            continue
-        
         if config not in data:
             data[config] = {}
         data[config][batch_size] = throughput
@@ -54,20 +50,31 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
         return
     
     # Setup plot
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(9, 6))
     
-    # Config styles
-    # Both use hatch patterns
+    # Config styles - plot order determines z-order (first = back)
+    # non_det should be widest (back), then global_det, then detinfer (front)
     styles = {
         'non_det': {
             'label': 'SGLang Non-Deterministic',
             'color': 'tab:blue',
             'hatch': '',
+            'width': 1.0,
+            'zorder': 1,
         },
         'global_det': {
             'label': 'SGLang Global-Deterministic',
             'color': 'tab:red',
             'hatch': '',
+            'width': 1.0,
+            'zorder': 3,
+        },
+        'detinfer': {
+            'label': 'LLM-42',
+            'color': 'tab:green',
+            'hatch': '',
+            'width': 1.0,
+            'zorder': 2,
         },
     }
     
@@ -76,13 +83,12 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
         bs for batch_data in data.values() for bs in batch_data.keys()
     ))
     
-    # Bar plot settings - no gaps between bars
+    # Bar plot settings
     x = np.arange(len(all_batch_sizes))
-    width = 1.0  # Full width bars (no gap)
     
-    # Plot bars for each config (overlapped - same position)
-    # Plot non_det first (behind), then global_det on top
-    plot_order = ['non_det', 'global_det']
+    # Plot bars for each config (overlapped - same position, decreasing widths)
+    # Plot in order: non_det (widest, back), global_det, detinfer (narrowest, front)
+    plot_order = ['non_det', 'global_det', 'detinfer']
     for config_name in plot_order:
         if config_name not in data:
             continue
@@ -93,28 +99,31 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
             'label': config_name,
             'color': 'tab:gray',
             'hatch': '',
+            'width': 0.8,
+            'zorder': 1,
         })
         
+        width = style['width']
         bars = plt.bar(x, throughputs,
                        width=width,
                        label=style['label'],
                        color=style['color'],
                        hatch=style['hatch'],
                        edgecolor='black',
-                       linewidth=1,
-                       alpha=0.7,
-                       align='edge')  # Align bars by edge to eliminate gaps
+                       linewidth=1.5,
+                       alpha=0.6,
+                       zorder=style['zorder'])
     
     # Formatting
     plt.xlabel('Batch Size', fontsize=22, fontweight='bold')
     plt.ylabel('Decode Throughput\n(tokens/sec)', fontsize=22, fontweight='bold')
     
-    # Set x-ticks to center of each bar
-    plt.xticks(x + width/2, [str(bs) for bs in all_batch_sizes], fontsize=20)
+    # Set x-ticks at center of each bar group
+    plt.xticks(x, [str(bs) for bs in all_batch_sizes], fontsize=20)
     plt.yticks(fontsize=20)
     
-    # Set axis limits to remove any padding
-    plt.xlim(0, len(all_batch_sizes))
+    # Set axis limits
+    plt.xlim(-0.5, len(all_batch_sizes) - 0.5)
     
     # Set y-axis limit based on max throughput
     max_throughput = max(
@@ -122,8 +131,8 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
     )
     plt.ylim(bottom=0, top=max_throughput * 1.3)
     
-    plt.grid(True, alpha=0.3, axis='y')
-    plt.legend(fontsize=18, loc='upper left', ncol=1)
+    # plt.grid(True, alpha=0.3, axis='y')
+    plt.legend(fontsize=18, loc='upper left', ncol=2)
     
     # Add some padding
     plt.tight_layout()

@@ -160,7 +160,7 @@ run_benchmark() {
     
     # Build dataset args based on dataset type
     if [ "$DATASET_NAME" = "random" ]; then
-        DATASET_ARGS="--dataset-name random --random-input-len $RANDOM_INPUT_LEN --random-output-len $RANDOM_OUTPUT_LEN"
+        DATASET_ARGS="--dataset-name random --random-input-len $RANDOM_INPUT_LEN --random-output-len $RANDOM_OUTPUT_LEN --random-range-ratio 1.0"
         INPUT_LEN_FOR_RESULT=$RANDOM_INPUT_LEN
         OUTPUT_LEN_FOR_RESULT=$RANDOM_OUTPUT_LEN
         EXTRA_BODY='{"ignore_eos": true, "temperature": 0}'

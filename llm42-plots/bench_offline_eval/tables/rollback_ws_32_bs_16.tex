@@ -1,0 +1,28 @@
+% LaTeX Table: Rollback Metrics
+% DetInfer Config: ws=32, bs=16
+% Format: rollbacks/recomputed_tokens
+% Required packages: booktabs, graphicx
+
+\begin{table*}[!t]
+\centering
+\caption{Rollback Metrics (ws=32, bs=16). Format: rollbacks/recomputed\_tokens}
+\label{tab:rollback_ws_32_bs_16}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l|cccccc}
+\toprule
+& \multicolumn{6}{c}{\textbf{LLM-42 (DetInfer) Deterministic Ratio}} \\
+\cmidrule(lr){2-7}
+\textbf{Dataset Config} & 2pct & 5pct & 10pct & 20pct & 50pct & 100pct \\
+\midrule
+ArXiv & 72/1100 & 161/2437 & 383/5393 & 692/8407 & 1596/13334 & 3108/34817 \\
+ShareGPT & 4/75 & 4/57 & 12/185 & 16/130 & 37/552 & 79/1193 \\
+in=512, out=256 & 0/0 & 0/0 & 0/0 & 0/0 & 0/0 & 0/0 \\
+in=1024, out=256 & 0/0 & 2/35 & 5/87 & 7/143 & 10/206 & 28/453 \\
+in=1024, out=512 & 50/883 & 121/2055 & 232/3152 & 430/6651 & 934/14805 & 1702/27340 \\
+in=2048, out=256 & 6/68 & 23/371 & 75/983 & 123/1498 & 368/5393 & 737/11216 \\
+in=2048, out=512 & 0/0 & 0/0 & 0/0 & 2/50 & 3/76 & 4/70 \\
+in=4096, out=512 & 31/555 & 75/1398 & 89/1544 & 222/3584 & 534/7897 & 1073/15604 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

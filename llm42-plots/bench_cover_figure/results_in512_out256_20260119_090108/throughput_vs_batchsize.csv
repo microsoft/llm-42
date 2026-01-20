@@ -1,0 +1,5 @@
+config,batch_size,output_throughput
+detinfer,11,912.99
+global_det,11,413.41
+non_det,10,837.84
+non_det,11,937.96
