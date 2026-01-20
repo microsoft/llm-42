@@ -9,6 +9,12 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # Common settings
 export NUM_PROMPTS=${NUM_PROMPTS:-4096}
+export RANDOM_RANGE_RATIO=${RANDOM_RANGE_RATIO:-1.0}
+
+# Create main results directory
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+RESULTS_BASE="${ROOT}/results_${TIMESTAMP}"
+mkdir -p "$RESULTS_BASE"
 
 echo "=============================================="
 echo "Running Offline Throughput for Multiple Datasets"
@@ -23,12 +29,12 @@ echo ""
 # Dataset configurations
 declare -a DATASET_CONFIGS=(
     "sharegpt"
-    "random_in512_out256"
-    "random_in1024_out256"
-    "random_in1024_out512"
-    "random_in2048_out256"
-    "random_in2048_out512"
-    "random_in4096_out512"
+    "arxiv"
+    # "random_in1024_out256"
+    # "random_in1024_out512"
+    # "random_in2048_out256"
+    # "random_in2048_out512"
+    # "random_in4096_out512"
 )
 
 # Run each dataset configuration
@@ -101,6 +107,10 @@ for config in "${DATASET_CONFIGS[@]}"; do
     fi
     echo ""
     
+    # Set output directory for this dataset config
+    export OUTPUT_DIR="${RESULTS_BASE}/${config}"
+    mkdir -p "$OUTPUT_DIR"
+    
     # Run the benchmark
     "${ROOT}/run_offline_benchmark.sh"
     
@@ -114,20 +124,20 @@ echo "=============================================="
 echo "All dataset configurations completed!"
 echo "=============================================="
 echo ""
-echo "Results saved in:"
+echo "Results saved in: ${RESULTS_BASE}/"
 for config in "${DATASET_CONFIGS[@]}"; do
-    echo "  - ${ROOT}/results_${config}_*"
+    echo "  - ${RESULTS_BASE}/${config}/"
 done
 echo ""
 echo "Generating throughput comparison plots..."
 python "${ROOT}/plot_throughput_comparison.py" \
-    --results-dirs "${ROOT}"/results_*_n${NUM_PROMPTS}_* \
-    --output "${ROOT}/throughput_comparison"
+    --results-dirs "${RESULTS_BASE}"/* \
+    --output "${RESULTS_BASE}/throughput_comparison"
 
 echo ""
 echo "Generated:"
-echo "  - throughput_comparison_ws64bs8.pdf (DetInfer ws=64, bs=8)"
-echo "  - throughput_comparison.csv"
+echo "  - ${RESULTS_BASE}/throughput_comparison_ws64bs8.pdf (DetInfer ws=64, bs=8)"
+echo "  - ${RESULTS_BASE}/throughput_comparison.csv"
 echo ""
 echo "To regenerate plots:"
-echo "  python plot_throughput_comparison.py --results-dirs results_*_n${NUM_PROMPTS}_* --output throughput_comparison"
+echo "  python plot_throughput_comparison.py --results-dirs ${RESULTS_BASE}/* --output ${RESULTS_BASE}/throughput_comparison"

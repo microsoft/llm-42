@@ -87,9 +87,7 @@ for ((i=0; i<NUM_SERVERS; i++)); do
         --enable-metrics \
         --random-seed 42 \
         --chunked-prefill-size -1 \
-        --det-infer-window-size 64 \
-        --enable-det-infer 3 \
-        --det-infer-verify-batch-size 8 \
+        --enable-deterministic-inference 2 \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!

@@ -69,7 +69,7 @@ def parse_dataset_config_from_dir(dir_name: str) -> str:
 # Bar labels and their properties
 BAR_CONFIGS = [
     ('non_det', 'SGLang-non-deterministic', 'tab:green', '|||'),
-    ('global_det', 'SGLang-global-deterministic', 'tab:red', '////'),
+    ('global_det', 'SGLang-deterministic', 'tab:red', '////'),
     ('detinfer_0.02', 'LLM-42\n@2%', 'tab:purple', '\\\\\\\\'),
     ('detinfer_0.05', 'LLM-42\n@5%', 'tab:purple', '+++'),
     ('detinfer_0.1', 'LLM-42\n@10%', 'tab:purple', '///'),

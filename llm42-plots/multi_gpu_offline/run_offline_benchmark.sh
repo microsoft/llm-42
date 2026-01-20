@@ -37,12 +37,14 @@ BACKEND=${BACKEND:-sglang}
 BASELINE_RATIOS="1.0"
 DETINFER_RATIOS="0.02 0.05 0.1 0.2 0.5 1.0"
 
-# Output directory
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-if [ "$DATASET_NAME" = "random" ]; then
-    OUTPUT_DIR="${ROOT}/results_random_in${RANDOM_INPUT_LEN}_out${RANDOM_OUTPUT_LEN}_n${NUM_PROMPTS}_${TIMESTAMP}"
-else
-    OUTPUT_DIR="${ROOT}/results_${DATASET_NAME}_n${NUM_PROMPTS}_${TIMESTAMP}"
+# Output directory (use existing OUTPUT_DIR if set, otherwise create one)
+if [ -z "${OUTPUT_DIR:-}" ]; then
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    if [ "$DATASET_NAME" = "random" ]; then
+        OUTPUT_DIR="${ROOT}/results_random_in${RANDOM_INPUT_LEN}_out${RANDOM_OUTPUT_LEN}_n${NUM_PROMPTS}_${TIMESTAMP}"
+    else
+        OUTPUT_DIR="${ROOT}/results_${DATASET_NAME}_n${NUM_PROMPTS}_${TIMESTAMP}"
+    fi
 fi
 RESULTS_FILE="${OUTPUT_DIR}/benchmark_results.jsonl"
 
@@ -160,7 +162,7 @@ run_benchmark() {
     
     # Build dataset args based on dataset type
     if [ "$DATASET_NAME" = "random" ]; then
-        DATASET_ARGS="--dataset-name random --random-input-len $RANDOM_INPUT_LEN --random-output-len $RANDOM_OUTPUT_LEN --random-range-ratio 1.0"
+        DATASET_ARGS="--dataset-name random --random-input-len $RANDOM_INPUT_LEN --random-output-len $RANDOM_OUTPUT_LEN --random-range-ratio ${RANDOM_RANGE_RATIO:-1.0}"
         INPUT_LEN_FOR_RESULT=$RANDOM_INPUT_LEN
         OUTPUT_LEN_FOR_RESULT=$RANDOM_OUTPUT_LEN
         EXTRA_BODY='{"ignore_eos": true, "temperature": 0}'
