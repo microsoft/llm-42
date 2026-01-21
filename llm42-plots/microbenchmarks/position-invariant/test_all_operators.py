@@ -79,7 +79,7 @@ class GEMMTester(OperatorTester):
         # GEMM dimensions: [M, K] x [K, N] -> [M, N]
         self.M = 2048  # Full batch size
         self.K = 8192
-        self.N = 7167
+        self.N = 7178
         self.num_iters = 10
         
     def test_batch_invariance(self) -> Tuple[bool, str]:
@@ -159,19 +159,28 @@ class GEMMTester(OperatorTester):
 
 
 class FusedMoETester(OperatorTester):
-    """Test Fused MoE (Triton) for invariance using SGLang's implementation."""
+    """Test Fused MoE (Triton) for invariance using SGLang's implementation.
+    
+    NOTE: Similar to CuBLAS, Fused MoE kernels can be non-deterministic because
+    they may select different tile sizes or accumulation orders based on the
+    number of tokens routed to each expert, which changes with batch size.
+    
+    The config (BLOCK_SIZE_M, BLOCK_SIZE_N, BLOCK_SIZE_K) is selected based on M.
+    Different BLOCK_SIZE_K can lead to different floating-point accumulation orders.
+    """
     
     def __init__(self, device: torch.device, dtype: torch.dtype = torch.bfloat16):
         super().__init__(device, dtype)
         self.category = "Matmul"
         self.name = "Fused MoE (Triton)"
-        # Use E=128, N=384 which has config for H100 PCIe
-        # w1 shape: (E, N*2, hidden_dim) for gate+up projection with SiLU
-        # w2 shape: (E, hidden_dim, N) for down projection
-        # So intermediate_size = N = 384, and hidden_dim should match
+        # Use E=128, N=384 which has tuned config for H100 PCIe with varying BLOCK_SIZE_K
+        # Config file: E=128,N=384,device_name=NVIDIA_H100_PCIe.json
+        # BS=32 and BS=96 use BLOCK_SIZE_K=128, others use BLOCK_SIZE_K=64
         self.num_experts = 128
-        self.intermediate_size = 384  # N value from config
+        self.intermediate_size = 384  # N value
+        self.hidden_dim = 4096  # K dimension - must be divisible by BLOCK_SIZE_K
         self.top_k = 2
+        self.num_iters = 10
         self.available = False
         self._check_availability()
         
@@ -179,10 +188,26 @@ class FusedMoETester(OperatorTester):
         """Check if fused MoE kernel is available."""
         try:
             from sglang.srt.layers.moe.fused_moe_triton.fused_moe import outplace_fused_experts
+            from sglang.srt.layers.moe.fused_moe_triton.fused_moe_triton_config import (
+                try_get_optimal_moe_config, get_moe_configs
+            )
             self.outplace_fused_experts = outplace_fused_experts
+            self.try_get_optimal_moe_config = try_get_optimal_moe_config
+            self.get_moe_configs = get_moe_configs
             self.available = True
         except ImportError:
             self.available = False
+    
+    def _get_config_for_m(self, M: int) -> dict:
+        """Get the MoE config for a given M value."""
+        # w1 shape: (E, 2*N, K) -> w1_shape = (E, 2*N, hidden_dim)
+        # w2 shape: (E, K, N) -> w2_shape = (E, hidden_dim, N)
+        w1_shape = (self.num_experts, self.intermediate_size * 2, self.hidden_dim)
+        w2_shape = (self.num_experts, self.hidden_dim, self.intermediate_size)
+        config = self.try_get_optimal_moe_config(
+            w1_shape, w2_shape, self.top_k, dtype=None, M=M
+        )
+        return config
     
     def _compute_topk(self, router_logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute top-k routing weights and indices."""
@@ -195,117 +220,182 @@ class FusedMoETester(OperatorTester):
         return topk_weights.to(self.dtype), topk_ids.to(torch.int32)
     
     def test_batch_invariance(self) -> Tuple[bool, str]:
+        """
+        Test if MoE output for first token is the same when computed as:
+        - MoE(input[:1])  # batch size 1
+        - MoE(input)[:1]  # full batch, then slice
+        
+        Similar to CuBLAS, MoE kernels may use different algorithms for different
+        batch sizes due to varying expert loads.
+        
+        Key source of non-determinism: Different BLOCK_SIZE_K leads to different
+        floating-point accumulation orders in the K-dimension reduction.
+        """
         if not self.available:
             return None, "Fused MoE not available (sglang not installed)"
         
+        is_deterministic = True
+        diffs = []
+        config_info = {}
+        
+        # Log configs for different batch sizes
+        # Focus on batch sizes where BLOCK_SIZE_K differs:
+        # BS=32 and BS=96 use BLOCK_SIZE_K=128, others use BLOCK_SIZE_K=64
+        print(f"\n    MoE Config check (E={self.num_experts}, N={self.intermediate_size}, K={self.hidden_dim}):")
+        test_batch_sizes = [1, 2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 256, 512, 1024, 1534, 2048, 4097]
+        for bs in test_batch_sizes:
+            config = self._get_config_for_m(bs)
+            config_info[bs] = config
+            print(f"      BS={bs:4d}: BLOCK_SIZE_M={config['BLOCK_SIZE_M']:3d}, "
+                  f"BLOCK_SIZE_N={config['BLOCK_SIZE_N']:3d}, "
+                  f"BLOCK_SIZE_K={config['BLOCK_SIZE_K']:3d}")
+        
+        # Check if configs differ - this is the source of non-determinism
+        unique_k_sizes = set(c['BLOCK_SIZE_K'] for c in config_info.values())
+        if len(unique_k_sizes) > 1:
+            print(f"    WARNING: Different BLOCK_SIZE_K values detected: {unique_k_sizes}")
+            print(f"             This WILL cause non-batch-invariance due to different FP accumulation orders!")
+        else:
+            print(f"    INFO: Same BLOCK_SIZE_K={list(unique_k_sizes)[0]} for all batch sizes (batch-invariant)")
+        
+        # Use RANDOM data to better expose floating-point non-determinism
+        # (linspace creates very regular patterns that might mask differences)
         torch.manual_seed(42)
-        
-        # MoE dimensions matching config E=128, N=384:
-        # w1: (num_experts, N * 2, hidden_dim) for gate+up projection with SiLU
-        # w2: (num_experts, hidden_dim, N) for down projection
-        # hidden_dim must be reasonable (e.g., 1024)
-        hidden_dim = 1024
-        
-        # Expert weights
-        w1 = torch.randn(self.num_experts, self.intermediate_size * 2, hidden_dim, 
+        w1 = torch.randn(self.num_experts, self.intermediate_size * 2, self.hidden_dim,
                          dtype=self.dtype, device=self.device).contiguous()
-        w2 = torch.randn(self.num_experts, hidden_dim, self.intermediate_size, 
+        w2 = torch.randn(self.num_experts, self.hidden_dim, self.intermediate_size,
                          dtype=self.dtype, device=self.device).contiguous()
         
-        target_input = torch.randn(1, hidden_dim, dtype=self.dtype, device=self.device).contiguous()
+        # Target input (single token) - also random
+        target_input = torch.randn(1, self.hidden_dim, dtype=self.dtype, device=self.device).contiguous()
         
-        # Router logits for target
+        # Fixed router logits for target (deterministic routing)
         target_router = torch.randn(1, self.num_experts, dtype=torch.float32, device=self.device)
         target_topk_weights, target_topk_ids = self._compute_topk(target_router)
         
-        # Compute with BS=1
-        out_bs1 = self.outplace_fused_experts(
-            target_input, w1, w2, target_topk_weights, target_topk_ids,
-            activation="silu"
-        )
-        torch.cuda.synchronize()
-        
-        results = []
-        for bs in [2, 4, 8, 16, 32]:
-            filler_input = torch.randn(bs - 1, hidden_dim, dtype=self.dtype, device=self.device)
-            filler_router = torch.randn(bs - 1, self.num_experts, dtype=torch.float32, device=self.device)
-            filler_topk_weights, filler_topk_ids = self._compute_topk(filler_router)
-            
-            batch_input = torch.cat([target_input, filler_input], dim=0).contiguous()
-            batch_topk_weights = torch.cat([target_topk_weights, filler_topk_weights], dim=0).contiguous()
-            batch_topk_ids = torch.cat([target_topk_ids, filler_topk_ids], dim=0).contiguous()
-            
-            out_batch = self.outplace_fused_experts(
-                batch_input, w1, w2, batch_topk_weights, batch_topk_ids,
+        for _ in range(self.num_iters):
+            # Method 1: Compute with BS=1
+            out_bs1 = self.outplace_fused_experts(
+                target_input, w1, w2, target_topk_weights, target_topk_ids,
                 activation="silu"
             )
             torch.cuda.synchronize()
             
-            match = self.check_equal(out_bs1[0], out_batch[0])
-            results.append((bs, match))
+            # Method 2: Compute with full batch, then slice
+            for bs in [2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 256, 512, 1024, 2048]:
+                # Create filler with random data
+                torch.manual_seed(42 + bs)  # Different seed per batch size for variety
+                filler_input = torch.randn(bs - 1, self.hidden_dim,
+                                            dtype=self.dtype, device=self.device)
+                filler_router = torch.randn(bs - 1, self.num_experts,
+                                             dtype=torch.float32, device=self.device)
+                filler_topk_weights, filler_topk_ids = self._compute_topk(filler_router)
+                
+                batch_input = torch.cat([target_input, filler_input], dim=0).contiguous()
+                batch_topk_weights = torch.cat([target_topk_weights, filler_topk_weights], dim=0).contiguous()
+                batch_topk_ids = torch.cat([target_topk_ids, filler_topk_ids], dim=0).contiguous()
+                
+                out_batch = self.outplace_fused_experts(
+                    batch_input, w1, w2, batch_topk_weights, batch_topk_ids,
+                    activation="silu"
+                )
+                torch.cuda.synchronize()
+                
+                # Check if results are identical (bitwise)
+                diff = (out_bs1[0] - out_batch[0]).abs().max().item()
+                diffs.append((bs, diff))
+                
+                # Debug: print actual difference for batch sizes that should differ (BLOCK_SIZE_K=128)
+                if bs in [32, 96] and _ == 0:  # First iter, these use different BLOCK_SIZE_K
+                    print(f"    DEBUG BS={bs}: max_diff={diff:.6e}")
+                
+                if diff != 0:
+                    is_deterministic = False
         
-        all_match = all(r[1] for r in results)
-        details = f"Tested BS: {[r[0] for r in results]}"
-        if not all_match:
-            failed = [r[0] for r in results if not r[1]]
-            details += f", Failed at BS: {failed}"
-        return all_match, details
+        details = f"E={self.num_experts}, N={self.intermediate_size}, K={self.hidden_dim}, iters={self.num_iters}"
+        if not is_deterministic:
+            max_diff = max(d[1] for d in diffs)
+            failed_bs = list(set(d[0] for d in diffs if d[1] > 0))
+            details += f", max_diff={max_diff:.6e}, failed_BS={failed_bs}"
+        return is_deterministic, details
     
     def test_position_invariance(self) -> Tuple[bool, str]:
+        """
+        Test if MoE output for a token is the same regardless of its position in batch.
+        """
         if not self.available:
             return None, "Fused MoE not available"
         
-        torch.manual_seed(42)
+        is_deterministic = True
+        diffs = []
+        fixed_bs = 512
         
-        hidden_dim = 1024
-        fixed_bs = 32
+        # Use linspace for reproducible data
+        w1 = torch.linspace(-1, 1, self.num_experts * self.intermediate_size * 2 * self.hidden_dim,
+                            dtype=self.dtype, device=self.device).reshape(
+                                self.num_experts, self.intermediate_size * 2, self.hidden_dim).contiguous()
+        w2 = torch.linspace(-1, 1, self.num_experts * self.hidden_dim * self.intermediate_size,
+                            dtype=self.dtype, device=self.device).reshape(
+                                self.num_experts, self.hidden_dim, self.intermediate_size).contiguous()
         
-        w1 = torch.randn(self.num_experts, self.intermediate_size * 2, hidden_dim, 
-                         dtype=self.dtype, device=self.device).contiguous()
-        w2 = torch.randn(self.num_experts, hidden_dim, self.intermediate_size, 
-                         dtype=self.dtype, device=self.device).contiguous()
-        
-        target_input = torch.randn(1, hidden_dim, dtype=self.dtype, device=self.device)
-        target_router = torch.randn(1, self.num_experts, dtype=torch.float32, device=self.device)
+        # Target token
+        target_input = torch.linspace(-50, 50, self.hidden_dim,
+                                       dtype=self.dtype, device=self.device).reshape(1, self.hidden_dim)
+        target_router = torch.linspace(-5, 5, self.num_experts,
+                                        dtype=torch.float32, device=self.device).reshape(1, self.num_experts)
         target_topk_weights, target_topk_ids = self._compute_topk(target_router)
         
-        filler_input = torch.randn(fixed_bs, hidden_dim, dtype=self.dtype, device=self.device)
-        filler_router = torch.randn(fixed_bs, self.num_experts, dtype=torch.float32, device=self.device)
-        filler_topk_weights, filler_topk_ids = self._compute_topk(filler_router)
-        
-        results = []
-        ref_output = None
-        
-        for pos in range(0, fixed_bs, 4):  # Test every 4th position
-            batch_input = filler_input.clone()
-            batch_topk_weights = filler_topk_weights.clone()
-            batch_topk_ids = filler_topk_ids.clone()
+        for _ in range(self.num_iters):
+            # Compute reference with target at position 0
+            filler_input = torch.linspace(-100, 100, fixed_bs * self.hidden_dim,
+                                           dtype=self.dtype, device=self.device).reshape(fixed_bs, self.hidden_dim)
+            filler_router = torch.linspace(-10, 10, fixed_bs * self.num_experts,
+                                            dtype=torch.float32, device=self.device).reshape(fixed_bs, self.num_experts)
+            filler_topk_weights, filler_topk_ids = self._compute_topk(filler_router)
             
-            batch_input[pos] = target_input[0]
-            batch_topk_weights[pos] = target_topk_weights[0]
-            batch_topk_ids[pos] = target_topk_ids[0]
+            batch_input_ref = filler_input.clone()
+            batch_topk_weights_ref = filler_topk_weights.clone()
+            batch_topk_ids_ref = filler_topk_ids.clone()
+            batch_input_ref[0] = target_input[0]
+            batch_topk_weights_ref[0] = target_topk_weights[0]
+            batch_topk_ids_ref[0] = target_topk_ids[0]
             
-            out = self.outplace_fused_experts(
-                batch_input.contiguous(), w1, w2, 
-                batch_topk_weights.contiguous(), batch_topk_ids.contiguous(),
+            out_ref = self.outplace_fused_experts(
+                batch_input_ref.contiguous(), w1, w2,
+                batch_topk_weights_ref.contiguous(), batch_topk_ids_ref.contiguous(),
                 activation="silu"
             )
             torch.cuda.synchronize()
+            ref_output = out_ref[0].clone()
             
-            target_out = out[pos].clone()
-            
-            if ref_output is None:
-                ref_output = target_out
-            else:
-                match = self.check_equal(ref_output, target_out)
-                results.append((pos, match))
+            # Test at different positions
+            for pos in range(1, fixed_bs, 1):  # Test every position
+                batch_input = filler_input.clone()
+                batch_topk_weights = filler_topk_weights.clone()
+                batch_topk_ids = filler_topk_ids.clone()
+                batch_input[pos] = target_input[0]
+                batch_topk_weights[pos] = target_topk_weights[0]
+                batch_topk_ids[pos] = target_topk_ids[0]
+                
+                out = self.outplace_fused_experts(
+                    batch_input.contiguous(), w1, w2,
+                    batch_topk_weights.contiguous(), batch_topk_ids.contiguous(),
+                    activation="silu"
+                )
+                torch.cuda.synchronize()
+                
+                diff = (ref_output - out[pos]).abs().max().item()
+                diffs.append((pos, diff))
+                
+                if diff != 0:
+                    is_deterministic = False
         
-        all_match = all(r[1] for r in results)
-        details = f"Tested positions in BS={fixed_bs}"
-        if not all_match:
-            failed = [r[0] for r in results if not r[1]]
-            details += f", Failed at positions: {failed}"
-        return all_match, details
+        details = f"Tested positions in BS={fixed_bs}, iters={self.num_iters}"
+        if not is_deterministic:
+            max_diff = max(d[1] for d in diffs)
+            failed_positions = [d[0] for d in diffs if d[1] > 0][:10]  # First 10
+            details += f", max_diff={max_diff:.6e}, failed_pos={failed_positions}..."
+        return is_deterministic, details
 
 
 # =============================================================================
@@ -624,28 +714,34 @@ class FlashInferTester(OperatorTester):
 # =============================================================================
 
 class RMSNormTester(OperatorTester):
-    """Test RMSNorm for invariance using sgl_kernel."""
+    """Test RMSNorm for invariance using actual vLLM kernel from vllm._custom_ops."""
     
     def __init__(self, device: torch.device, dtype: torch.dtype = torch.bfloat16):
         super().__init__(device, dtype)
         self.category = "Normalization"
-        self.name = "RMSNorm"
+        self.name = "vLLM RMSNorm (actual)"
         self.eps = 1e-6
         self.available = False
         self._check_availability()
+        # Test multiple hidden dimensions
+        self.hidden_dims = [256, 1024, 2048, 4096, 8192]
+        self.num_iters = 2000
+        self.test_batch_sizes = [1, 10, 55, 128, 255, 256, 257, 512, 528, 2048]
         
     def _check_availability(self):
         try:
-            import sgl_kernel
-            self.sgl_kernel = sgl_kernel
+            from vllm._custom_ops import rms_norm
+            self.vllm_rms_norm = rms_norm
             self.available = True
-        except ImportError:
+        except (ImportError, AttributeError):
             self.available = False
         
     def rms_norm(self, x: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
-        """RMSNorm using sgl_kernel if available, else fallback."""
+        """RMSNorm using actual vLLM kernel from vllm._custom_ops."""
         if self.available:
-            return self.sgl_kernel.rmsnorm(x, weight, eps=self.eps)
+            out = torch.empty_like(x)
+            self.vllm_rms_norm(out, x, weight, self.eps)
+            return out
         else:
             # Fallback: reference implementation
             orig_dtype = x.dtype
@@ -655,97 +751,165 @@ class RMSNormTester(OperatorTester):
             return (x_norm * weight.float()).to(orig_dtype)
     
     def test_batch_invariance(self) -> Tuple[bool, str]:
-        torch.manual_seed(42)
+        """
+        Test if RMSNorm output for first row is the same across different batch sizes.
+        Tests multiple hidden dimensions with many iterations each.
+        """
+        full_batch_size = max(self.test_batch_sizes)
+        all_invariant = True
+        all_diffs = []
+        failed_configs = []
         
-        weight = torch.randn(self.hidden_dim, dtype=self.dtype, device=self.device)
-        target_input = torch.randn(1, self.hidden_dim, dtype=self.dtype, device=self.device)
+        print(f"\n    Testing {len(self.hidden_dims)} hidden dims × {self.num_iters} iterations:")
         
-        out_bs1 = self.rms_norm(target_input, weight)
-        torch.cuda.synchronize()
-        
-        results = []
-        for bs in self.batch_sizes[1:]:
-            filler = torch.randn(bs - 1, self.hidden_dim, dtype=self.dtype, device=self.device)
-            batch_input = torch.cat([target_input, filler], dim=0)
+        for hidden_dim in self.hidden_dims:
+            dim_invariant = True
+            dim_max_diff = 0.0
+            failed_bs_set = set()  # Track which batch sizes fail
+            failed_iters = []  # Track (iter_idx, bs, diff) for failures
             
-            out_batch = self.rms_norm(batch_input, weight)
-            torch.cuda.synchronize()
+            for iter_idx in range(self.num_iters):
+                # Generate fresh random test data each iteration
+                x = torch.randn(full_batch_size, hidden_dim, dtype=self.dtype, device=self.device)
+                weight = torch.ones(hidden_dim, dtype=self.dtype, device=self.device)
+                
+                # Reference: Single row (BS=1)
+                out_ref = self.rms_norm(x[:1].clone(), weight)
+                torch.cuda.synchronize()
+                
+                # Test at different batch sizes
+                for bs in self.test_batch_sizes[1:]:  # Skip BS=1 (reference)
+                    out_bs = self.rms_norm(x[:bs].clone(), weight)
+                    torch.cuda.synchronize()
+                    
+                    diff = (out_ref[0] - out_bs[0]).abs().max().item()
+                    all_diffs.append(diff)
+                    
+                    if diff > dim_max_diff:
+                        dim_max_diff = diff
+                    
+                    if diff != 0:
+                        dim_invariant = False
+                        all_invariant = False
+                        failed_bs_set.add(bs)
+                        failed_iters.append((iter_idx, bs, diff))
             
-            match = self.check_equal(out_bs1[0], out_batch[0])
-            results.append((bs, match))
+            status = "✓" if dim_invariant else "✗"
+            if dim_invariant:
+                print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}")
+            else:
+                # Show first 5 failures with iteration numbers
+                fail_summary = [(it, bs, f"{d:.2e}") for it, bs, d in failed_iters[:5]]
+                print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}, failed_BS={sorted(failed_bs_set)}, "
+                      f"failures({len(failed_iters)} total)={fail_summary}")
+            
+            if not dim_invariant:
+                failed_configs.append((hidden_dim, dim_max_diff, sorted(failed_bs_set), len(failed_iters)))
         
-        all_match = all(r[1] for r in results)
-        details = f"Tested BS: {[r[0] for r in results]}"
+        max_diff = max(all_diffs) if all_diffs else 0.0
+        details = f"hidden_dims={self.hidden_dims}, BS={self.test_batch_sizes}, iters={self.num_iters}, max_diff={max_diff:.2e}"
         if not self.available:
             details += " (fallback impl)"
-        if not all_match:
-            failed = [r[0] for r in results if not r[1]]
-            details += f", Failed at BS: {failed}"
-        return all_match, details
+        if not all_invariant:
+            details += f", failed_configs={failed_configs}"
+        return all_invariant, details
     
     def test_position_invariance(self) -> Tuple[bool, str]:
-        torch.manual_seed(42)
+        """
+        Test if output for a row is the same regardless of position in batch.
+        Tests multiple hidden dimensions with many iterations each.
+        """
+        fixed_bs = 512
+        all_invariant = True
+        all_diffs = []
+        failed_configs = []
         
-        weight = torch.randn(self.hidden_dim, dtype=self.dtype, device=self.device)
-        target_input = torch.randn(1, self.hidden_dim, dtype=self.dtype, device=self.device)
+        print(f"\n    Testing {len(self.hidden_dims)} hidden dims × {self.num_iters} iterations:")
         
-        fixed_bs = 64
-        filler = torch.randn(fixed_bs, self.hidden_dim, dtype=self.dtype, device=self.device)
-        
-        results = []
-        ref_output = None
-        
-        for pos in range(fixed_bs):
-            batch = filler.clone()
-            batch[pos] = target_input[0]
+        for hidden_dim in self.hidden_dims:
+            dim_invariant = True
+            dim_max_diff = 0.0
             
-            out = self.rms_norm(batch, weight)
-            torch.cuda.synchronize()
+            for iter_idx in range(self.num_iters):
+                # Generate fresh random test data each iteration
+                weight = torch.randn(hidden_dim, dtype=self.dtype, device=self.device)
+                target_x = torch.randn(1, hidden_dim, dtype=self.dtype, device=self.device)
+                filler_x = torch.randn(fixed_bs, hidden_dim, dtype=self.dtype, device=self.device)
+                
+                ref_output = None
+                
+                # Test at every position
+                for pos in range(fixed_bs):
+                    batch_x = filler_x.clone()
+                    batch_x[pos] = target_x[0]
+                    
+                    out = self.rms_norm(batch_x, weight)
+                    torch.cuda.synchronize()
+                    
+                    target_out = out[pos].clone()
+                    
+                    if ref_output is None:
+                        ref_output = target_out
+                    else:
+                        diff = (ref_output - target_out).abs().max().item()
+                        all_diffs.append(diff)
+                        
+                        if diff > dim_max_diff:
+                            dim_max_diff = diff
+                        
+                        if diff != 0:
+                            dim_invariant = False
+                            all_invariant = False
             
-            target_out = out[pos].clone()
+            status = "✓" if dim_invariant else "✗"
+            print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}")
             
-            if ref_output is None:
-                ref_output = target_out
-            else:
-                match = self.check_equal(ref_output, target_out)
-                results.append((pos, match))
+            if not dim_invariant:
+                failed_configs.append((hidden_dim, dim_max_diff))
         
-        all_match = all(r[1] for r in results)
-        details = f"Tested positions 0-{fixed_bs-1}"
+        max_diff = max(all_diffs) if all_diffs else 0.0
+        details = f"hidden_dims={self.hidden_dims}, BS={fixed_bs}, iters={self.num_iters}, max_diff={max_diff:.2e}"
         if not self.available:
             details += " (fallback impl)"
-        return all_match, details
+        if not all_invariant:
+            details += f", failed_configs={failed_configs}"
+        return all_invariant, details
 
 
 class FusedRMSNormResidualTester(OperatorTester):
-    """Test Fused RMSNorm + Residual for invariance using sgl_kernel."""
+    """Test Fused RMSNorm + Residual for invariance using actual vLLM kernel from vllm._custom_ops."""
     
     def __init__(self, device: torch.device, dtype: torch.dtype = torch.bfloat16):
         super().__init__(device, dtype)
         self.category = "Normalization"
-        self.name = "Fused RMSNorm+Residual"
+        self.name = "vLLM Fused RMSNorm+Residual (actual)"
         self.eps = 1e-6
         self.available = False
         self._check_availability()
+        # Test multiple hidden dimensions
+        self.hidden_dims = [256, 1024, 2048, 4096, 8192]
+        self.num_iters = 2000
+        self.test_batch_sizes = [1, 10, 55, 128, 255, 256, 257, 512, 528, 2048]
         
     def _check_availability(self):
         try:
-            import sgl_kernel
-            self.sgl_kernel = sgl_kernel
+            from vllm._custom_ops import fused_add_rms_norm
+            self.vllm_fused_add_rms_norm = fused_add_rms_norm
             self.available = True
-        except ImportError:
+        except (ImportError, AttributeError):
             self.available = False
     
     def fused_rms_norm_residual(self, x: torch.Tensor, residual: torch.Tensor, 
                                  weight: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Fused RMSNorm + Residual: out = RMSNorm(x + residual), also returns updated residual."""
+        """Fused RMSNorm + Residual using actual vLLM kernel: out = RMSNorm(x + residual), also returns updated residual."""
         if self.available:
             x = x.clone()
             residual = residual.clone()
-            self.sgl_kernel.fused_add_rmsnorm(x, residual, weight, self.eps)
+            self.vllm_fused_add_rms_norm(x, residual, weight, self.eps)
             return x, residual
         else:
             # Fallback implementation
+            print(f"Warning: Using fallback implementation for Fused RMSNorm+Residual")
             orig_dtype = x.dtype
             x_float = x.float() + residual.float()
             new_residual = x_float.to(orig_dtype)
@@ -754,71 +918,444 @@ class FusedRMSNormResidualTester(OperatorTester):
             return out, new_residual
     
     def test_batch_invariance(self) -> Tuple[bool, str]:
-        torch.manual_seed(42)
+        """
+        Test if Fused RMSNorm+Residual output for first row is the same across different batch sizes.
+        Tests multiple hidden dimensions (256, 1024, 2048, 4096, 8192) with 100 iterations each.
+        """
+        full_batch_size = max(self.test_batch_sizes)
+        all_invariant = True
+        all_diffs = []
+        failed_configs = []
         
-        weight = torch.randn(self.hidden_dim, dtype=self.dtype, device=self.device)
-        target_x = torch.randn(1, self.hidden_dim, dtype=self.dtype, device=self.device)
-        target_res = torch.randn(1, self.hidden_dim, dtype=self.dtype, device=self.device)
+        print(f"\n    Testing {len(self.hidden_dims)} hidden dims × {self.num_iters} iterations:")
         
-        out_bs1, res_bs1 = self.fused_rms_norm_residual(target_x.clone(), target_res.clone(), weight)
-        torch.cuda.synchronize()
-        
-        results = []
-        for bs in self.batch_sizes[1:8]:  # Test smaller batch sizes
-            filler_x = torch.randn(bs - 1, self.hidden_dim, dtype=self.dtype, device=self.device)
-            filler_res = torch.randn(bs - 1, self.hidden_dim, dtype=self.dtype, device=self.device)
+        for hidden_dim in self.hidden_dims:
+            dim_invariant = True
+            dim_max_diff = 0.0
+            failed_bs_set = set()  # Track which batch sizes fail
+            failed_iters = []  # Track (iter_idx, bs, diff) for failures
             
-            batch_x = torch.cat([target_x, filler_x], dim=0)
-            batch_res = torch.cat([target_res, filler_res], dim=0)
+            for iter_idx in range(self.num_iters):
+                # Generate fresh random test data each iteration
+                x = torch.randn(full_batch_size, hidden_dim, dtype=self.dtype, device=self.device)
+                weight = torch.ones(hidden_dim, dtype=self.dtype, device=self.device)
+                residual = torch.randn(full_batch_size, hidden_dim, dtype=self.dtype, device=self.device)
+                
+                # Reference: Single row (BS=1)
+                out_ref, _ = self.fused_rms_norm_residual(x[:1].clone(), residual[:1].clone(), weight)
+                torch.cuda.synchronize()
+                
+                # Test at different batch sizes
+                for bs in self.test_batch_sizes[1:]:  # Skip BS=1 (reference)
+                    out_bs, _ = self.fused_rms_norm_residual(x[:bs].clone(), residual[:bs].clone(), weight)
+                    torch.cuda.synchronize()
+                    
+                    diff = (out_ref[0] - out_bs[0]).abs().max().item()
+                    all_diffs.append(diff)
+                    
+                    if diff > dim_max_diff:
+                        dim_max_diff = diff
+                    
+                    if diff != 0:
+                        dim_invariant = False
+                        all_invariant = False
+                        failed_bs_set.add(bs)
+                        failed_iters.append((iter_idx, bs, diff))
             
-            out_batch, res_batch = self.fused_rms_norm_residual(batch_x.clone(), batch_res.clone(), weight)
-            torch.cuda.synchronize()
+            status = "✓" if dim_invariant else "✗"
+            if dim_invariant:
+                print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}")
+            else:
+                # Show first 5 failures with iteration numbers
+                fail_summary = [(it, bs, f"{d:.2e}") for it, bs, d in failed_iters[:5]]
+                print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}, failed_BS={sorted(failed_bs_set)}, "
+                      f"failures({len(failed_iters)} total)={fail_summary}")
             
-            match = self.check_equal(out_bs1[0], out_batch[0])
-            results.append((bs, match))
+            if not dim_invariant:
+                failed_configs.append((hidden_dim, dim_max_diff, sorted(failed_bs_set), len(failed_iters)))
         
-        all_match = all(r[1] for r in results)
-        details = f"Tested BS: {[r[0] for r in results]}"
+        max_diff = max(all_diffs) if all_diffs else 0.0
+        details = f"hidden_dims={self.hidden_dims}, BS={self.test_batch_sizes}, iters={self.num_iters}, max_diff={max_diff:.2e}"
         if not self.available:
             details += " (fallback impl)"
-        return all_match, details
+        if not all_invariant:
+            details += f", failed_configs={failed_configs}"
+        return all_invariant, details
     
     def test_position_invariance(self) -> Tuple[bool, str]:
-        torch.manual_seed(42)
+        """
+        Test if output for a row is the same regardless of position in batch.
+        Tests multiple hidden dimensions with 100 iterations each.
+        """
+        fixed_bs = 512
+        all_invariant = True
+        all_diffs = []
+        failed_configs = []
         
-        weight = torch.randn(self.hidden_dim, dtype=self.dtype, device=self.device)
-        target_x = torch.randn(1, self.hidden_dim, dtype=self.dtype, device=self.device)
-        target_res = torch.randn(1, self.hidden_dim, dtype=self.dtype, device=self.device)
+        print(f"\n    Testing {len(self.hidden_dims)} hidden dims × {self.num_iters} iterations:")
         
-        fixed_bs = 32
-        filler_x = torch.randn(fixed_bs, self.hidden_dim, dtype=self.dtype, device=self.device)
-        filler_res = torch.randn(fixed_bs, self.hidden_dim, dtype=self.dtype, device=self.device)
-        
-        results = []
-        ref_output = None
-        
-        for pos in range(fixed_bs):
-            batch_x = filler_x.clone()
-            batch_res = filler_res.clone()
-            batch_x[pos] = target_x[0]
-            batch_res[pos] = target_res[0]
+        for hidden_dim in self.hidden_dims:
+            dim_invariant = True
+            dim_max_diff = 0.0
             
-            out, _ = self.fused_rms_norm_residual(batch_x, batch_res, weight)
-            torch.cuda.synchronize()
+            for iter_idx in range(self.num_iters):
+                # Generate fresh random test data each iteration
+                weight = torch.randn(hidden_dim, dtype=self.dtype, device=self.device)
+                target_x = torch.randn(1, hidden_dim, dtype=self.dtype, device=self.device)
+                target_res = torch.randn(1, hidden_dim, dtype=self.dtype, device=self.device)
+                filler_x = torch.randn(fixed_bs, hidden_dim, dtype=self.dtype, device=self.device)
+                filler_res = torch.randn(fixed_bs, hidden_dim, dtype=self.dtype, device=self.device)
+                
+                ref_output = None
+                
+                # Test at every position
+                for pos in range(fixed_bs):
+                    batch_x = filler_x.clone()
+                    batch_res = filler_res.clone()
+                    batch_x[pos] = target_x[0]
+                    batch_res[pos] = target_res[0]
+                    
+                    out, _ = self.fused_rms_norm_residual(batch_x, batch_res, weight)
+                    torch.cuda.synchronize()
+                    
+                    target_out = out[pos].clone()
+                    
+                    if ref_output is None:
+                        ref_output = target_out
+                    else:
+                        diff = (ref_output - target_out).abs().max().item()
+                        all_diffs.append(diff)
+                        
+                        if diff > dim_max_diff:
+                            dim_max_diff = diff
+                        
+                        if diff != 0:
+                            dim_invariant = False
+                            all_invariant = False
             
-            target_out = out[pos].clone()
+            status = "✓" if dim_invariant else "✗"
+            # print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}")
             
-            if ref_output is None:
-                ref_output = target_out
-            else:
-                match = self.check_equal(ref_output, target_out)
-                results.append((pos, match))
+            if not dim_invariant:
+                failed_configs.append((hidden_dim, dim_max_diff))
         
-        all_match = all(r[1] for r in results)
-        details = f"Tested positions 0-{fixed_bs-1}"
+        max_diff = max(all_diffs) if all_diffs else 0.0
+        details = f"hidden_dims={self.hidden_dims}, BS={fixed_bs}, iters={self.num_iters}, max_diff={max_diff:.2e}"
         if not self.available:
             details += " (fallback impl)"
-        return all_match, details
+        if not all_invariant:
+            details += f", failed_configs={failed_configs}"
+        return all_invariant, details
+
+
+class SGLangRMSNormTester(OperatorTester):
+    """Test RMSNorm for invariance using SGLang default kernel from sgl_kernel (with PDL)."""
+    
+    def __init__(self, device: torch.device, dtype: torch.dtype = torch.bfloat16):
+        super().__init__(device, dtype)
+        self.category = "Normalization"
+        self.name = "SGLang RMSNorm (PDL)"
+        self.eps = 1e-6
+        self.available = False
+        self._check_availability()
+        # Test multiple hidden dimensions
+        self.hidden_dims = [256, 1024, 2048, 4096, 8192]
+        self.num_iters = 2000
+        self.test_batch_sizes = [1, 10, 55, 128, 255, 256, 257, 512, 528, 2048]
+        
+    def _check_availability(self):
+        try:
+            import sgl_kernel
+            self.sgl_rmsnorm = sgl_kernel.rmsnorm
+            self.available = True
+        except (ImportError, AttributeError):
+            self.available = False
+        
+    def rms_norm(self, x: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
+        """RMSNorm using SGLang kernel from sgl_kernel."""
+        if self.available:
+            return self.sgl_rmsnorm(x, weight, eps=self.eps)
+        else:
+            # Fallback: reference implementation
+            orig_dtype = x.dtype
+            x_float = x.float()
+            variance = x_float.pow(2).mean(-1, keepdim=True)
+            x_norm = x_float * torch.rsqrt(variance + self.eps)
+            return (x_norm * weight.float()).to(orig_dtype)
+    
+    def test_batch_invariance(self) -> Tuple[bool, str]:
+        """
+        Test if RMSNorm output for first row is the same across different batch sizes.
+        Tests multiple hidden dimensions with many iterations each.
+        """
+        full_batch_size = max(self.test_batch_sizes)
+        all_invariant = True
+        all_diffs = []
+        failed_configs = []
+        
+        print(f"\n    Testing {len(self.hidden_dims)} hidden dims × {self.num_iters} iterations:")
+        
+        for hidden_dim in self.hidden_dims:
+            dim_invariant = True
+            dim_max_diff = 0.0
+            failed_bs_set = set()
+            failed_iters = []
+            
+            for iter_idx in range(self.num_iters):
+                x = torch.randn(full_batch_size, hidden_dim, dtype=self.dtype, device=self.device)
+                weight = torch.ones(hidden_dim, dtype=self.dtype, device=self.device)
+                
+                out_ref = self.rms_norm(x[:1].clone(), weight)
+                torch.cuda.synchronize()
+                
+                for bs in self.test_batch_sizes[1:]:
+                    out_bs = self.rms_norm(x[:bs].clone(), weight)
+                    torch.cuda.synchronize()
+                    
+                    diff = (out_ref[0] - out_bs[0]).abs().max().item()
+                    all_diffs.append(diff)
+                    
+                    if diff > dim_max_diff:
+                        dim_max_diff = diff
+                    
+                    if diff != 0:
+                        dim_invariant = False
+                        all_invariant = False
+                        failed_bs_set.add(bs)
+                        failed_iters.append((iter_idx, bs, diff))
+            
+            status = "✓" if dim_invariant else "✗"
+            if dim_invariant:
+                print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}")
+            else:
+                fail_summary = [(it, bs, f"{d:.2e}") for it, bs, d in failed_iters[:5]]
+                print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}, failed_BS={sorted(failed_bs_set)}, "
+                      f"failures({len(failed_iters)} total)={fail_summary}")
+            
+            if not dim_invariant:
+                failed_configs.append((hidden_dim, dim_max_diff, sorted(failed_bs_set), len(failed_iters)))
+        
+        max_diff = max(all_diffs) if all_diffs else 0.0
+        details = f"hidden_dims={self.hidden_dims}, BS={self.test_batch_sizes}, iters={self.num_iters}, max_diff={max_diff:.2e}"
+        if not self.available:
+            details += " (fallback impl)"
+        if not all_invariant:
+            details += f", failed_configs={failed_configs}"
+        return all_invariant, details
+    
+    def test_position_invariance(self) -> Tuple[bool, str]:
+        """Test if output for a row is the same regardless of position in batch."""
+        fixed_bs = 512
+        all_invariant = True
+        all_diffs = []
+        failed_configs = []
+        
+        print(f"\n    Testing {len(self.hidden_dims)} hidden dims × {self.num_iters} iterations:")
+        
+        for hidden_dim in self.hidden_dims:
+            dim_invariant = True
+            dim_max_diff = 0.0
+            
+            for iter_idx in range(self.num_iters):
+                weight = torch.randn(hidden_dim, dtype=self.dtype, device=self.device)
+                target_x = torch.randn(1, hidden_dim, dtype=self.dtype, device=self.device)
+                filler_x = torch.randn(fixed_bs, hidden_dim, dtype=self.dtype, device=self.device)
+                
+                ref_output = None
+                
+                for pos in range(fixed_bs):
+                    batch_x = filler_x.clone()
+                    batch_x[pos] = target_x[0]
+                    
+                    out = self.rms_norm(batch_x, weight)
+                    torch.cuda.synchronize()
+                    
+                    target_out = out[pos].clone()
+                    
+                    if ref_output is None:
+                        ref_output = target_out
+                    else:
+                        diff = (ref_output - target_out).abs().max().item()
+                        all_diffs.append(diff)
+                        
+                        if diff > dim_max_diff:
+                            dim_max_diff = diff
+                        
+                        if diff != 0:
+                            dim_invariant = False
+                            all_invariant = False
+            
+            status = "✓" if dim_invariant else "✗"
+            print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}")
+            
+            if not dim_invariant:
+                failed_configs.append((hidden_dim, dim_max_diff))
+        
+        max_diff = max(all_diffs) if all_diffs else 0.0
+        details = f"hidden_dims={self.hidden_dims}, BS={fixed_bs}, iters={self.num_iters}, max_diff={max_diff:.2e}"
+        if not self.available:
+            details += " (fallback impl)"
+        if not all_invariant:
+            details += f", failed_configs={failed_configs}"
+        return all_invariant, details
+
+
+class SGLangFusedRMSNormResidualTester(OperatorTester):
+    """Test Fused RMSNorm + Residual for invariance using SGLang default kernel from sgl_kernel (with PDL)."""
+    
+    def __init__(self, device: torch.device, dtype: torch.dtype = torch.bfloat16):
+        super().__init__(device, dtype)
+        self.category = "Normalization"
+        self.name = "SGLang Fused RMSNorm+Residual (PDL)"
+        self.eps = 1e-6
+        self.available = False
+        self._check_availability()
+        # Test multiple hidden dimensions
+        self.hidden_dims = [256, 1024, 2048, 4096, 8192]
+        self.num_iters = 2000
+        self.test_batch_sizes = [1, 10, 55, 128, 255, 256, 257, 512, 528, 2048]
+        
+    def _check_availability(self):
+        try:
+            import sgl_kernel
+            self.sgl_fused_add_rmsnorm = sgl_kernel.fused_add_rmsnorm
+            self.available = True
+        except (ImportError, AttributeError):
+            self.available = False
+    
+    def fused_rms_norm_residual(self, x: torch.Tensor, residual: torch.Tensor, 
+                                 weight: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Fused RMSNorm + Residual using SGLang kernel."""
+        if self.available:
+            x = x.clone()
+            residual = residual.clone()
+            self.sgl_fused_add_rmsnorm(x, residual, weight, self.eps)
+            return x, residual
+        else:
+            orig_dtype = x.dtype
+            x_float = x.float() + residual.float()
+            new_residual = x_float.to(orig_dtype)
+            variance = x_float.pow(2).mean(-1, keepdim=True)
+            out = (x_float * torch.rsqrt(variance + self.eps) * weight.float()).to(orig_dtype)
+            return out, new_residual
+    
+    def test_batch_invariance(self) -> Tuple[bool, str]:
+        """Test if Fused RMSNorm+Residual output for first row is the same across different batch sizes."""
+        full_batch_size = max(self.test_batch_sizes)
+        all_invariant = True
+        all_diffs = []
+        failed_configs = []
+        
+        print(f"\n    Testing {len(self.hidden_dims)} hidden dims × {self.num_iters} iterations:")
+        
+        for hidden_dim in self.hidden_dims:
+            dim_invariant = True
+            dim_max_diff = 0.0
+            failed_bs_set = set()
+            failed_iters = []
+            
+            for iter_idx in range(self.num_iters):
+                x = torch.randn(full_batch_size, hidden_dim, dtype=self.dtype, device=self.device)
+                weight = torch.ones(hidden_dim, dtype=self.dtype, device=self.device)
+                residual = torch.randn(full_batch_size, hidden_dim, dtype=self.dtype, device=self.device)
+                
+                out_ref, _ = self.fused_rms_norm_residual(x[:1].clone(), residual[:1].clone(), weight)
+                torch.cuda.synchronize()
+                
+                for bs in self.test_batch_sizes[1:]:
+                    out_bs, _ = self.fused_rms_norm_residual(x[:bs].clone(), residual[:bs].clone(), weight)
+                    torch.cuda.synchronize()
+                    
+                    diff = (out_ref[0] - out_bs[0]).abs().max().item()
+                    all_diffs.append(diff)
+                    
+                    if diff > dim_max_diff:
+                        dim_max_diff = diff
+                    
+                    if diff != 0:
+                        dim_invariant = False
+                        all_invariant = False
+                        failed_bs_set.add(bs)
+                        failed_iters.append((iter_idx, bs, diff))
+            
+            status = "✓" if dim_invariant else "✗"
+            if dim_invariant:
+                print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}")
+            else:
+                fail_summary = [(it, bs, f"{d:.2e}") for it, bs, d in failed_iters[:5]]
+                print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}, failed_BS={sorted(failed_bs_set)}, "
+                      f"failures({len(failed_iters)} total)={fail_summary}")
+            
+            if not dim_invariant:
+                failed_configs.append((hidden_dim, dim_max_diff, sorted(failed_bs_set), len(failed_iters)))
+        
+        max_diff = max(all_diffs) if all_diffs else 0.0
+        details = f"hidden_dims={self.hidden_dims}, BS={self.test_batch_sizes}, iters={self.num_iters}, max_diff={max_diff:.2e}"
+        if not self.available:
+            details += " (fallback impl)"
+        if not all_invariant:
+            details += f", failed_configs={failed_configs}"
+        return all_invariant, details
+    
+    def test_position_invariance(self) -> Tuple[bool, str]:
+        """Test if output for a row is the same regardless of position in batch."""
+        fixed_bs = 512
+        all_invariant = True
+        all_diffs = []
+        failed_configs = []
+        
+        print(f"\n    Testing {len(self.hidden_dims)} hidden dims × {self.num_iters} iterations:")
+        
+        for hidden_dim in self.hidden_dims:
+            dim_invariant = True
+            dim_max_diff = 0.0
+            
+            for iter_idx in range(self.num_iters):
+                weight = torch.randn(hidden_dim, dtype=self.dtype, device=self.device)
+                target_x = torch.randn(1, hidden_dim, dtype=self.dtype, device=self.device)
+                target_res = torch.randn(1, hidden_dim, dtype=self.dtype, device=self.device)
+                filler_x = torch.randn(fixed_bs, hidden_dim, dtype=self.dtype, device=self.device)
+                filler_res = torch.randn(fixed_bs, hidden_dim, dtype=self.dtype, device=self.device)
+                
+                ref_output = None
+                
+                for pos in range(fixed_bs):
+                    batch_x = filler_x.clone()
+                    batch_res = filler_res.clone()
+                    batch_x[pos] = target_x[0]
+                    batch_res[pos] = target_res[0]
+                    
+                    out, _ = self.fused_rms_norm_residual(batch_x, batch_res, weight)
+                    torch.cuda.synchronize()
+                    
+                    target_out = out[pos].clone()
+                    
+                    if ref_output is None:
+                        ref_output = target_out
+                    else:
+                        diff = (ref_output - target_out).abs().max().item()
+                        all_diffs.append(diff)
+                        
+                        if diff > dim_max_diff:
+                            dim_max_diff = diff
+                        
+                        if diff != 0:
+                            dim_invariant = False
+                            all_invariant = False
+            
+            status = "✓" if dim_invariant else "✗"
+            print(f"      hidden_dim={hidden_dim:5d}: {status} max_diff={dim_max_diff:.2e}")
+            
+            if not dim_invariant:
+                failed_configs.append((hidden_dim, dim_max_diff))
+        
+        max_diff = max(all_diffs) if all_diffs else 0.0
+        details = f"hidden_dims={self.hidden_dims}, BS={fixed_bs}, iters={self.num_iters}, max_diff={max_diff:.2e}"
+        if not self.available:
+            details += " (fallback impl)"
+        if not all_invariant:
+            details += f", failed_configs={failed_configs}"
+        return all_invariant, details
 
 
 # =============================================================================
@@ -1201,6 +1738,8 @@ def create_all_testers(device: torch.device, dtype: torch.dtype) -> List[Operato
         # Normalization
         RMSNormTester(device, dtype),
         FusedRMSNormResidualTester(device, dtype),
+        SGLangRMSNormTester(device, dtype),
+        SGLangFusedRMSNormResidualTester(device, dtype),
         
         # Embedding
         RotaryEmbeddingTester(device, dtype),
