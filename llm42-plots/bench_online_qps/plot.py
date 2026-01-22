@@ -130,9 +130,9 @@ def compute_cdf(data: list) -> tuple:
 def get_label(server_config: str, ratio: float) -> str:
     """Generate label for legend."""
     if server_config == 'default':
-        return 'Non-deterministic'
+        return 'SGLang non-deterministic'
     elif server_config == 'global':
-        return 'Global-deterministic'
+        return 'SGLang deterministic'
     else:
         # For detinfer configs, show as LLM-42 @X%
         pct = int(ratio * 100)

@@ -56,14 +56,14 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
     # non_det should be widest (back), then global_det, then detinfer (front)
     styles = {
         'non_det': {
-            'label': 'SGLang Non-Deterministic',
+            'label': 'SGLang non-deterministic',
             'color': 'tab:blue',
             'hatch': '',
             'width': 1.0,
             'zorder': 1,
         },
         'global_det': {
-            'label': 'SGLang Global-Deterministic',
+            'label': 'SGLang deterministic',
             'color': 'tab:red',
             'hatch': '',
             'width': 1.0,
