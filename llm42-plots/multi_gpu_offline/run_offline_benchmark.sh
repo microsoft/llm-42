@@ -19,7 +19,7 @@ SEQUENTIAL_MODE=${SEQUENTIAL_MODE:-true}
 BASE_URL=${BASE_URL:-"http://127.0.0.1:30005"}
 # For parallel mode: comma-separated URLs
 BASE_URLS=${BASE_URLS:-"$BASE_URL"}
-CONFIG_NAMES=${CONFIG_NAMES:-"sglang_non_deterministic,sglang_global_deterministic,detinfer_ws_64_bs_8"}
+CONFIG_NAMES=${CONFIG_NAMES:-"sglang_non_deterministic,sglang_global_deterministic,detinfer_ws_128_bs_8"}
 
 # Benchmark parameters
 MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
@@ -35,7 +35,7 @@ BACKEND=${BACKEND:-sglang}
 
 # Deterministic ratios for different config types
 BASELINE_RATIOS="1.0"
-DETINFER_RATIOS="0.02 0.05 0.1 0.2 0.5 1.0"
+DETINFER_RATIOS="1.0"
 
 # Output directory (use existing OUTPUT_DIR if set, otherwise create one)
 if [ -z "${OUTPUT_DIR:-}" ]; then
@@ -298,6 +298,9 @@ launch_server_for_config() {
             ;;
         "detinfer_ws_64_bs_8")
             config_args="--det-infer-window-size 64 --enable-det-infer 3 --det-infer-verify-batch-size 8"
+            ;;
+        "detinfer_ws_128_bs_8")
+            config_args="--det-infer-window-size 128 --enable-det-infer 3 --det-infer-verify-batch-size 8"
             ;;
         "detinfer_ws_32_bs_32")
             config_args="--det-infer-window-size 32 --enable-det-infer 3 --det-infer-verify-batch-size 32"

@@ -742,7 +742,7 @@ def main():
         WINDOW_SIZES,
         BATCH_SIZES,
         title='',
-        cbar_label='Recompute Ratio',
+        cbar_label='Recompute Overhead (%)',
         output_path=plot_dir / 'heatmap_recompute_ratio.pdf',
         cmap=RECOMPUTE_CMAP,
         fmt='.2%',

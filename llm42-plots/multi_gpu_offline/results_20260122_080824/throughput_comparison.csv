@@ -1,0 +1,10 @@
+dataset,bar_key,detinfer_config,total_throughput
+ShareGPT,non_det,ws_32_bs_16,12892.244027577313
+ShareGPT,global_det,ws_32_bs_16,10723.167214156529
+ShareGPT,non_det,ws_64_bs_8,12892.244027577313
+ShareGPT,global_det,ws_64_bs_8,10723.167214156529
+ShareGPT,non_det,ws_32_bs_32,12892.244027577313
+ShareGPT,global_det,ws_32_bs_32,10723.167214156529
+ShareGPT,non_det,ws_128_bs_8,12892.244027577313
+ShareGPT,global_det,ws_128_bs_8,10723.167214156529
+ShareGPT,detinfer_1.0,ws_128_bs_8,5929.320283787968

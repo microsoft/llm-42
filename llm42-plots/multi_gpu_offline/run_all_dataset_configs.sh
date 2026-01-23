@@ -29,7 +29,7 @@ echo ""
 # Dataset configurations
 declare -a DATASET_CONFIGS=(
     "sharegpt"
-    "arxiv"
+    # "arxiv"
     # "random_in1024_out256"
     # "random_in1024_out512"
     # "random_in2048_out256"

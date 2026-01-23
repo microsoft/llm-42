@@ -28,21 +28,21 @@ ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
 # Benchmark parameters
 NUM_PROMPTS="${NUM_PROMPTS:-4096}"
 SHAREGPT_CONTEXT_LEN="${SHAREGPT_CONTEXT_LEN:-16384}"
-DETERMINISTIC_SEED="${DETERMINISTIC_SEED:-42}"
+DETERMINISTIC_SEED="${DETERMINISTIC_SEED:-142}"
 
 # QPS values per dataset
 SHAREGPT_QPS_VALUES=(12 14 16 18)
-ARXIV_QPS_VALUES=(1.0 1.2 1.4 1.6)
+ARXIV_QPS_VALUES=()
 
 # Deterministic ratios for detinfer configs
 DETINFER_RATIOS=(0.02 0.05 0.1 0.2 0.5 1.0)
 
 # Server configurations
-SERVER_CONFIGS=("default" "global" "detinfer_ws64_bs8" "detinfer_ws32_bs16")
+SERVER_CONFIGS=("default" "global" "detinfer_ws64_bs8")
 
 # Output directory
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-OUTPUT_DIR="${OUTPUT_DIR:-${ROOT}/results_n${NUM_PROMPTS}_${TIMESTAMP}}"
+OUTPUT_DIR="${OUTPUT_DIR:-${ROOT}/results_n${NUM_PROMPTS}_seed${DETERMINISTIC_SEED}_${TIMESTAMP}}"
 LOG_DIR="${OUTPUT_DIR}/server_logs"
 RESULTS_FILE="${OUTPUT_DIR}/benchmark_results.jsonl"
 
@@ -199,16 +199,20 @@ run_qps_benchmarks() {
     echo "Running ${dataset} benchmarks at QPS=${qps}"
     echo "=========================================="
     
-    # Launch 4 servers with different configs
+    # Launch 4 servers: default, global, and 2x detinfer_ws64_bs8
     declare -a SERVER_PIDS=()
     declare -a SERVER_URLS=()
+    declare -a SERVER_CONFIGS_RUNNING=()
     
-    for ((i=0; i<${#SERVER_CONFIGS[@]} && i<NUM_GPUS; i++)); do
+    # GPU 0: default, GPU 1: global, GPU 2: detinfer_ws64_bs8, GPU 3: detinfer_ws64_bs8
+    local configs_to_launch=("default" "global" "detinfer_ws64_bs8" "detinfer_ws64_bs8")
+    
+    for ((i=0; i<4 && i<NUM_GPUS; i++)); do
         GPU_ID=$i
         PORT=$((BASE_PORT + i))
-        config="${SERVER_CONFIGS[$i]}"
+        config="${configs_to_launch[$i]}"
         config_args=$(get_server_args "$config")
-        SERVER_LOG="${LOG_DIR}/server_${dataset}_qps${qps}_${config}.log"
+        SERVER_LOG="${LOG_DIR}/server_${dataset}_qps${qps}_${config}_gpu${i}.log"
         
         echo "Starting server on GPU $GPU_ID, port $PORT (${config})..."
         
@@ -229,6 +233,7 @@ run_qps_benchmarks() {
         
         SERVER_PIDS+=($!)
         SERVER_URLS+=("http://127.0.0.1:$PORT")
+        SERVER_CONFIGS_RUNNING+=("$config")
         
         sleep 2
     done
@@ -238,8 +243,8 @@ run_qps_benchmarks() {
     local all_ready=true
     for ((i=0; i<${#SERVER_URLS[@]}; i++)); do
         url="${SERVER_URLS[$i]}"
-        config="${SERVER_CONFIGS[$i]}"
-        echo -n "  Waiting for ${config} at $url..."
+        config="${SERVER_CONFIGS_RUNNING[$i]}"
+        echo -n "  Waiting for ${config} (GPU $i) at $url..."
         if wait_for_server "$url" 180; then
             echo " ✓"
         else
@@ -257,31 +262,55 @@ run_qps_benchmarks() {
     echo ""
     echo "All servers ready. Running benchmarks..."
     
-    # Phase 1: Run ratio=1.0 on all 4 servers in parallel
+    # Phase 1: Run ratio=1.0 on default, global, and one detinfer server
+    # Use the second detinfer server (GPU 3) to start on ratio 0.5
     echo ""
-    echo "=== Phase 1: Running ratio=1.0 on all 4 servers in parallel ==="
+    echo "=== Phase 1: Running ratio=1.0 on default/global/detinfer + ratio=0.5 on detinfer ==="
     declare -a BENCH_PIDS=()
     
-    for ((i=0; i<${#SERVER_CONFIGS[@]}; i++)); do
-        url="${SERVER_URLS[$i]}"
-        config="${SERVER_CONFIGS[$i]}"
-        config_name="${dataset}_qps${qps}_${config}_ratio1.0"
-        
-        if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
-            echo "[${config_name}] Results already exist. Skipping..."
-        else
-            run_benchmark "$url" "$qps" "$dataset" "$config" "1.0" &
-            BENCH_PIDS+=($!)
-        fi
-    done
+    # default (GPU 0) - ratio 1.0
+    config_name="${dataset}_qps${qps}_default_ratio1.0"
+    if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
+        echo "[${config_name}] Results already exist. Skipping..."
+    else
+        run_benchmark "${SERVER_URLS[0]}" "$qps" "$dataset" "default" "1.0" &
+        BENCH_PIDS+=($!)
+    fi
     
-    # Wait for all parallel benchmarks to complete
+    # global (GPU 1) - ratio 1.0
+    config_name="${dataset}_qps${qps}_global_ratio1.0"
+    if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
+        echo "[${config_name}] Results already exist. Skipping..."
+    else
+        run_benchmark "${SERVER_URLS[1]}" "$qps" "$dataset" "global" "1.0" &
+        BENCH_PIDS+=($!)
+    fi
+    
+    # detinfer (GPU 2) - ratio 1.0
+    config_name="${dataset}_qps${qps}_detinfer_ws64_bs8_ratio1.0"
+    if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
+        echo "[${config_name}] Results already exist. Skipping..."
+    else
+        run_benchmark "${SERVER_URLS[2]}" "$qps" "$dataset" "detinfer_ws64_bs8" "1.0" &
+        BENCH_PIDS+=($!)
+    fi
+    
+    # detinfer (GPU 3) - ratio 0.5
+    config_name="${dataset}_qps${qps}_detinfer_ws64_bs8_ratio0.5"
+    if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
+        echo "[${config_name}] Results already exist. Skipping..."
+    else
+        run_benchmark "${SERVER_URLS[3]}" "$qps" "$dataset" "detinfer_ws64_bs8" "0.5" &
+        BENCH_PIDS+=($!)
+    fi
+    
+    # Wait for phase 1 to complete
     for pid in "${BENCH_PIDS[@]}"; do
         wait "$pid"
     done
     
     echo ""
-    echo "=== Phase 2: Launching 2 more detinfer servers on freed GPUs ==="
+    echo "=== Phase 2: Stopping default/global, launching 2 more detinfer servers ==="
     
     # Kill default and global servers (GPU 0 and 1)
     echo "Stopping default and global servers..."
@@ -290,33 +319,24 @@ run_qps_benchmarks() {
     sleep 3
     
     # Launch additional detinfer servers on GPU 0 and 1
-    # GPU 0: detinfer_ws64_bs8 (copy 2)
-    # GPU 1: detinfer_ws32_bs16 (copy 2)
     declare -a DETINFER_PIDS=()
     declare -a DETINFER_URLS=()
-    declare -a DETINFER_CONFIGS=()
     
     # Keep original detinfer servers (GPU 2 and 3)
     DETINFER_PIDS+=("${SERVER_PIDS[2]}")
     DETINFER_PIDS+=("${SERVER_PIDS[3]}")
     DETINFER_URLS+=("${SERVER_URLS[2]}")
     DETINFER_URLS+=("${SERVER_URLS[3]}")
-    DETINFER_CONFIGS+=("detinfer_ws64_bs8")
-    DETINFER_CONFIGS+=("detinfer_ws32_bs16")
     
     # Launch new detinfer servers on GPU 0 and 1
     for i in 0 1; do
         GPU_ID=$i
         PORT=$((BASE_PORT + i))
-        if [ $i -eq 0 ]; then
-            config="detinfer_ws64_bs8"
-        else
-            config="detinfer_ws32_bs16"
-        fi
+        config="detinfer_ws64_bs8"
         config_args=$(get_server_args "$config")
-        SERVER_LOG="${LOG_DIR}/server_${dataset}_qps${qps}_${config}_copy2.log"
+        SERVER_LOG="${LOG_DIR}/server_${dataset}_qps${qps}_${config}_gpu${i}_phase2.log"
         
-        echo "Starting ${config} (copy 2) on GPU $GPU_ID, port $PORT..."
+        echo "Starting ${config} on GPU $GPU_ID, port $PORT..."
         
         CUDA_VISIBLE_DEVICES=$GPU_ID $PYTHON_CMD -m sglang.launch_server \
             --model-path "$MODEL_PATH" \
@@ -335,17 +355,15 @@ run_qps_benchmarks() {
         
         DETINFER_PIDS+=($!)
         DETINFER_URLS+=("http://127.0.0.1:$PORT")
-        DETINFER_CONFIGS+=("$config")
         
         sleep 2
     done
     
     # Wait for new servers to be ready
     echo "Waiting for new detinfer servers..."
-    for ((i=2; i<${#DETINFER_URLS[@]}; i++)); do
+    for i in 2 3; do
         url="${DETINFER_URLS[$i]}"
-        config="${DETINFER_CONFIGS[$i]}"
-        echo -n "  Waiting for ${config} (copy 2) at $url..."
+        echo -n "  Waiting for detinfer_ws64_bs8 (GPU $((i-2))) at $url..."
         if wait_for_server "$url" 180; then
             echo " ✓"
         else
@@ -355,75 +373,34 @@ run_qps_benchmarks() {
     
     echo ""
     echo "=== Phase 3: Running remaining ratios with 4 detinfer servers ==="
-    echo "  GPU 0: detinfer_ws64_bs8 (copy 2)"
-    echo "  GPU 1: detinfer_ws32_bs16 (copy 2)"
-    echo "  GPU 2: detinfer_ws64_bs8 (original)"
-    echo "  GPU 3: detinfer_ws32_bs16 (original)"
     
-    # Now we have 4 detinfer servers (2 per config)
-    # Split remaining ratios between the two copies of each config
-    REMAINING_RATIOS=(0.02 0.05 0.1 0.2 0.5)
+    # Remaining ratios: 0.02, 0.05, 0.1, 0.2
+    # With 4 servers, we can run 4 ratios in parallel per wave
+    # Wave 1: 0.02, 0.05, 0.1, 0.2 (all 4 in parallel)
+    REMAINING_RATIOS=(0.02 0.05 0.1 0.2)
     
-    # Assign ratios to server copies:
-    # Copy 1 (original, indices 0,1): ratios 0.02, 0.1, 0.5
-    # Copy 2 (new, indices 2,3): ratios 0.05, 0.2
-    COPY1_RATIOS=(0.02 0.1 0.5)
-    COPY2_RATIOS=(0.05 0.2)
-    
-    # Run in waves: each wave runs 4 benchmarks in parallel (2 configs x 2 copies)
-    max_waves=${#COPY1_RATIOS[@]}
-    
-    for ((wave=0; wave<max_waves; wave++)); do
-        echo ""
-        echo "--- Wave $((wave+1))/$max_waves ---"
-        BENCH_PIDS=()
+    BENCH_PIDS=()
+    for ((i=0; i<${#REMAINING_RATIOS[@]} && i<${#DETINFER_URLS[@]}; i++)); do
+        ratio="${REMAINING_RATIOS[$i]}"
+        url="${DETINFER_URLS[$i]}"
+        config_name="${dataset}_qps${qps}_detinfer_ws64_bs8_ratio${ratio}"
         
-        # Copy 1 (original servers): indices 0, 1 in DETINFER arrays
-        if [ $wave -lt ${#COPY1_RATIOS[@]} ]; then
-            ratio="${COPY1_RATIOS[$wave]}"
-            for i in 0 1; do
-                url="${DETINFER_URLS[$i]}"
-                config="${DETINFER_CONFIGS[$i]}"
-                config_name="${dataset}_qps${qps}_${config}_ratio${ratio}"
-                
-                if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
-                    echo "[${config_name}] Results already exist. Skipping..."
-                else
-                    run_benchmark "$url" "$qps" "$dataset" "$config" "$ratio" &
-                    BENCH_PIDS+=($!)
-                fi
-            done
+        if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
+            echo "[${config_name}] Results already exist. Skipping..."
+        else
+            run_benchmark "$url" "$qps" "$dataset" "detinfer_ws64_bs8" "$ratio" &
+            BENCH_PIDS+=($!)
         fi
-        
-        # Copy 2 (new servers): indices 2, 3 in DETINFER arrays
-        if [ $wave -lt ${#COPY2_RATIOS[@]} ]; then
-            ratio="${COPY2_RATIOS[$wave]}"
-            for i in 2 3; do
-                url="${DETINFER_URLS[$i]}"
-                config="${DETINFER_CONFIGS[$i]}"
-                config_name="${dataset}_qps${qps}_${config}_ratio${ratio}"
-                
-                if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
-                    echo "[${config_name}] Results already exist. Skipping..."
-                else
-                    run_benchmark "$url" "$qps" "$dataset" "$config" "$ratio" &
-                    BENCH_PIDS+=($!)
-                fi
-            done
-        fi
-        
-        # Wait for this wave to complete
-        for pid in "${BENCH_PIDS[@]}"; do
-            wait "$pid"
-        done
     done
     
-    # Update SERVER_PIDS for cleanup
-    SERVER_PIDS=("${DETINFER_PIDS[@]}")
+    # Wait for all benchmarks to complete
+    for pid in "${BENCH_PIDS[@]}"; do
+        wait "$pid"
+    done
     
     echo ""
     echo "QPS=${qps} benchmarks complete. Stopping servers..."
-    kill_servers "${SERVER_PIDS[@]}"
+    kill_servers "${DETINFER_PIDS[@]}"
     sleep 5
 }
 

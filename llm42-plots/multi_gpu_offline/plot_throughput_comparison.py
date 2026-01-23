@@ -207,6 +207,8 @@ def main():
     all_data = {
         'ws_32_bs_16': defaultdict(dict),
         'ws_64_bs_8': defaultdict(dict),
+        'ws_32_bs_32': defaultdict(dict),
+        'ws_128_bs_8': defaultdict(dict),
     }
     
     for results_dir in args.results_dirs:
@@ -258,6 +260,13 @@ def main():
                     all_data['ws_32_bs_16'][dataset_config][bar_key] = total_tp
                 elif 'ws_64_bs_8' in config_name or 'ws64' in config_name:
                     all_data['ws_64_bs_8'][dataset_config][bar_key] = total_tp
+                elif 'ws_32_bs_32' in config_name or 'ws32_bs32' in config_name:
+                    all_data['ws_32_bs_32'][dataset_config][bar_key] = total_tp
+                elif 'ws_128_bs_8' in config_name or 'ws128' in config_name:
+                    all_data['ws_128_bs_8'][dataset_config][bar_key] = total_tp
+                else:
+                    print(f"Warning: Unknown detinfer config in {config_name}")
+                    continue
             
             print(f"  {config_name} det={det_ratio}: total={total_tp:.2f} tokens/s")
     
