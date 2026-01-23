@@ -7,7 +7,7 @@ Creates two 6x6 heatmaps:
   2. Recompute Ratio (total_tokens_rolled_back / total_output_tokens)
 
 Usage:
-    python plot_matrix_heatmap.py --results-file results_matrix_ablation_*/benchmark_results.jsonl
+    python plot.py --results-file results_n4096_qps_12_seed42_*/benchmark_results.jsonl
 """
 
 import argparse
@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.ticker import PercentFormatter
 
 # Set global style for aesthetics
 plt.rcParams['font.family'] = 'DejaVu Sans'
@@ -230,6 +231,10 @@ def plot_heatmap(
     cbar.ax.tick_params(labelsize=20)
     cbar.outline.set_visible(False)
     
+    # Format colorbar as percentage if needed
+    if fmt == '.2%':
+        cbar.ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0))
+    
     # Set ticks and labels
     ax.set_xticks(np.arange(len(window_sizes)))
     ax.set_yticks(np.arange(len(batch_sizes)))
@@ -362,6 +367,7 @@ def plot_both_heatmaps(
     cbar2.ax.set_ylabel('Recompute Ratio', rotation=-90, va="bottom", fontsize=22, fontweight='bold')
     cbar2.ax.tick_params(labelsize=20)
     cbar2.outline.set_visible(False)
+    cbar2.ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0))
     
     ax2.set_xticks(np.arange(len(window_sizes)))
     ax2.set_yticks(np.arange(len(batch_sizes)))
@@ -742,7 +748,7 @@ def main():
         WINDOW_SIZES,
         BATCH_SIZES,
         title='',
-        cbar_label='Recompute Overhead (%)',
+        cbar_label='Recompute Cost (%)',
         output_path=plot_dir / 'heatmap_recompute_ratio.pdf',
         cmap=RECOMPUTE_CMAP,
         fmt='.2%',
