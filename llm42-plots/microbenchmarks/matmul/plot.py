@@ -61,7 +61,7 @@ for op_name in full_results.keys():
     torch_vals = [tflops_results[b].get('PyTorch', 0.0) for b in x]
     bi_vals = [tflops_results[b].get('ThinkingMachines', 0.0) for b in x]
     bi_fused_vals = [tflops_results[b].get('Ours', 0.0) for b in x]
-    plt.plot(x, torch_vals, marker='o', label='Non-batch-invarinat (cuBLAS)', color='tab:blue')
+    plt.plot(x, torch_vals, marker='o', label='Non-batch-invariant (cuBLAS)', color='tab:blue')
     plt.plot(x, bi_vals, marker='s', label='Batch-invariant (Triton)', color='tab:red')
 
     print(x, flush=True)
