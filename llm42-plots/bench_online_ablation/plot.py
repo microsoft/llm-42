@@ -4,7 +4,7 @@ Plot heatmaps for DetInfer Matrix Ablation: Window Size vs Batch Size.
 
 Creates two 6x6 heatmaps:
   1. P99 E2E Latency (ms) - lower is better
-  2. Recompute Ratio (total_tokens_rolled_back / total_output_tokens)
+  2. Recompute Cost (total_tokens_rolled_back / total_output_tokens) * 100
 
 Usage:
     python plot.py --results-file results_n4096_qps_12_seed42_*/benchmark_results.jsonl
@@ -79,14 +79,14 @@ def load_results(filepath: Path) -> list:
 
 def extract_metrics(results: list) -> dict:
     """
-    Extract P99 E2E latency and recompute ratio for each (window_size, batch_size) pair.
+    Extract P99 E2E latency and recompute cost for each (window_size, batch_size) pair.
     Also extract per-request rollback data for CDF plots.
     
     Returns:
-        dict with keys 'p99_latency', 'recompute_ratio', and 'per_request_data'
+        dict with keys 'p99_latency', 'recompute_cost', and 'per_request_data'
     """
     p99_latency = {}
-    recompute_ratio = {}
+    recompute_cost = {}
     per_request_data = {}  # (ws, bs) -> {'rollbacks': [...], 'tokens_rolled_back': [...]}
     
     for result in results:
@@ -112,20 +112,20 @@ def extract_metrics(results: list) -> dict:
         if p99 is not None:
             p99_latency[(ws, bs)] = p99 / 1000.0  # Convert to seconds
         
-        # Extract recompute ratio
+        # Extract recompute cost
         rollback_stats = result.get('rollback_stats', {})
         total_rolled_back = rollback_stats.get('total_tokens_rolled_back', 0)
         total_output = rollback_stats.get('total_output_tokens', 0)
         
         if total_output > 0:
-            recompute_ratio[(ws, bs)] = total_rolled_back / total_output
+            recompute_cost[(ws, bs)] = (total_rolled_back / total_output) * 100  # Percentage
         else:
             # Fall back to total_output_tokens from result
             total_output = result.get('total_output_tokens', 0)
             if total_output > 0:
-                recompute_ratio[(ws, bs)] = total_rolled_back / total_output
+                recompute_cost[(ws, bs)] = (total_rolled_back / total_output) * 100  # Percentage
             else:
-                recompute_ratio[(ws, bs)] = 0
+                recompute_cost[(ws, bs)] = 0
         
         # Extract per-request rollback data for CDF plots
         # First try the new fields (per_request_rollbacks, per_request_tokens_rolled_back)
@@ -157,7 +157,7 @@ def extract_metrics(results: list) -> dict:
     
     return {
         'p99_latency': p99_latency,
-        'recompute_ratio': recompute_ratio,
+        'recompute_cost': recompute_cost,
         'per_request_data': per_request_data,
     }
 
@@ -271,6 +271,13 @@ def plot_heatmap(
                 if reverse_cmap:
                     norm_val = 1 - norm_val
                 text_color = 'white' if norm_val < 0.5 else 'black'
+            elif fmt == '.2f%':
+                text = f'{val:.2f}%'
+                valid_vals = matrix[~np.isnan(matrix)]
+                norm_val = (val - valid_vals.min()) / (valid_vals.max() - valid_vals.min() + 1e-10)
+                if reverse_cmap:
+                    norm_val = 1 - norm_val
+                text_color = 'white' if norm_val < 0.5 else 'black'
             elif fmt == '.0f':
                 text = f'{val:.0f}'
                 valid_vals = matrix[~np.isnan(matrix)]
@@ -358,13 +365,13 @@ def plot_both_heatmaps(
     ax1.grid(which='minor', color='#e5e5e5', linestyle='-', linewidth=1.5)
     ax1.tick_params(which='minor', bottom=False, left=False)
     
-    # Recompute ratio heatmap (right) - custom aesthetic colormap
+    # Recompute cost heatmap (right) - custom aesthetic colormap
     ax2 = axes[1]
     cmap2 = RECOMPUTE_CMAP.copy()
     cmap2.set_bad(color=INVALID_COLOR)
     im2 = ax2.imshow(rc_masked, cmap=cmap2, aspect='auto', vmin=0)
     cbar2 = fig.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
-    cbar2.ax.set_ylabel('Recompute Ratio', rotation=-90, va="bottom", fontsize=22, fontweight='bold')
+    cbar2.ax.set_ylabel('Recompute Cost', rotation=-90, va="bottom", fontsize=22, fontweight='bold')
     cbar2.ax.tick_params(labelsize=20)
     cbar2.outline.set_visible(False)
     cbar2.ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0))
@@ -377,7 +384,7 @@ def plot_both_heatmaps(
     ax2.set_ylabel('Batch Size', fontsize=22, fontweight='bold')
     # No title for subplot
     
-    # Add annotations for recompute ratio
+    # Add annotations for recompute cost
     rc_valid = recompute_matrix[~np.isnan(recompute_matrix)]
     rc_min, rc_max = 0, rc_valid.max() if len(rc_valid) > 0 else 1
     for i in range(len(batch_sizes)):
@@ -387,7 +394,7 @@ def plot_both_heatmaps(
                 text = ''
                 text_color = 'white'
             else:
-                text = f'{val:.2%}'
+                text = f'{val:.2f}%'
                 norm_val = (val - rc_min) / (rc_max - rc_min + 1e-10)
                 text_color = 'black' if norm_val < 0.5 else 'white'
             ax2.text(j, i, text, ha='center', va='center', color=text_color, 
@@ -587,16 +594,16 @@ def plot_both_cdfs(per_request_data: dict, output_path: Path, configs_to_plot: l
     print(f"Saved: {output_path}")
 
 
-def plot_recompute_ratio_bar_bs1(
-    recompute_ratio: dict,
+def plot_recompute_cost_bar_bs1(
+    recompute_cost: dict,
     window_sizes: list,
     output_path: Path,
 ):
     """
-    Plot bar chart of recompute ratio for batch_size=1 with varying window sizes.
+    Plot bar chart of recompute cost for batch_size=1 with varying window sizes.
     
     Args:
-        recompute_ratio: dict mapping (ws, bs) -> recompute_ratio value
+        recompute_cost: dict mapping (ws, bs) -> recompute_cost value
         window_sizes: list of window sizes to plot
         output_path: Path to save the plot
     """
@@ -604,11 +611,11 @@ def plot_recompute_ratio_bar_bs1(
     
     # Extract data for BS=1 only
     ws_values = []
-    ratios = []
+    costs = []
     for ws in window_sizes:
-        if (ws, 1) in recompute_ratio:
+        if (ws, 1) in recompute_cost:
             ws_values.append(ws)
-            ratios.append(recompute_ratio[(ws, 1)] * 100)  # Convert to percentage
+            costs.append(recompute_cost[(ws, 1)])  # Already in     percentage
     
     if not ws_values:
         print(f"No data found for batch_size=1. Skipping bar plot.")
@@ -622,7 +629,7 @@ def plot_recompute_ratio_bar_bs1(
     # Plot bars with hatch pattern, no fill, purple edge and hatch
     bars = ax.bar(
         x_indices,
-        ratios,
+        costs,
         facecolor='none',
         edgecolor='tab:purple',
         hatch='////',
@@ -631,10 +638,10 @@ def plot_recompute_ratio_bar_bs1(
     )
     
     # Add value labels on top of bars
-    for bar, ratio in zip(bars, ratios):
+    for bar, cost in zip(bars, costs):
         height = bar.get_height()
         ax.annotate(
-            f'{ratio:.2f}%',
+            f'{cost:.2f}%',
             xy=(bar.get_x() + bar.get_width() / 2, height),
             xytext=(0, 5),
             textcoords="offset points",
@@ -646,7 +653,7 @@ def plot_recompute_ratio_bar_bs1(
     
     # Axis labels (font size 24)
     ax.set_xlabel('Window Size', fontsize=24, fontweight='bold')
-    ax.set_ylabel('Recompute Ratio (%)', fontsize=24, fontweight='bold')
+    ax.set_ylabel('Recompute Cost (%)', fontsize=24, fontweight='bold')
     
     # Tick font size (20)
     ax.tick_params(axis='both', labelsize=20)
@@ -709,12 +716,12 @@ def main():
     # Extract metrics
     metrics = extract_metrics(results)
     print(f"Found P99 latency data for {len(metrics['p99_latency'])} configs")
-    print(f"Found recompute ratio data for {len(metrics['recompute_ratio'])} configs")
+    print(f"Found recompute cost data for {len(metrics['recompute_cost'])} configs")
     print(f"Found per-request data for {len(metrics['per_request_data'])} configs")
     
     # Build matrices
     p99_latency_matrix = build_matrix(metrics['p99_latency'], WINDOW_SIZES, BATCH_SIZES)
-    recompute_matrix = build_matrix(metrics['recompute_ratio'], WINDOW_SIZES, BATCH_SIZES)
+    recompute_matrix = build_matrix(metrics['recompute_cost'], WINDOW_SIZES, BATCH_SIZES)
     
     # Print summary
     print("\n=== P99 E2E Latency Matrix (ms) ===")
@@ -724,10 +731,10 @@ def main():
                for j in range(len(BATCH_SIZES))]
         print(f"{ws}\t\t{row}")
     
-    print("\n=== Recompute Ratio Matrix ===")
+    print("\n=== Recompute Cost Matrix ===")
     print(f"Window\\Batch\t{BATCH_SIZES}")
     for i, ws in enumerate(WINDOW_SIZES):
-        row = [f"{recompute_matrix[i, j]:.2%}" if not np.isnan(recompute_matrix[i, j]) else "N/A" 
+        row = [f"{recompute_matrix[i, j]:.2f}%" if not np.isnan(recompute_matrix[i, j]) else "N/A" 
                for j in range(len(BATCH_SIZES))]
         print(f"{ws}\t\t{row}")
     
@@ -749,9 +756,9 @@ def main():
         BATCH_SIZES,
         title='',
         cbar_label='Recompute Cost (%)',
-        output_path=plot_dir / 'heatmap_recompute_ratio.pdf',
+        output_path=plot_dir / 'heatmap_recompute_cost.pdf',
         cmap=RECOMPUTE_CMAP,
-        fmt='.2%',
+        fmt='.2f%',
     )
     
     # Plot combined heatmaps
@@ -809,13 +816,13 @@ def main():
         print("\nNo per-request data available for CDF plots.")
         print("Re-run the benchmark with the updated run_matrix_ablation.sh to collect per-request rollback data.")
     
-    # Plot bar chart of recompute ratio for BS=1 with window sizes 32, 64, 128, 256
+    # Plot bar chart of recompute cost for BS=1 with window sizes 32, 64, 128, 256
     print("\n=== Generating bar plot (BS=1) ===")
     bar_window_sizes = [32, 64, 128, 256]
-    plot_recompute_ratio_bar_bs1(
-        metrics['recompute_ratio'],
+    plot_recompute_cost_bar_bs1(
+        metrics['recompute_cost'],
         bar_window_sizes,
-        output_path=plot_dir / 'bar_recompute_ratio_bs1.pdf',
+        output_path=plot_dir / 'bar_recompute_cost_bs1.pdf',
     )
     
     # Save raw data as CSV for further analysis
@@ -834,8 +841,8 @@ def main():
             writer.writerow(row)
     print(f"Saved: {p99_latency_csv_path}")
     
-    # Recompute ratio CSV
-    recompute_csv_path = output_dir / 'recompute_ratio_matrix.csv'
+    # Recompute cost CSV
+    recompute_csv_path = output_dir / 'recompute_cost_matrix.csv'
     with open(recompute_csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         # Header: empty cell + window sizes
