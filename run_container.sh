@@ -2,7 +2,7 @@
 
 # Script to create and manage SGLang Docker container
 
-CONTAINER_NAME="sglang"
+CONTAINER_NAME="llm42"
 IMAGE_NAME="lmsysorg/sglang:v0.5.4"
 
 # Function to display usage
