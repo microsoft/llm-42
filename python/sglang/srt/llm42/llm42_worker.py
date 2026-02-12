@@ -1,17 +1,21 @@
-# Copyright 2023-2024 SGLang Team
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 # ==============================================================================
-"""Deterministic verification worker that wraps the target worker at scheduler level."""
+"""Scheduler-level verification worker for the LLM-42 DVR protocol.
+
+This module provides two classes:
+
+- ``FixedSizeVerificationPool``: Pre-allocated pool of dummy resources that
+  ensures every verification batch has exactly the same shape (for
+  position-invariant determinism via grouped verification, §4.3).
+
+- ``LLM42Worker``: Transparent wrapper around a
+  ``TpModelWorker`` that intercepts decode batches, identifies requests
+  needing verification, constructs a TARGET_LLM42_VERIFY batch, compares
+  outputs, and applies rollback on mismatch.
+
+See §4 of the LLM-42 paper (arXiv:2601.17768) for design details.
+"""
 
 from __future__ import annotations
 
@@ -31,12 +35,13 @@ logger = logging.getLogger(__name__)
 
 
 class FixedSizeVerificationPool:
-    """
-    Pre-allocated pool of dummy resources for fixed-size verification batches.
-    
-    When llm42_verify_batch_size is set, verification batches always have exactly
-    N requests. This pool provides pre-allocated dummy resources to fill slots
-    when there are fewer than N real requests.
+    """Pre-allocated dummy resources for fixed-shape verification batches.
+
+    Grouped verification (§4.3) requires that every verification pass processes
+    exactly ``fixed_size`` requests of ``window_size`` tokens each.  When fewer
+    real requests are available, this pool supplies pre-allocated dummy entries
+    (input IDs, KV-cache slots, req-pool indices, and sampling tensors) to pad
+    the batch to the required shape.
     """
     
     DUMMY_TOKEN_ID = 32  # Match LLM42Info.DUMMY_TOKEN_ID
@@ -197,15 +202,26 @@ class FixedSizeVerificationPool:
             self._allocated_pool_indices = None
 
 
-class DeterministicVerificationWorker:
-    """
-    Wraps a target worker to provide deterministic verification at scheduler level.
-    
-    Similar to EagleWorker but for deterministic inference validation:
-    - Operates on ScheduleBatch objects (not ModelWorkerBatch)
-    - Identifies finished deterministic requests after forward pass
-    - Re-runs them with TARGET_LLM42_VERIFY mode
-    - Compares outputs to detect any non-determinism
+# ======================================================================
+# Verification worker
+# ======================================================================
+
+
+class LLM42Worker:
+    """Scheduler-level wrapper that adds decode-verify-rollback (DVR) to a
+    ``TpModelWorker``.
+
+    The worker is transparent for the decode fast-path: ``forward_batch_generation``
+    simply delegates to the underlying worker.  After each decode step, the
+    scheduler calls ``check_and_verify_deterministic_requests`` which:
+
+    1. Collects all deterministic requests that have accumulated enough
+       unverified tokens (>= ``window_size``) or have finished.
+    2. Constructs a TARGET_LLM42_VERIFY batch and runs a verification forward
+       pass under fixed-shape reductions.
+    3. Compares verification outputs with the decode-phase tokens.
+    4. Rolls back on mismatch: truncates ``output_ids``, appends the verifier
+       token, and frees excess KV-cache slots.
     """
 
     def __init__(
@@ -630,40 +646,23 @@ class DeterministicVerificationWorker:
         """
         try:
             llm42_info = LLM42Info.from_requests(reqs, always_align=always_align, window_size=self._window_size)
-            # logger.info(f"[LLM42Worker] Verifying {len(reqs)} requests with total padding cache slots {llm42_info.total_padding_cache_slots}")
-            
+
             # Allocate temporary KV cache for padding tokens (if any)
             if llm42_info.total_padding_cache_slots > 0:
                 llm42_info.allocate_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
-            
+
             verify_batch = llm42_info.prepare_verify_batch(original_batch, reqs)
-            
-            # STEP_DEBUG = 1
-            # ground_truth_token_ids = None
-            # for sd in range(STEP_DEBUG):
-                # logger.info(f"[LLM42Worker] verify_batch seq_lens step {sd}: {verify_batch.seq_lens}")
-                # Run verification forward pass (batch_invariant context is now managed in tp_worker)
+
+            # Run verification forward pass
             verify_model_worker_batch = verify_batch.get_model_worker_batch()
             verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
-                
-                
-                # Extract results (sampling already done inside forward_batch_generation)
+
             verified_token_ids = verify_output.next_token_ids
-                # if sd == 0:
-                #     ground_truth_token_ids = verified_token_ids.clone()
-                # else:
-                #     # Compare with ground truth tokens from first step
-                #     if not torch.equal(verified_token_ids, ground_truth_token_ids):
-                #         logger.error(f"[LLM42Worker][ERROR] Mismatch in verified tokens at step {sd}")
-                #         logger.error(f"Ground truth tokens: {ground_truth_token_ids}")
-                #         logger.error(f"Current tokens: {verified_token_ids}")
-                #         raise ValueError("Deterministic verification failed: token mismatch across steps")
             verified_logprobs = verify_output.logits_output.next_token_logprobs
             
             # Compare outputs and handle rollback
-            # Handle skip_mismatch percentage: 100.0=normal, 0.0=force no mismatches, in-between=inject at calculated position
             if self.skip_mismatch >= 100.0:
                 # Normal verification - natural mismatches cause rollback
                 rollback_info = llm42_info.verify_and_compare(
@@ -682,52 +681,29 @@ class DeterministicVerificationWorker:
             # Collect rollback info for KV cache freeing (will be done by caller)
             rollback_results = []
             for req, info in zip(reqs, rollback_info):
-                # Increment verification window count for this request
                 req.llm42_num_verification_windows += 1
                 if info is not None and info[1] > 0:
-                    # Track per-request stats
                     req.llm42_num_rollbacks += 1
                     req.llm42_tokens_rolled_back += info[1]
-                    # Track global metrics
                     if self.metrics_collector:
                         self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
                         self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
                     rollback_results.append((req, info[1]))
-                    # CRITICAL: Update llm42_verified_tokens after rollback
-                    # After rollback, output_ids has been truncated and corrected token appended
-                    # All tokens up to current length are now verified
                     req.llm42_verified_tokens = len(req.output_ids)
-                    # logger.info(f"[LLM42Worker] Rollback for req {req.rid[:8]}: "
-                    #            f"mismatch_pos={info[0]}, tokens_rolled_back={info[1]}, "
-                    #            f"new_output_len={len(req.output_ids)}, llm42_verified_tokens={req.llm42_verified_tokens}, "
-                    #            f"finished={req.finished_reason is not None}")
                 else:
-                    # No rollback for this request
                     req.llm42_verified_tokens = len(req.output_ids)
-                    # logger.debug(f"[LLM42Worker] No rollback for req {req.rid[:8]}: "
-                    #             f"output_len={len(req.output_ids)}, llm42_verified_tokens={req.llm42_verified_tokens}")
-            
-            # Update verified token counts
-            # for req in reqs:
-            #     req.llm42_verified_tokens = len(req.output_ids)
-            
+
             # Update batch state if there was any rollback
-            # (need to sync seq_lens with the new req.output_ids length)
             if rollback_results:
-                #logger.info(f"[DEBUG][LLM42Worker] Rollback detected, updating batch state")
                 self._update_batch_state(original_batch)
             
-            # Clear verification batch references to free GPU memory
-            # Critical: verify_batch shares KV cache allocator with original_batch
-            # At high batch sizes (BS=63-64), we need to explicitly clear all tensor
-            # references to prevent memory accumulation
+            # Free verification batch tensors to avoid GPU memory accumulation.
             verify_batch.out_cache_loc = None
             verify_batch.input_ids = None
             verify_batch.seq_lens = None
             verify_batch.seq_lens_cpu = None
             verify_batch.req_pool_indices = None
-            
-            # Clear sampling_info tensors if present
+
             if hasattr(verify_batch, 'sampling_info') and verify_batch.sampling_info is not None:
                 verify_batch.sampling_info.temperatures = None
                 verify_batch.sampling_info.top_ps = None
@@ -735,12 +711,12 @@ class DeterministicVerificationWorker:
                 verify_batch.sampling_info.min_ps = None
                 verify_batch.sampling_info.sampling_seed = None
                 verify_batch.sampling_info.deterministic_indices = None
-            
-            # Clear shared resource references (don't free, just remove refs)
+
+            # Drop shared-resource references (don't free the pools themselves).
             verify_batch.req_to_token_pool = None
             verify_batch.token_to_kv_pool_allocator = None
-            
-            # Free temporary KV cache allocated for padding tokens
+
+            # Free temporary KV cache allocated for padding tokens.
             if llm42_info.total_padding_cache_slots > 0:
                 llm42_info.free_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
@@ -761,9 +737,9 @@ class DeterministicVerificationWorker:
             raise
 
     def _update_batch_state(self, batch: Union[ScheduleBatch, ModelWorkerBatch]):
-        """
-        Update batch.output_ids and seq_lens to reflect current req.output_ids.
-        Critical for prepare_for_decode() which uses these tensors.
+        """Sync ``batch.output_ids`` and ``batch.seq_lens`` with the current
+        ``req.output_ids`` after a rollback, so that ``prepare_for_decode()``
+        picks up the correct state.
         """
         if not hasattr(batch, 'output_ids') or batch.output_ids is None:
             return
@@ -798,11 +774,5 @@ class DeterministicVerificationWorker:
         batch.seq_lens_sum = sum(updated_seq_lens)
 
     def __getattr__(self, name):
-        """
-        Forward all other attributes to target_worker.
-        
-        This allows DeterministicVerificationWorker to act as a transparent
-        wrapper - any method/attribute not defined here is delegated to the
-        underlying target_worker.
-        """
+        """Delegate unknown attributes to ``target_worker`` (transparent proxy)."""
         return getattr(self.target_worker, name)

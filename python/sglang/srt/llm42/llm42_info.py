@@ -1,17 +1,20 @@
-# Copyright 2023-2024 SGLang Team
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 # ==============================================================================
-"""Deterministic verification info for TARGET_LLM42_VERIFY mode."""
+"""Verification batch metadata for the LLM-42 DVR protocol.
+
+This module defines ``LLM42Info``, which holds all the bookkeeping needed to
+construct a TARGET_LLM42_VERIFY forward pass, compare its outputs against the
+original decode-phase tokens, and apply rollback on mismatch.
+
+Key responsibilities:
+  1. Build verification input_ids (context token + decode outputs + padding).
+  2. Allocate / free temporary KV-cache slots for padding tokens.
+  3. Prepare a ``ScheduleBatch`` in TARGET_LLM42_VERIFY mode.
+  4. Token-level comparison and rollback logic.
+
+See §4.2 of the LLM-42 paper (arXiv:2601.17768) for protocol details.
+"""
 
 from __future__ import annotations
 
@@ -31,11 +34,13 @@ logger = logging.getLogger(__name__)
 
 
 class LLM42Info:
-    """
-    Information for deterministic verification.
-    
-    Similar to EagleVerifyInput but specifically for validating
-    deterministic inference outputs.
+    """Metadata and logic for a single verification pass.
+
+    An ``LLM42Info`` instance is created per verification batch.  It records the
+    original (decode-phase) token IDs, per-request padding masks, and manages
+    temporary KV-cache allocations for padded positions.  After the verification
+    forward pass completes, :meth:`verify_and_compare` performs token-level
+    comparison and applies rollback when a mismatch is detected.
     """
 
     # Dummy token ID used for padding (typically 0 or pad_token_id)
@@ -55,17 +60,15 @@ class LLM42Info:
         self.padded_lens = padded_lens  # length after padding (may equal output_lens if no padding)
         self.padding_masks = padding_masks  # masks to identify real vs padded tokens
         self.padding_counts = padding_counts  # number of padding predictions per request
-        
+
         # Track number of real vs dummy requests
         self.num_real_requests = len(output_lens)
         self.num_dummy_requests = 0
-        
-        # Calculate KV cache slots needed for padding
-        # We need NEW cache for tokens after context
-        # For each padded request: input = [context] + [actual_len-1 tokens] + [padding_count dummies]
-        # Total new cache needed = (actual_len - 1) + padding_count = window_size - 1 = padded_len - 1
-        # Example: actual_len=1, window_size=64 → need 0 + 63 = 63 new cache slots
-        # Example: actual_len=2, window_size=64 → need 1 + 62 = 63 new cache slots
+
+        # KV-cache slots needed for padding positions.
+        # Each request's verification input has ``padded_len`` tokens; the first
+        # token reuses the context cache slot, so ``padded_len - 1`` *new* slots
+        # are required.
         self.padding_cache_slots = [max(0, padded_len - 1) for padded_len in padded_lens]
         self.total_padding_cache_slots = sum(self.padding_cache_slots)
         
@@ -159,15 +162,12 @@ class LLM42Info:
                 padding_counts.append(padding_needed)
                 # Mask: True for real tokens, False for padding
                 padding_masks.append([True] * actual_len + [False] * padding_needed)
-                # seq_lens should reflect the padded sequence length
-                # seq_lens.append(len(req.origin_input_ids) + len(req.output_ids) + padding_needed - 1)
             else:
                 # No padding needed
                 original_outputs.extend(unverified_output_ids)
                 padded_lens.append(actual_len)
                 padding_counts.append(0)
                 padding_masks.append([True] * actual_len)
-                # seq_lens.append(len(req.origin_input_ids) + len(req.output_ids) - 1)
         
         return cls(
             original_outputs=torch.tensor(original_outputs, dtype=torch.int64),
@@ -196,10 +196,6 @@ class LLM42Info:
         if page_size > 1:
             # Round up to nearest page
             slots_to_allocate = ((self.total_padding_cache_slots + page_size - 1) // page_size) * page_size
-            # logger.info(
-            #     f"[LLM42_VERIFY] Rounding up {self.total_padding_cache_slots} to {slots_to_allocate} "
-            #     f"for page_size={page_size}"
-            # )
         else:
             slots_to_allocate = self.total_padding_cache_slots
         
@@ -213,9 +209,6 @@ class LLM42Info:
         if allocated_locs is not None and len(allocated_locs) > 0:
             if len(allocated_locs) > self.total_padding_cache_slots:
                 self.padding_cache_locs = allocated_locs[:self.total_padding_cache_slots]
-                # logger.info(
-                #     f"[LLM42_VERIFY] Using first {self.total_padding_cache_slots} of {len(allocated_locs)} allocated slots"
-                # )
             else:
                 self.padding_cache_locs = allocated_locs
         else:
@@ -256,6 +249,10 @@ class LLM42Info:
             self.padding_cache_locs_allocated = None
             self.padding_cache_locs = None
 
+    # ------------------------------------------------------------------
+    # Batch construction
+    # ------------------------------------------------------------------
+
     def prepare_verify_batch(
         self,
         original_batch: ScheduleBatch,
@@ -267,29 +264,29 @@ class LLM42Info:
         window_size: Optional[int] = None,
         dummy_sampling_tuple: Optional[tuple] = None,
     ) -> ScheduleBatch:
-        """
-        Prepare a batch for verification with TARGET_LLM42_VERIFY mode.
-        
-        This creates input_ids containing the full sequence (input + output)
-        to re-run through the model. When always_align is True, padded tokens
-        use dummy values and will be masked out during comparison.
-        
-        For fixed-size batches, dummy requests are appended using pre-allocated
-        resources from FixedSizeVerificationPool.
-        
+        """Build a ``ScheduleBatch`` in TARGET_LLM42_VERIFY mode.
+
+        The batch replays the last ``window_size`` tokens of each request so the
+        verifier can compare its outputs against the decode-phase tokens.  When
+        grouped verification is used, ``num_dummies`` dummy requests (drawn from
+        the pre-allocated :class:`FixedSizeVerificationPool`) are appended so
+        that every verification pass has identical shape.
+
         Args:
-            original_batch: Original batch context
-            reqs_to_verify: Requests to verify (real requests only)
-            dummy_input_ids: Pre-allocated dummy input tokens (optional)
-            dummy_cache_locs: Pre-allocated dummy cache locations (optional)
-            dummy_req_pool_indices: Pre-allocated req_pool indices for dummies (optional)
-            num_dummies: Number of dummy requests to append (default 0)
-            window_size: Step size for dummy requests (required if num_dummies > 0)
-            dummy_sampling_tuple: Pre-allocated dummy sampling tensors as tuple (optional)
-                Format: (temps, top_ps, top_ks, min_ps, seeds, det_indices, prefix_lens, output_lens)
-            
+            original_batch: Original decode-phase batch (provides KV pools etc.).
+            reqs_to_verify: Real requests whose tokens need verification.
+            dummy_input_ids: Pre-allocated dummy input tokens (optional).
+            dummy_cache_locs: Pre-allocated dummy KV-cache locations (optional).
+            dummy_req_pool_indices: Pre-allocated req_pool indices for dummies.
+            num_dummies: Number of dummy requests to append (default 0).
+            window_size: Verification window size per request (required when
+                ``num_dummies > 0``).
+            dummy_sampling_tuple: Pre-allocated dummy sampling tensors as tuple
+                ``(temps, top_ps, top_ks, min_ps, seeds, det_indices,
+                prefix_lens, output_lens)``.
+
         Returns:
-            Modified batch ready for verification
+            A ``ScheduleBatch`` ready for the verification forward pass.
         """
         from sglang.srt.managers.schedule_batch import ScheduleBatch
         from sglang.srt.sampling.sampling_batch_info import SamplingBatchInfo
@@ -384,14 +381,11 @@ class LLM42Info:
             verify_batch, original_batch.model_config.vocab_size
         )
         
-        # Force pytorch backend for verification to ensure deterministic seeded sampling
-        # via multinomial_with_seed, which uses (seed, position) for reproducibility
+        # Force pytorch backend for verification to ensure deterministic seeded
+        # sampling via multinomial_with_seed (uses (seed, position) hash).
         if verify_batch.sampling_info is not None:
             verify_batch.sampling_info.force_pytorch_backend = True
 
-        # logger.info(f"[LLM42Worker] Sampling info before adjustment: {verify_batch.sampling_info}")
-        # logger.info(f"[LLM42Worker] Original sampling info: {original_batch.sampling_info}")
-        
         if verify_batch.sampling_info is not None:
             tokens_per_request = torch.tensor(output_lens, dtype=torch.int64, device=device)
             
@@ -447,8 +441,6 @@ class LLM42Info:
             context_cache_loc = verify_batch.req_to_token_pool.req_to_token[req.req_pool_idx, context_idx]
             out_cache_locs.append(context_cache_loc.item())
 
-            # logger.info(f"[LLM42_VERIFY] Added context cache location: {context_cache_loc.item()} at index {context_idx}")
-            
             # For non-padded case: we need actual_len - 1 more cache locations
             # For padded case: we need (actual_len - 1) + padding_count = padded_len - 1 new cache locations
             #
@@ -473,15 +465,9 @@ class LLM42Info:
             num_cache_after_context = padded_len - 1
             end_idx = min(start_idx + num_cache_after_context, current_seq_len)
             
-            # logger.info(f"[LLM42_VERIFY] req {req.rid}: origin_input_len={len(req.origin_input_ids)}, "
-            #             f"llm42_verified_tokens={req.llm42_verified_tokens}, output_ids_len={len(req.output_ids)}, "
-            #             f"context_idx={context_idx}, start_idx={start_idx}, end_idx={end_idx}, "
-            #             f"current_seq_len={current_seq_len}, padded_len={padded_len}, actual_len={actual_len}")
-            
             if start_idx < end_idx:
                 output_cache_locs = verify_batch.req_to_token_pool.req_to_token[req.req_pool_idx, start_idx:end_idx]
-                # logger.info(f"[LLM42_VERIFY] Reading req_to_token[{req.req_pool_idx}, {start_idx}:{end_idx}] = {output_cache_locs[:5].tolist()}")
-                
+
                 # Check for invalid 0 values which indicate unallocated positions
                 output_list = output_cache_locs.tolist()
                 for j, loc in enumerate(output_list):
@@ -631,8 +617,8 @@ class LLM42Info:
         # Verify consistency
         if len(verify_batch.out_cache_loc) != len(verify_batch.input_ids):
             logger.error(
-                f"[LLM42_VERIFY] ERROR: Mismatch in cache location count! "
-                f"expected={len(verify_batch.input_ids)}, actual={len(verify_batch.out_cache_loc)}"
+                f"[LLM42] Cache location count mismatch: "
+                f"expected={len(verify_batch.input_ids)}, got={len(verify_batch.out_cache_loc)}"
             )
             raise RuntimeError(
                 f"Verification batch has {len(verify_batch.input_ids)} input tokens but only "
@@ -641,20 +627,16 @@ class LLM42Info:
         
         return verify_batch
 
+    # ------------------------------------------------------------------
+    # Token comparison and rollback
+    # ------------------------------------------------------------------
+
     def first_mismatch_position(
         self,
         original_ids: List[int],
         verified_ids: List[int],
     ) -> int:
-        """
-        Find the first mismatch position between original and verified token IDs.
-        
-        Args:
-            original_ids: Original output token IDs
-            verified_ids: Verified output token IDs
-        Returns:
-            Index of the first mismatch position, or length if all match
-        """
+        """Return the index of the first divergent token (or ``min_len`` if all match)."""
         min_len = min(len(original_ids), len(verified_ids))
         if min_len == 0:
             return 0
@@ -675,23 +657,29 @@ class LLM42Info:
         verified_logprobs: Optional[torch.Tensor] = None,
         mismatch_percentage: Optional[float] = None,
     ):
-        """
-        Compare original outputs with re-generated outputs.
-        On mismatch: ROLLBACK and ACCEPT the verified token predicted at mismatch position.
-        
-        When always_align is used, padding tokens are masked out and not compared.
-        Note: Only processes real requests, not dummy entries added via append_dummy_entries().
-        
+        """Compare decode-phase tokens with verification outputs and apply rollback.
+
+        For each real request (dummy entries are skipped), this method:
+
+        1. Finds the first token that differs between the decode output and the
+           verifier output.
+        2. Truncates ``req.output_ids`` to discard everything after the mismatch.
+        3. Appends the verifier-generated token at the mismatch position,
+           guaranteeing at least one new consistent token per pass.
+
+        Padding tokens (identified via ``padding_masks``) are excluded from the
+        comparison.
+
         Args:
-            reqs: Requests that were verified (real requests only, not dummies)
-            verified_token_ids: Token IDs from verification run (argmax predictions)
-            verified_logprobs: Log probabilities from verification run (optional)
-            mismatch_percentage: If set (0-100), inject a mismatch at position
-                                (window_size - ceil(percentage/100 * window_size)).
-                                This causes exactly ceil(X% * window_size) tokens to be rolled back.
-            
+            reqs: Real requests that were verified (no dummies).
+            verified_token_ids: Token IDs produced by the verification pass.
+            verified_logprobs: Corresponding log-probabilities (optional).
+            mismatch_percentage: If set (0–100), synthetically inject a mismatch
+                to force exactly ``ceil(pct/100 * window_size)`` tokens to be
+                rolled back.  Used for benchmarking overhead.
+
         Returns:
-            List of (mismatch_position, tokens_rolled_back) tuples for each request
+            List of ``(mismatch_position, tokens_rolled_back)`` per request.
         """
         
         verified_token_ids = verified_token_ids.tolist() if isinstance(verified_token_ids, torch.Tensor) else verified_token_ids

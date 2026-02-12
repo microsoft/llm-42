@@ -1,22 +1,31 @@
-# Copyright 2023-2024 SGLang Team
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 # ==============================================================================
-"""Deterministic inference verification module."""
+"""LLM-42: Deterministic inference via decode-verify-rollback (DVR).
+
+This module implements the core DVR protocol described in the LLM-42 paper
+(arXiv:2601.17768). It provides:
+
+- ``LLM42Info``: Metadata for a verification batch — tracks original outputs,
+  padding masks, and KV cache allocations, and implements the verify-and-compare
+  logic (including rollback on mismatch).
+
+- ``LLM42Worker``: Scheduler-level wrapper around a
+  TpModelWorker that intercepts finished deterministic requests, replays them
+  under a fixed-shape reduction schedule (TARGET_LLM42_VERIFY), and commits or
+  rolls back tokens based on the verification result.
+
+Typical usage (from the scheduler)::
+
+    worker = LLM42Worker(target_worker, ...)
+    output = worker.forward_batch_generation(batch)
+    rollbacks = worker.check_and_verify_deterministic_requests(batch)
+"""
 
 from sglang.srt.llm42.llm42_info import LLM42Info
-from sglang.srt.llm42.llm42_worker import DeterministicVerificationWorker
+from sglang.srt.llm42.llm42_worker import LLM42Worker
 
 __all__ = [
     "LLM42Info",
-    "DeterministicVerificationWorker",
+    "LLM42Worker",
 ]

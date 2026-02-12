@@ -455,10 +455,10 @@ class Scheduler(
         # Wrap with deterministic verification worker if enabled
         if server_args.enable_llm42:
             from sglang.srt.llm42.llm42_worker import (
-                DeterministicVerificationWorker,
+                LLM42Worker,
             )
 
-            self.model_worker = DeterministicVerificationWorker(
+            self.model_worker = LLM42Worker(
                 self.model_worker,
                 always_align=True,
                 fixed_requests_per_verify=server_args.llm42_verify_batch_size,
@@ -535,8 +535,8 @@ class Scheduler(
         # Initialize fixed-size verification pool for deterministic inference
         # (must be done after init_memory_pool_and_cache since allocators are needed)
         if server_args.enable_llm42:
-            from sglang.srt.llm42.llm42_worker import DeterministicVerificationWorker
-            if isinstance(self.model_worker, DeterministicVerificationWorker):
+            from sglang.srt.llm42.llm42_worker import LLM42Worker
+            if isinstance(self.model_worker, LLM42Worker):
                 # Use llm42_window_size as the window size for fixed batches
                 self.model_worker.init_fixed_pool(
                     req_to_token_pool=self.req_to_token_pool,
@@ -647,12 +647,12 @@ class Scheduler(
         # Init metrics stats
         self.init_metrics(tp_rank, pp_rank, dp_rank)
 
-        # Set metrics_collector on DeterministicVerificationWorker if enabled
+        # Set metrics_collector on LLM42Worker if enabled
         if server_args.enable_llm42 and hasattr(self, 'metrics_collector'):
             from sglang.srt.llm42.llm42_worker import (
-                DeterministicVerificationWorker,
+                LLM42Worker,
             )
-            if isinstance(self.model_worker, DeterministicVerificationWorker):
+            if isinstance(self.model_worker, LLM42Worker):
                 self.model_worker.metrics_collector = self.metrics_collector
 
         if self.enable_kv_cache_events:
