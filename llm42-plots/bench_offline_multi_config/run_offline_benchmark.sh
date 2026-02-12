@@ -170,8 +170,8 @@ with open('$temp_result', 'r') as f:
                 meta_info_list = result.get('meta_info', [])
                 output_lens = result.get('output_lens', [])
                 if meta_info_list:
-                    det_num_rollbacks = [m.get('llm_42_num_rollbacks', 0) for m in meta_info_list if m]
-                    det_tokens_rolled_back = [m.get('llm_42_tokens_rolled_back', 0) for m in meta_info_list if m]
+                    det_num_rollbacks = [m.get('llm42_num_rollbacks', 0) for m in meta_info_list if m]
+                    det_tokens_rolled_back = [m.get('llm42_tokens_rolled_back', 0) for m in meta_info_list if m]
                     
                     num_requests = len(det_num_rollbacks)
                     total_output_tokens = sum(output_lens) if output_lens else result.get('total_output_tokens', 0)

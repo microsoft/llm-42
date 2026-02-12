@@ -4,8 +4,8 @@
 # This script starts N servers (one per GPU) with different determinism settings:
 #   config1: sglang_non_deterministic (no determinism flags)
 #   config2: sglang_global_deterministic (enable-deterministic-inference 2)
-#   config3: llm42_ws_32_bs_16 (enable-llm-42 3, llm-42-window-size 32, llm-42-verify-batch-size 16)
-#   config4: llm42_ws_64_bs_8 (enable-llm-42 3, llm-42-window-size 64, llm-42-verify-batch-size 8)
+#   config3: llm42_ws_32_bs_16 (enable-llm42 3, llm42-window-size 32, llm42-verify-batch-size 16)
+#   config4: llm42_ws_64_bs_8 (enable-llm42 3, llm42-window-size 64, llm42-verify-batch-size 8)
 
 set -e
 
@@ -95,19 +95,19 @@ get_config_args() {
             echo "--enable-deterministic-inference 2"
             ;;
         "llm42_ws_32_bs_16")
-            echo "--llm-42-window-size 32 --enable-llm-42 3 --llm-42-verify-batch-size 16"
+            echo "--llm42-window-size 32 --enable-llm42 3 --llm42-verify-batch-size 16"
             ;;
         "llm42_ws_16_bs_32")
-            echo "--llm-42-window-size 16 --enable-llm-42 3 --llm-42-verify-batch-size 32"
+            echo "--llm42-window-size 16 --enable-llm42 3 --llm42-verify-batch-size 32"
             ;;
         "llm42_ws_64_bs_16")
-            echo "--llm-42-window-size 64 --enable-llm-42 3 --llm-42-verify-batch-size 16"
+            echo "--llm42-window-size 64 --enable-llm42 3 --llm42-verify-batch-size 16"
             ;;
         "llm42_ws_64_bs_8")
-            echo "--llm-42-window-size 64 --enable-llm-42 3 --llm-42-verify-batch-size 8"
+            echo "--llm42-window-size 64 --enable-llm42 3 --llm42-verify-batch-size 8"
             ;;
         "llm42_ws_32_bs_32")
-            echo "--llm-42-window-size 32 --enable-llm-42 3 --llm-42-verify-batch-size 32"
+            echo "--llm42-window-size 32 --enable-llm42 3 --llm42-verify-batch-size 32"
             ;;
         *)
             echo "Error: Unknown config name: $config_name" >&2

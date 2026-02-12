@@ -89,7 +89,7 @@ get_config_args() {
     # Dynamic parsing: llm42_ws_<window_size>_bs_<batch_size>
     local ws=$(echo "$config_name" | sed -E 's/llm42_ws_([0-9]+)_bs_([0-9]+)/\1/')
     local bs=$(echo "$config_name" | sed -E 's/llm42_ws_([0-9]+)_bs_([0-9]+)/\2/')
-    echo "--llm-42-window-size $ws --enable-llm-42 3 --llm-42-verify-batch-size $bs"
+    echo "--llm42-window-size $ws --enable-llm42 3 --llm42-verify-batch-size $bs"
 }
 
 # Function to wait for server to be ready
@@ -169,9 +169,9 @@ with open('$temp_result', 'r') as f:
                 meta_info_list = result.get('meta_info', [])
                 output_lens = result.get('output_lens', [])
                 if meta_info_list:
-                    det_num_rollbacks = [m.get('llm_42_num_rollbacks', 0) for m in meta_info_list if m]
-                    det_tokens_rolled_back = [m.get('llm_42_tokens_rolled_back', 0) for m in meta_info_list if m]
-                    det_num_verification_windows = [m.get('llm_42_num_verification_windows', 0) for m in meta_info_list if m]
+                    det_num_rollbacks = [m.get('llm42_num_rollbacks', 0) for m in meta_info_list if m]
+                    det_tokens_rolled_back = [m.get('llm42_tokens_rolled_back', 0) for m in meta_info_list if m]
+                    det_num_verification_windows = [m.get('llm42_num_verification_windows', 0) for m in meta_info_list if m]
                     
                     num_requests = len(det_num_rollbacks)
                     total_output_tokens = sum(output_lens) if output_lens else result.get('total_output_tokens', 0)

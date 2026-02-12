@@ -112,7 +112,7 @@ GLOBAL_SERVER_ARGS_KEYS = [
     "enable_custom_logit_processor",
     "disaggregation_mode",
     "enable_deterministic_inference",
-    "enable_llm_42",
+    "enable_llm42",
     "enable_selective_determinism",
 ]
 
@@ -632,11 +632,11 @@ class Req:
 
         # For deterministic verification
         self.is_deterministic: bool = sampling_params.is_deterministic
-        self.llm_42_verified_tokens: int = 0  # Number of tokens that have been verified
+        self.llm42_verified_tokens: int = 0  # Number of tokens that have been verified
         # Request-level rollback stats
-        self.llm_42_num_rollbacks: int = 0  # Number of rollback events for this request
-        self.llm_42_tokens_rolled_back: int = 0  # Total tokens rolled back for this request
-        self.llm_42_num_verification_windows: int = 0  # Number of verification windows executed for this request 
+        self.llm42_num_rollbacks: int = 0  # Number of rollback events for this request
+        self.llm42_tokens_rolled_back: int = 0  # Total tokens rolled back for this request
+        self.llm42_num_verification_windows: int = 0  # Number of verification windows executed for this request 
         
     
         # For metrics
@@ -745,9 +745,9 @@ class Req:
             if needs_verification :
                 # only send verified tokens for deterministic inference
                 self.surr_and_decode_ids = (
-                    self.origin_input_ids_unpadded[self.surr_offset :] + self.output_ids[:self.llm_42_verified_tokens]
+                    self.origin_input_ids_unpadded[self.surr_offset :] + self.output_ids[:self.llm42_verified_tokens]
                 )
-                self.cur_decode_ids_len = self.llm_42_verified_tokens
+                self.cur_decode_ids_len = self.llm42_verified_tokens
             else:
                 self.surr_and_decode_ids = (
                     self.origin_input_ids_unpadded[self.surr_offset :] + self.output_ids
@@ -757,9 +757,9 @@ class Req:
             if needs_verification:
                 # only send verified tokens for deterministic inference
                 self.surr_and_decode_ids.extend(
-                    self.output_ids[self.cur_decode_ids_len : self.llm_42_verified_tokens]
+                    self.output_ids[self.cur_decode_ids_len : self.llm42_verified_tokens]
                 )
-                self.cur_decode_ids_len = self.llm_42_verified_tokens
+                self.cur_decode_ids_len = self.llm42_verified_tokens
             else:
                 self.surr_and_decode_ids.extend(self.output_ids[self.cur_decode_ids_len :])
                 self.cur_decode_ids_len = len(self.output_ids)
@@ -870,9 +870,9 @@ class Req:
         if self.is_deterministic:
             logger.info(
                 f"Det Rollback Stats(rid={self.rid}): "
-                f"rollbacks={self.llm_42_num_rollbacks}, "
-                f"tokens_rolled_back={self.llm_42_tokens_rolled_back}, "
-                f"verification_windows={self.llm_42_num_verification_windows}"
+                f"rollbacks={self.llm42_num_rollbacks}, "
+                f"tokens_rolled_back={self.llm42_tokens_rolled_back}, "
+                f"verification_windows={self.llm42_num_verification_windows}"
             )
 
     def set_finish_with_abort(self, error_msg: str):

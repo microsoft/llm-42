@@ -6,8 +6,8 @@
 # Server configs:
 #   - default: no deterministic inference
 #   - global: --enable-deterministic-inference 2
-#   - llm42_ws64_bs8: --enable-llm-42 3 --llm-42-window-size 64 --llm-42-verify-batch-size 8
-#   - llm42_ws32_bs16: --enable-llm-42 3 --llm-42-window-size 32 --llm-42-verify-batch-size 16
+#   - llm42_ws64_bs8: --enable-llm42 3 --llm42-window-size 64 --llm42-verify-batch-size 8
+#   - llm42_ws32_bs16: --enable-llm42 3 --llm42-window-size 32 --llm42-verify-batch-size 16
 #
 # For each QPS:
 #   - default, global: deterministic-ratio 1.0
@@ -85,10 +85,10 @@ get_server_args() {
             echo "--enable-deterministic-inference 2"
             ;;
         "llm42_ws64_bs8")
-            echo "--enable-llm-42 3 --llm-42-window-size 64 --llm-42-verify-batch-size 8"
+            echo "--enable-llm42 3 --llm42-window-size 64 --llm42-verify-batch-size 8"
             ;;
         "llm42_ws32_bs16")
-            echo "--enable-llm-42 3 --llm-42-window-size 32 --llm-42-verify-batch-size 16"
+            echo "--enable-llm42 3 --llm42-window-size 32 --llm42-verify-batch-size 16"
             ;;
         *)
             echo ""

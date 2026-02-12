@@ -45,13 +45,13 @@ $PYTHON_CMD -m sglang.launch_server \
     --chunked-prefill-size -1 \
     --disable-overlap-schedule \
     --enable-metrics \
-    --llm-42-window-size 64 \
-    --enable-llm-42 3 \
-    --llm-42-verify-batch-size 1
+    --llm42-window-size 64 \
+    --enable-llm42 3 \
+    --llm42-verify-batch-size 1
     # --enable-selective-determinism 1 \
     # --enable-deterministic-inference 2 \
-    # --llm-42-window-size 10 \
-    # --enable-llm-42 1
+    # --llm42-window-size 10 \
+    # --enable-llm42 1
     # --enable-selective-determinism 1 \
     # --enable-deterministic-inference 1 \
     # --disable-cuda-graph \

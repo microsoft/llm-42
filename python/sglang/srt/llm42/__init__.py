@@ -13,10 +13,10 @@
 # ==============================================================================
 """Deterministic inference verification module."""
 
-from sglang.srt.llm42.det_verify_info import DetVerifyInfo
-from sglang.srt.llm42.det_verify_worker import DeterministicVerificationWorker
+from sglang.srt.llm42.llm42_info import LLM42Info
+from sglang.srt.llm42.llm42_worker import DeterministicVerificationWorker
 
 __all__ = [
-    "DetVerifyInfo",
+    "LLM42Info",
     "DeterministicVerificationWorker",
 ]

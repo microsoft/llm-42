@@ -223,7 +223,7 @@ class CudaGraphRunner:
         self.graphs = {}
         self.output_buffers = {}
         # Enable dual graphs only for selective_determinism mode
-        # (llm_42 mode doesn't need dual graphs: decode uses non-deterministic kernels,
+        # (llm42 mode doesn't need dual graphs: decode uses non-deterministic kernels,
         # and verification doesn't use CUDA graph)
         self.enable_dual_graphs = model_runner.enable_selective_determinism
         self.enable_torch_compile = model_runner.server_args.enable_torch_compile

@@ -176,8 +176,8 @@ def run_experiment_process(idx: int, base: dict, url: str, config: ConfigSpec,
     det_tokens_rolled_back = []
     if "meta_info" in result:
         for meta in result["meta_info"]:
-            det_num_rollbacks.append(meta.get("llm_42_num_rollbacks", 0))
-            det_tokens_rolled_back.append(meta.get("llm_42_tokens_rolled_back", 0))
+            det_num_rollbacks.append(meta.get("llm42_num_rollbacks", 0))
+            det_tokens_rolled_back.append(meta.get("llm42_tokens_rolled_back", 0))
     
     # Calculate rollback statistics
     rollback_stats = {}

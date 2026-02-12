@@ -130,19 +130,19 @@ def _handle_output_by_index(output, i):
             spec_verify_ct=(
                 [output.spec_verify_ct[i]] if len(output.spec_verify_ct) > i else None
             ),
-            llm_42_num_rollbacks=(
-                [output.llm_42_num_rollbacks[i]]
-                if output.llm_42_num_rollbacks and len(output.llm_42_num_rollbacks) > i
+            llm42_num_rollbacks=(
+                [output.llm42_num_rollbacks[i]]
+                if output.llm42_num_rollbacks and len(output.llm42_num_rollbacks) > i
                 else None
             ),
-            llm_42_tokens_rolled_back=(
-                [output.llm_42_tokens_rolled_back[i]]
-                if output.llm_42_tokens_rolled_back and len(output.llm_42_tokens_rolled_back) > i
+            llm42_tokens_rolled_back=(
+                [output.llm42_tokens_rolled_back[i]]
+                if output.llm42_tokens_rolled_back and len(output.llm42_tokens_rolled_back) > i
                 else None
             ),
-            llm_42_num_verification_windows=(
-                [output.llm_42_num_verification_windows[i]]
-                if output.llm_42_num_verification_windows and len(output.llm_42_num_verification_windows) > i
+            llm42_num_verification_windows=(
+                [output.llm42_num_verification_windows[i]]
+                if output.llm42_num_verification_windows and len(output.llm42_num_verification_windows) > i
                 else None
             ),
             input_token_logprobs_val=(
@@ -261,19 +261,19 @@ def _handle_output_by_index(output, i):
             spec_verify_ct=(
                 [output.spec_verify_ct[i]] if len(output.spec_verify_ct) > i else None
             ),
-            llm_42_num_rollbacks=(
-                [output.llm_42_num_rollbacks[i]]
-                if output.llm_42_num_rollbacks and len(output.llm_42_num_rollbacks) > i
+            llm42_num_rollbacks=(
+                [output.llm42_num_rollbacks[i]]
+                if output.llm42_num_rollbacks and len(output.llm42_num_rollbacks) > i
                 else None
             ),
-            llm_42_tokens_rolled_back=(
-                [output.llm_42_tokens_rolled_back[i]]
-                if output.llm_42_tokens_rolled_back and len(output.llm_42_tokens_rolled_back) > i
+            llm42_tokens_rolled_back=(
+                [output.llm42_tokens_rolled_back[i]]
+                if output.llm42_tokens_rolled_back and len(output.llm42_tokens_rolled_back) > i
                 else None
             ),
-            llm_42_num_verification_windows=(
-                [output.llm_42_num_verification_windows[i]]
-                if output.llm_42_num_verification_windows and len(output.llm_42_num_verification_windows) > i
+            llm42_num_verification_windows=(
+                [output.llm42_num_verification_windows[i]]
+                if output.llm42_num_verification_windows and len(output.llm42_num_verification_windows) > i
                 else None
             ),
             input_token_logprobs_val=(

@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Deterministic verification info for TARGET_DET_VERIFY mode."""
+"""Deterministic verification info for TARGET_LLM42_VERIFY mode."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class DetVerifyInfo:
+class LLM42Info:
     """
     Information for deterministic verification.
     
@@ -104,9 +104,9 @@ class DetVerifyInfo:
         always_align: bool = True,
         force_include_all: bool = False,
         window_size: Optional[int] = None,
-    ) -> DetVerifyInfo:
+    ) -> LLM42Info:
         """
-        Create DetVerifyInfo from a list of finished deterministic requests.
+        Create LLM42Info from a list of finished deterministic requests.
         
         Args:
             reqs: List of requests to verify
@@ -117,7 +117,7 @@ class DetVerifyInfo:
             window_size: Verification window size for padding. If None, no padding is applied.
             
         Returns:
-            DetVerifyInfo instance
+            LLM42Info instance
         """
         original_outputs = []
         seq_lens = []
@@ -127,7 +127,7 @@ class DetVerifyInfo:
         padding_counts = []
         
         for req in reqs:
-            unverified_output_ids = req.output_ids[req.llm_42_verified_tokens:]
+            unverified_output_ids = req.output_ids[req.llm42_verified_tokens:]
             actual_len = len(unverified_output_ids)
             
             # Skip requests with no unverified tokens
@@ -197,7 +197,7 @@ class DetVerifyInfo:
             # Round up to nearest page
             slots_to_allocate = ((self.total_padding_cache_slots + page_size - 1) // page_size) * page_size
             # logger.info(
-            #     f"[DET_VERIFY] Rounding up {self.total_padding_cache_slots} to {slots_to_allocate} "
+            #     f"[LLM42_VERIFY] Rounding up {self.total_padding_cache_slots} to {slots_to_allocate} "
             #     f"for page_size={page_size}"
             # )
         else:
@@ -214,7 +214,7 @@ class DetVerifyInfo:
             if len(allocated_locs) > self.total_padding_cache_slots:
                 self.padding_cache_locs = allocated_locs[:self.total_padding_cache_slots]
                 # logger.info(
-                #     f"[DET_VERIFY] Using first {self.total_padding_cache_slots} of {len(allocated_locs)} allocated slots"
+                #     f"[LLM42_VERIFY] Using first {self.total_padding_cache_slots} of {len(allocated_locs)} allocated slots"
                 # )
             else:
                 self.padding_cache_locs = allocated_locs
@@ -268,7 +268,7 @@ class DetVerifyInfo:
         dummy_sampling_tuple: Optional[tuple] = None,
     ) -> ScheduleBatch:
         """
-        Prepare a batch for verification with TARGET_DET_VERIFY mode.
+        Prepare a batch for verification with TARGET_LLM42_VERIFY mode.
         
         This creates input_ids containing the full sequence (input + output)
         to re-run through the model. When always_align is True, padded tokens
@@ -299,7 +299,7 @@ class DetVerifyInfo:
         total_batch_size = len(reqs_to_verify) + num_dummies
         
         verify_batch = ScheduleBatch(reqs=reqs_to_verify, batch_is_full=True)
-        verify_batch.forward_mode = ForwardMode.TARGET_DET_VERIFY
+        verify_batch.forward_mode = ForwardMode.TARGET_LLM42_VERIFY
         
         input_ids = []
         req_pool_indices = []
@@ -307,7 +307,7 @@ class DetVerifyInfo:
         prefix_lens_list = []
         
         for i, req in enumerate(reqs_to_verify):
-            actual_unverified = req.output_ids[req.llm_42_verified_tokens:]
+            actual_unverified = req.output_ids[req.llm42_verified_tokens:]
             padded_len = self.padded_lens[i]
             actual_len = self.output_lens[i]
             
@@ -315,8 +315,8 @@ class DetVerifyInfo:
                 continue
             
             # Get the last verified token as context
-            if req.llm_42_verified_tokens > 0:
-                last_verified_token = req.output_ids[req.llm_42_verified_tokens - 1]
+            if req.llm42_verified_tokens > 0:
+                last_verified_token = req.output_ids[req.llm42_verified_tokens - 1]
             elif req.origin_input_ids:
                 last_verified_token = req.origin_input_ids[-1]
             elif req.input_ids:
@@ -351,7 +351,7 @@ class DetVerifyInfo:
             
             req_pool_indices.append(req.req_pool_idx)
             output_lens.append(padded_len)
-            prefix_lens_list.append(len(req.origin_input_ids) + req.llm_42_verified_tokens - 1)
+            prefix_lens_list.append(len(req.origin_input_ids) + req.llm42_verified_tokens - 1)
         
         device = original_batch.device
         verify_batch.input_ids = torch.tensor(input_ids, dtype=torch.int64, device=device)
@@ -389,8 +389,8 @@ class DetVerifyInfo:
         if verify_batch.sampling_info is not None:
             verify_batch.sampling_info.force_pytorch_backend = True
 
-        # logger.info(f"[DetVerifyWorker] Sampling info before adjustment: {verify_batch.sampling_info}")
-        # logger.info(f"[DetVerifyWorker] Original sampling info: {original_batch.sampling_info}")
+        # logger.info(f"[LLM42Worker] Sampling info before adjustment: {verify_batch.sampling_info}")
+        # logger.info(f"[LLM42Worker] Original sampling info: {original_batch.sampling_info}")
         
         if verify_batch.sampling_info is not None:
             tokens_per_request = torch.tensor(output_lens, dtype=torch.int64, device=device)
@@ -428,7 +428,7 @@ class DetVerifyInfo:
             #   - Total KV positions: origin_input_len + N - 1
             # The last output token (output_ids[N-1]) hasn't had its KV written yet!
             current_seq_len = len(req.origin_input_ids) + len(req.output_ids) - 1
-            context_idx = len(req.origin_input_ids) + req.llm_42_verified_tokens - 1
+            context_idx = len(req.origin_input_ids) + req.llm42_verified_tokens - 1
             actual_len = self.output_lens[i]
             padded_len = self.padded_lens[i]
             padding_count = self.padding_counts[i]
@@ -447,7 +447,7 @@ class DetVerifyInfo:
             context_cache_loc = verify_batch.req_to_token_pool.req_to_token[req.req_pool_idx, context_idx]
             out_cache_locs.append(context_cache_loc.item())
 
-            # logger.info(f"[DET_VERIFY] Added context cache location: {context_cache_loc.item()} at index {context_idx}")
+            # logger.info(f"[LLM42_VERIFY] Added context cache location: {context_cache_loc.item()} at index {context_idx}")
             
             # For non-padded case: we need actual_len - 1 more cache locations
             # For padded case: we need (actual_len - 1) + padding_count = padded_len - 1 new cache locations
@@ -459,7 +459,7 @@ class DetVerifyInfo:
             #
             # Note: For actual_len=1, input is [context] + [0 actual tokens] + [window_size-1 dummies]
             
-            start_idx = len(req.origin_input_ids) + req.llm_42_verified_tokens
+            start_idx = len(req.origin_input_ids) + req.llm42_verified_tokens
             
             # CRITICAL: Always reuse the SAME cache locations that decode wrote to!
             # Verification must overwrite decode KV at the exact same physical slots
@@ -473,20 +473,20 @@ class DetVerifyInfo:
             num_cache_after_context = padded_len - 1
             end_idx = min(start_idx + num_cache_after_context, current_seq_len)
             
-            # logger.info(f"[DET_VERIFY] req {req.rid}: origin_input_len={len(req.origin_input_ids)}, "
-            #             f"llm_42_verified_tokens={req.llm_42_verified_tokens}, output_ids_len={len(req.output_ids)}, "
+            # logger.info(f"[LLM42_VERIFY] req {req.rid}: origin_input_len={len(req.origin_input_ids)}, "
+            #             f"llm42_verified_tokens={req.llm42_verified_tokens}, output_ids_len={len(req.output_ids)}, "
             #             f"context_idx={context_idx}, start_idx={start_idx}, end_idx={end_idx}, "
             #             f"current_seq_len={current_seq_len}, padded_len={padded_len}, actual_len={actual_len}")
             
             if start_idx < end_idx:
                 output_cache_locs = verify_batch.req_to_token_pool.req_to_token[req.req_pool_idx, start_idx:end_idx]
-                # logger.info(f"[DET_VERIFY] Reading req_to_token[{req.req_pool_idx}, {start_idx}:{end_idx}] = {output_cache_locs[:5].tolist()}")
+                # logger.info(f"[LLM42_VERIFY] Reading req_to_token[{req.req_pool_idx}, {start_idx}:{end_idx}] = {output_cache_locs[:5].tolist()}")
                 
                 # Check for invalid 0 values which indicate unallocated positions
                 output_list = output_cache_locs.tolist()
                 for j, loc in enumerate(output_list):
                     if loc == 0:
-                        logger.error(f"[DET_VERIFY] Found invalid slot 0 at position {start_idx + j} in req_to_token!")
+                        logger.error(f"[LLM42_VERIFY] Found invalid slot 0 at position {start_idx + j} in req_to_token!")
                 
                 out_cache_locs.extend(output_list)
             
@@ -631,7 +631,7 @@ class DetVerifyInfo:
         # Verify consistency
         if len(verify_batch.out_cache_loc) != len(verify_batch.input_ids):
             logger.error(
-                f"[DET_VERIFY] ERROR: Mismatch in cache location count! "
+                f"[LLM42_VERIFY] ERROR: Mismatch in cache location count! "
                 f"expected={len(verify_batch.input_ids)}, actual={len(verify_batch.out_cache_loc)}"
             )
             raise RuntimeError(

@@ -2,7 +2,7 @@
 
 # Launch multiple SGLang servers for parallel batch invariance testing with different step sizes
 # This script starts N servers (one per GPU) with deterministic inference enabled
-# Each server uses a different llm-42-window-size
+# Each server uses a different llm42-window-size
 
 set -e
 
@@ -101,9 +101,9 @@ for ((i=0; i<NUM_SERVERS; i++)); do
         --enable-metrics \
         --random-seed 42 \
         --chunked-prefill-size -1 \
-        --llm-42-window-size "$STEP_SIZE" \
-        --enable-llm-42 3 \
-        --llm-42-verify-batch-size 1 \
+        --llm42-window-size "$STEP_SIZE" \
+        --enable-llm42 3 \
+        --llm42-verify-batch-size 1 \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!

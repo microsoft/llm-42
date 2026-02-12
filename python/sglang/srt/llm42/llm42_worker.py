@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import torch
 
-from sglang.srt.llm42.det_verify_info import DetVerifyInfo
+from sglang.srt.llm42.llm42_info import LLM42Info
 from sglang.srt.model_executor.forward_batch_info import ForwardBatchOutput, ForwardMode
 
 if TYPE_CHECKING:
@@ -34,12 +34,12 @@ class FixedSizeVerificationPool:
     """
     Pre-allocated pool of dummy resources for fixed-size verification batches.
     
-    When llm_42_verify_batch_size is set, verification batches always have exactly
+    When llm42_verify_batch_size is set, verification batches always have exactly
     N requests. This pool provides pre-allocated dummy resources to fill slots
     when there are fewer than N real requests.
     """
     
-    DUMMY_TOKEN_ID = 32  # Match DetVerifyInfo.DUMMY_TOKEN_ID
+    DUMMY_TOKEN_ID = 32  # Match LLM42Info.DUMMY_TOKEN_ID
     
     def __init__(
         self,
@@ -86,7 +86,7 @@ class FixedSizeVerificationPool:
         if self.dummy_cache_locs is None or len(self.dummy_cache_locs) == 0:
             raise RuntimeError(
                 f"Failed to allocate {slots_needed} KV cache slots for fixed-size verification pool. "
-                f"Consider reducing llm_42_verify_batch_size or increasing KV cache size."
+                f"Consider reducing llm42_verify_batch_size or increasing KV cache size."
             )
         
         # CRITICAL FIX: Allocate actual row indices in req_to_token_pool for dummy requests
@@ -96,7 +96,7 @@ class FixedSizeVerificationPool:
         if allocated_pool_indices is None or len(allocated_pool_indices) < fixed_size:
             raise RuntimeError(
                 f"Failed to allocate {fixed_size} req_to_token_pool slots for dummy requests. "
-                f"Consider reducing llm_42_verify_batch_size or increasing pool size."
+                f"Consider reducing llm42_verify_batch_size or increasing pool size."
             )
         
         self.dummy_req_pool_indices = torch.tensor(
@@ -204,7 +204,7 @@ class DeterministicVerificationWorker:
     Similar to EagleWorker but for deterministic inference validation:
     - Operates on ScheduleBatch objects (not ModelWorkerBatch)
     - Identifies finished deterministic requests after forward pass
-    - Re-runs them with TARGET_DET_VERIFY mode
+    - Re-runs them with TARGET_LLM42_VERIFY mode
     - Compares outputs to detect any non-determinism
     """
 
@@ -342,7 +342,7 @@ class DeterministicVerificationWorker:
         This is called from process_batch_result_decode, similar to how Eagle
         handles verification after output processing.
         
-        When fixed_pool is enabled (llm_42_verify_batch_size is set with allocators),
+        When fixed_pool is enabled (llm42_verify_batch_size is set with allocators),
         verification runs with exactly N requests by:
         1. Including all deterministic requests (ready or not, padding partial outputs)
         2. Filling remaining slots with pre-allocated dummy requests
@@ -367,7 +367,7 @@ class DeterministicVerificationWorker:
             
             # Calculate unverified tokens
             output_len = len(req.output_ids)
-            unverified_tokens = output_len - req.llm_42_verified_tokens
+            unverified_tokens = output_len - req.llm42_verified_tokens
             
             if unverified_tokens <= 0:
                 continue
@@ -391,7 +391,7 @@ class DeterministicVerificationWorker:
             not_ready_reqs = []
             for req in all_det_reqs:
                 output_len = len(req.output_ids)
-                unverified_tokens = output_len - req.llm_42_verified_tokens
+                unverified_tokens = output_len - req.llm42_verified_tokens
                 is_finished = req.finished_reason is not None
                 if is_finished or unverified_tokens >= self._window_size:
                     ready_reqs.append(req)
@@ -430,7 +430,7 @@ class DeterministicVerificationWorker:
         reqs_to_verify = []
         for req in all_det_reqs:
             output_len = len(req.output_ids)
-            unverified_tokens = output_len - req.llm_42_verified_tokens
+            unverified_tokens = output_len - req.llm42_verified_tokens
             is_finished = req.finished_reason is not None
             if is_finished or unverified_tokens >= self._window_size:
                 reqs_to_verify.append(req)
@@ -462,8 +462,8 @@ class DeterministicVerificationWorker:
             List of (req, tokens_rolled_back) tuples for requests that had rollback.
         """
         try:
-            # Create DetVerifyInfo with force_include_all=True to include not-ready requests
-            det_verify_info = DetVerifyInfo.from_requests(
+            # Create LLM42Info with force_include_all=True to include not-ready requests
+            llm42_info = LLM42Info.from_requests(
                 real_reqs, 
                 always_align=self.always_align,
                 force_include_all=True,  # Include requests even if not at window_size boundary
@@ -472,18 +472,18 @@ class DeterministicVerificationWorker:
             
             # Append dummy entries if needed
             if num_dummies > 0:
-                det_verify_info.append_dummy_entries(num_dummies, self.fixed_pool.window_size)
+                llm42_info.append_dummy_entries(num_dummies, self.fixed_pool.window_size)
             
             # Allocate temporary KV cache for padding tokens of real requests
-            if det_verify_info.total_padding_cache_slots > 0:
-                det_verify_info.allocate_padding_kv_cache(
+            if llm42_info.total_padding_cache_slots > 0:
+                llm42_info.allocate_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
             
             # Prepare verification batch with dummy data and pre-allocated sampling tensors
             dummy_input_ids, dummy_cache_locs, dummy_req_pool_indices = self.fixed_pool.get_dummy_data(num_dummies)
             dummy_sampling_tuple = self.fixed_pool.get_dummy_sampling_tensors(num_dummies) if num_dummies > 0 else None
-            verify_batch = det_verify_info.prepare_verify_batch(
+            verify_batch = llm42_info.prepare_verify_batch(
                 original_batch, 
                 real_reqs,
                 dummy_input_ids=dummy_input_ids,
@@ -504,13 +504,13 @@ class DeterministicVerificationWorker:
             
             # Compare outputs (only for real requests, dummies are ignored via padding_masks)
             if self.skip_mismatch >= 100.0:
-                rollback_info = det_verify_info.verify_and_compare(
+                rollback_info = llm42_info.verify_and_compare(
                     real_reqs, verified_token_ids, verified_logprobs
                 )
             elif self.skip_mismatch <= 0.0:
-                rollback_info = [(len(req.output_ids) - req.llm_42_verified_tokens, 0) for req in real_reqs]
+                rollback_info = [(len(req.output_ids) - req.llm42_verified_tokens, 0) for req in real_reqs]
             else:
-                rollback_info = det_verify_info.verify_and_compare(
+                rollback_info = llm42_info.verify_and_compare(
                     real_reqs, verified_token_ids, verified_logprobs,
                     mismatch_percentage=self.skip_mismatch
                 )
@@ -519,17 +519,17 @@ class DeterministicVerificationWorker:
             rollback_results = []
             for req, info in zip(real_reqs, rollback_info):
                 # Increment verification window count for this request
-                req.llm_42_num_verification_windows += 1
+                req.llm42_num_verification_windows += 1
                 if info is not None and info[1] > 0:
-                    req.llm_42_num_rollbacks += 1
-                    req.llm_42_tokens_rolled_back += info[1]
+                    req.llm42_num_rollbacks += 1
+                    req.llm42_tokens_rolled_back += info[1]
                     if self.metrics_collector:
                         self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
                         self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
                     rollback_results.append((req, info[1]))
-                    req.llm_42_verified_tokens = len(req.output_ids)
+                    req.llm42_verified_tokens = len(req.output_ids)
                 else:
-                    req.llm_42_verified_tokens = len(req.output_ids)
+                    req.llm42_verified_tokens = len(req.output_ids)
             
             # Update batch state if there was rollback
             if rollback_results:
@@ -554,17 +554,17 @@ class DeterministicVerificationWorker:
             verify_batch.token_to_kv_pool_allocator = None
             
             # Free temporary KV cache for real request padding
-            if det_verify_info.total_padding_cache_slots > 0:
-                det_verify_info.free_padding_kv_cache(
+            if llm42_info.total_padding_cache_slots > 0:
+                llm42_info.free_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
             
             return rollback_results
             
         except Exception as e:
-            if 'det_verify_info' in locals() and det_verify_info.total_padding_cache_slots > 0:
+            if 'llm42_info' in locals() and llm42_info.total_padding_cache_slots > 0:
                 try:
-                    det_verify_info.free_padding_kv_cache(
+                    llm42_info.free_padding_kv_cache(
                         original_batch.token_to_kv_pool_allocator
                     )
                 except Exception:
@@ -629,21 +629,21 @@ class DeterministicVerificationWorker:
             List of (req, tokens_rolled_back) tuples for requests that had rollback.
         """
         try:
-            det_verify_info = DetVerifyInfo.from_requests(reqs, always_align=always_align, window_size=self._window_size)
-            # logger.info(f"[DetVerifyWorker] Verifying {len(reqs)} requests with total padding cache slots {det_verify_info.total_padding_cache_slots}")
+            llm42_info = LLM42Info.from_requests(reqs, always_align=always_align, window_size=self._window_size)
+            # logger.info(f"[LLM42Worker] Verifying {len(reqs)} requests with total padding cache slots {llm42_info.total_padding_cache_slots}")
             
             # Allocate temporary KV cache for padding tokens (if any)
-            if det_verify_info.total_padding_cache_slots > 0:
-                det_verify_info.allocate_padding_kv_cache(
+            if llm42_info.total_padding_cache_slots > 0:
+                llm42_info.allocate_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
             
-            verify_batch = det_verify_info.prepare_verify_batch(original_batch, reqs)
+            verify_batch = llm42_info.prepare_verify_batch(original_batch, reqs)
             
             # STEP_DEBUG = 1
             # ground_truth_token_ids = None
             # for sd in range(STEP_DEBUG):
-                # logger.info(f"[DetVerifyWorker] verify_batch seq_lens step {sd}: {verify_batch.seq_lens}")
+                # logger.info(f"[LLM42Worker] verify_batch seq_lens step {sd}: {verify_batch.seq_lens}")
                 # Run verification forward pass (batch_invariant context is now managed in tp_worker)
             verify_model_worker_batch = verify_batch.get_model_worker_batch()
             verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
@@ -656,7 +656,7 @@ class DeterministicVerificationWorker:
                 # else:
                 #     # Compare with ground truth tokens from first step
                 #     if not torch.equal(verified_token_ids, ground_truth_token_ids):
-                #         logger.error(f"[DetVerifyWorker][ERROR] Mismatch in verified tokens at step {sd}")
+                #         logger.error(f"[LLM42Worker][ERROR] Mismatch in verified tokens at step {sd}")
                 #         logger.error(f"Ground truth tokens: {ground_truth_token_ids}")
                 #         logger.error(f"Current tokens: {verified_token_ids}")
                 #         raise ValueError("Deterministic verification failed: token mismatch across steps")
@@ -666,15 +666,15 @@ class DeterministicVerificationWorker:
             # Handle skip_mismatch percentage: 100.0=normal, 0.0=force no mismatches, in-between=inject at calculated position
             if self.skip_mismatch >= 100.0:
                 # Normal verification - natural mismatches cause rollback
-                rollback_info = det_verify_info.verify_and_compare(
+                rollback_info = llm42_info.verify_and_compare(
                     reqs, verified_token_ids, verified_logprobs
                 )
             elif self.skip_mismatch <= 0.0:
                 # Force no mismatches - skip all rollbacks
-                rollback_info = [(len(req.output_ids) - req.llm_42_verified_tokens, 0) for req in reqs]
+                rollback_info = [(len(req.output_ids) - req.llm42_verified_tokens, 0) for req in reqs]
             else:
                 # Percentage-based: inject mismatch at position (window - ceil(X% * window))
-                rollback_info = det_verify_info.verify_and_compare(
+                rollback_info = llm42_info.verify_and_compare(
                     reqs, verified_token_ids, verified_logprobs,
                     mismatch_percentage=self.skip_mismatch
                 )
@@ -683,38 +683,38 @@ class DeterministicVerificationWorker:
             rollback_results = []
             for req, info in zip(reqs, rollback_info):
                 # Increment verification window count for this request
-                req.llm_42_num_verification_windows += 1
+                req.llm42_num_verification_windows += 1
                 if info is not None and info[1] > 0:
                     # Track per-request stats
-                    req.llm_42_num_rollbacks += 1
-                    req.llm_42_tokens_rolled_back += info[1]
+                    req.llm42_num_rollbacks += 1
+                    req.llm42_tokens_rolled_back += info[1]
                     # Track global metrics
                     if self.metrics_collector:
                         self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
                         self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
                     rollback_results.append((req, info[1]))
-                    # CRITICAL: Update llm_42_verified_tokens after rollback
+                    # CRITICAL: Update llm42_verified_tokens after rollback
                     # After rollback, output_ids has been truncated and corrected token appended
                     # All tokens up to current length are now verified
-                    req.llm_42_verified_tokens = len(req.output_ids)
-                    # logger.info(f"[DetVerifyWorker] Rollback for req {req.rid[:8]}: "
+                    req.llm42_verified_tokens = len(req.output_ids)
+                    # logger.info(f"[LLM42Worker] Rollback for req {req.rid[:8]}: "
                     #            f"mismatch_pos={info[0]}, tokens_rolled_back={info[1]}, "
-                    #            f"new_output_len={len(req.output_ids)}, llm_42_verified_tokens={req.llm_42_verified_tokens}, "
+                    #            f"new_output_len={len(req.output_ids)}, llm42_verified_tokens={req.llm42_verified_tokens}, "
                     #            f"finished={req.finished_reason is not None}")
                 else:
                     # No rollback for this request
-                    req.llm_42_verified_tokens = len(req.output_ids)
-                    # logger.debug(f"[DetVerifyWorker] No rollback for req {req.rid[:8]}: "
-                    #             f"output_len={len(req.output_ids)}, llm_42_verified_tokens={req.llm_42_verified_tokens}")
+                    req.llm42_verified_tokens = len(req.output_ids)
+                    # logger.debug(f"[LLM42Worker] No rollback for req {req.rid[:8]}: "
+                    #             f"output_len={len(req.output_ids)}, llm42_verified_tokens={req.llm42_verified_tokens}")
             
             # Update verified token counts
             # for req in reqs:
-            #     req.llm_42_verified_tokens = len(req.output_ids)
+            #     req.llm42_verified_tokens = len(req.output_ids)
             
             # Update batch state if there was any rollback
             # (need to sync seq_lens with the new req.output_ids length)
             if rollback_results:
-                #logger.info(f"[DEBUG][DetVerifyWorker] Rollback detected, updating batch state")
+                #logger.info(f"[DEBUG][LLM42Worker] Rollback detected, updating batch state")
                 self._update_batch_state(original_batch)
             
             # Clear verification batch references to free GPU memory
@@ -741,8 +741,8 @@ class DeterministicVerificationWorker:
             verify_batch.token_to_kv_pool_allocator = None
             
             # Free temporary KV cache allocated for padding tokens
-            if det_verify_info.total_padding_cache_slots > 0:
-                det_verify_info.free_padding_kv_cache(
+            if llm42_info.total_padding_cache_slots > 0:
+                llm42_info.free_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
             
@@ -750,9 +750,9 @@ class DeterministicVerificationWorker:
             
         except Exception as e:
             # Make sure to free padding KV cache even on error
-            if 'det_verify_info' in locals() and det_verify_info.total_padding_cache_slots > 0:
+            if 'llm42_info' in locals() and llm42_info.total_padding_cache_slots > 0:
                 try:
-                    det_verify_info.free_padding_kv_cache(
+                    llm42_info.free_padding_kv_cache(
                         original_batch.token_to_kv_pool_allocator
                     )
                 except Exception:

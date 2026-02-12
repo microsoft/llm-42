@@ -822,9 +822,9 @@ class BatchTokenIDOutput(BaseBatchReq):
     spec_verify_ct: List[int]
     
     # Deterministic verification stats
-    llm_42_num_rollbacks: List[int]
-    llm_42_tokens_rolled_back: List[int]
-    llm_42_num_verification_windows: List[int]
+    llm42_num_rollbacks: List[int]
+    llm42_tokens_rolled_back: List[int]
+    llm42_num_verification_windows: List[int]
 
     # Logprobs
     input_token_logprobs_val: List[float]
@@ -893,9 +893,9 @@ class BatchStrOutput(BaseBatchReq):
     spec_verify_ct: List[int]
     
     # Deterministic verification stats
-    llm_42_num_rollbacks: List[int]
-    llm_42_tokens_rolled_back: List[int]
-    llm_42_num_verification_windows: List[int]
+    llm42_num_rollbacks: List[int]
+    llm42_tokens_rolled_back: List[int]
+    llm42_num_verification_windows: List[int]
 
     # Logprobs
     input_token_logprobs_val: List[float]

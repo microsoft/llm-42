@@ -203,7 +203,7 @@ class LlamaAttention(nn.Module):
         forward_batch: ForwardBatch,
     ) -> torch.Tensor:
         # if self.layer_id == 0:
-        #     logger.info(f"forward_batch models llama.py {forward_batch.forward_mode.is_target_det_verify=}")
+        #     logger.info(f"forward_batch models llama.py {forward_batch.forward_mode.is_target_llm42_verify=}")
         #     logger.info(f"Hidden states shape: {hidden_states.shape}")
         qkv, _ = self.qkv_proj(hidden_states)
         # if self.layer_id == 0:

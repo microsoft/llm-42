@@ -73,7 +73,7 @@ class ForwardMode(IntEnum):
     # Used in speculative decoding: verify a batch in the target model.
     TARGET_VERIFY = auto()
     # Used in LLM42: verify a batch in the model with deterministic inference and in-place KV cache updates.
-    TARGET_DET_VERIFY = auto()
+    TARGET_LLM42_VERIFY = auto()
     # Used in speculative decoding: extend a batch in the draft model.
     DRAFT_EXTEND = auto()
 
@@ -93,7 +93,7 @@ class ForwardMode(IntEnum):
             or self == ForwardMode.MIXED
             or self == ForwardMode.DRAFT_EXTEND
             or self == ForwardMode.TARGET_VERIFY
-            or self == ForwardMode.TARGET_DET_VERIFY
+            or self == ForwardMode.TARGET_LLM42_VERIFY
         )
 
     def is_decode(self):
@@ -111,12 +111,12 @@ class ForwardMode(IntEnum):
     def is_target_verify(self):
         return self == ForwardMode.TARGET_VERIFY
 
-    def is_target_det_verify(self):
-        return self == ForwardMode.TARGET_DET_VERIFY
+    def is_target_llm42_verify(self):
+        return self == ForwardMode.TARGET_LLM42_VERIFY
 
     def is_any_verify(self):
-        """Check if this is any verification mode (TARGET_VERIFY or TARGET_DET_VERIFY)."""
-        return self == ForwardMode.TARGET_VERIFY or self == ForwardMode.TARGET_DET_VERIFY
+        """Check if this is any verification mode (TARGET_VERIFY or TARGET_LLM42_VERIFY)."""
+        return self == ForwardMode.TARGET_VERIFY or self == ForwardMode.TARGET_LLM42_VERIFY
 
     def is_draft_extend(self):
         return self == ForwardMode.DRAFT_EXTEND
@@ -126,7 +126,7 @@ class ForwardMode(IntEnum):
             self == ForwardMode.EXTEND
             or self == ForwardMode.DRAFT_EXTEND
             or self == ForwardMode.MIXED
-            or self == ForwardMode.TARGET_DET_VERIFY
+            or self == ForwardMode.TARGET_LLM42_VERIFY
         )
 
     def is_cuda_graph(self):

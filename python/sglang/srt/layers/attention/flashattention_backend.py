@@ -587,8 +587,8 @@ class FlashAttentionBackend(AttentionBackend):
                         metadata, metadata_expand
                     )
 
-        elif forward_batch.forward_mode.is_target_det_verify():
-            # TARGET_DET_VERIFY: Re-run output tokens for deterministic verification
+        elif forward_batch.forward_mode.is_target_llm42_verify():
+            # TARGET_LLM42_VERIFY: Re-run output tokens for deterministic verification
             # Similar to extend mode with prefix - input tokens already in KV cache
             # Always uses num_splits=1 for determinism (handled in forward_extend)
             metadata.cache_seqlens_int32 = seqlens_in_batch.to(torch.int32)
@@ -754,10 +754,10 @@ class FlashAttentionBackend(AttentionBackend):
             and not is_swa
         )
 
-        # For TARGET_DET_VERIFY, always use num_splits=1 for determinism
+        # For TARGET_LLM42_VERIFY, always use num_splits=1 for determinism
         # regardless of the global setting
         num_splits = (
-            1 if forward_batch.forward_mode.is_target_det_verify()
+            1 if forward_batch.forward_mode.is_target_llm42_verify()
             else self.num_splits
         )
 
@@ -1714,10 +1714,10 @@ class FlashAttentionBackend(AttentionBackend):
                     self.target_verify_metadata_topk_swa[bs] = metadata_swa
                     metadata.swa_spec_metadata = metadata_swa
 
-        elif forward_mode.is_target_det_verify():
-            # TARGET_DET_VERIFY is not expected to use CUDA graphs
+        elif forward_mode.is_target_llm42_verify():
+            # TARGET_LLM42_VERIFY is not expected to use CUDA graphs
             raise ValueError(
-                "CUDA graph capture not supported for TARGET_DET_VERIFY mode"
+                "CUDA graph capture not supported for TARGET_LLM42_VERIFY mode"
             )
 
         elif forward_mode.is_draft_extend():
@@ -1967,10 +1967,10 @@ class FlashAttentionBackend(AttentionBackend):
                         metadata, metadata_expand, metadata_swa
                     )
 
-        elif forward_mode.is_target_det_verify():
-            # TARGET_DET_VERIFY is not expected to use CUDA graphs
+        elif forward_mode.is_target_llm42_verify():
+            # TARGET_LLM42_VERIFY is not expected to use CUDA graphs
             raise ValueError(
-                "CUDA graph replay not supported for TARGET_DET_VERIFY mode"
+                "CUDA graph replay not supported for TARGET_LLM42_VERIFY mode"
             )
 
         elif forward_mode.is_draft_extend():

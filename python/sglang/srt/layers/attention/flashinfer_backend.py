@@ -146,20 +146,20 @@ class FlashInferAttnBackend(AttentionBackend):
             self.deterministic_inference_flag > 0
         )
         
-        # Separate flag for llm_42 mode (dynamic batch-invariant control)
-        self.enable_llm_42_mode = model_runner.server_args.enable_llm_42
+        # Separate flag for llm42 mode (dynamic batch-invariant control)
+        self.enable_llm42_mode = model_runner.server_args.enable_llm42
         # Store original (non-deterministic) settings
         self.original_decode_use_tensor_cores = self.decode_use_tensor_cores
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
 
-        # For selective determinism or llm_42 mode, we DON'T override settings here.
+        # For selective determinism or llm42 mode, we DON'T override settings here.
         # Instead, we apply different settings during CUDA graph capture based on
         # is_batch_invariant_mode_enabled() in init_forward_metadata_capture_cuda_graph.
         # This allows the deterministic graph to use deterministic settings and the
         # non-deterministic graph to use non-deterministic settings.
-        if self.enable_deterministic > 0 or (self.enable_llm_42_mode > 0 and self.enable_llm_42_mode != 3) or self.enable_selective_determinism > 0:
+        if self.enable_deterministic > 0 or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3) or self.enable_selective_determinism > 0:
             # Static deterministic mode: always use deterministic settings
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
@@ -172,7 +172,7 @@ class FlashInferAttnBackend(AttentionBackend):
             # Increased workspace size for deterministic inference with larger prefill batches
             global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
         
-        if self.enable_llm_42_mode > 0 and self.enable_llm_42_mode == 3:
+        if self.enable_llm42_mode > 0 and self.enable_llm42_mode == 3:
             # Mode 3: use deterministic attention settings
             self.verification_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -281,7 +281,7 @@ class FlashInferAttnBackend(AttentionBackend):
             # and enable_selective_determinism (both have batch_invariant globally enabled)
             enable_deterministic_current = self.enable_deterministic
             if self.enable_selective_determinism > 0:
-                # Only selective_determinism needs dynamic checking (not llm_42 mode)
+                # Only selective_determinism needs dynamic checking (not llm42 mode)
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 enable_deterministic_current = is_batch_invariant_mode_enabled()
 
@@ -330,15 +330,15 @@ class FlashInferAttnBackend(AttentionBackend):
             self.forward_metadata = PrefillMetadata(
                 self.prefill_wrappers_verify, False, False
             )
-        elif forward_batch.forward_mode.is_target_det_verify():
-            # Handle TARGET_DET_VERIFY - this mode MUST always use deterministic settings
+        elif forward_batch.forward_mode.is_target_llm42_verify():
+            # Handle TARGET_LLM42_VERIFY - this mode MUST always use deterministic settings
             # This mode is used for deterministic verification - re-running output tokens
             # to verify determinism. The input tokens are already in KV cache.
             # We need to pass prefix_lens (the length of input tokens already in cache)
             # Use fixed split size for deterministic verification with fa2 backend
             extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
             # Always use a fixed split size for determinism
-            det_verify_split_size = self.verification_split_tile_size if self.verification_split_tile_size is not None else 4096
+            llm42_verify_split_size = self.verification_split_tile_size if self.verification_split_tile_size is not None else 4096
             
             self.indices_updater_prefill.update(
                 forward_batch.req_pool_indices,
@@ -367,11 +367,11 @@ class FlashInferAttnBackend(AttentionBackend):
                 # Use self.enable_deterministic which is now True for both enable_deterministic_inference
                 # and enable_selective_determinism (both have batch_invariant globally enabled)
                 enable_deterministic_current = self.enable_deterministic
-                if self.enable_selective_determinism > 0 or (self.enable_llm_42_mode > 0 and self.enable_llm_42_mode != 3):
+                if self.enable_selective_determinism > 0 or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
-                # if self.enable_llm_42_mode > 0 and self.enable_llm_42_mode == 3:
-                #     # In llm_42 mode 3, always use deterministic settings
+                # if self.enable_llm42_mode > 0 and self.enable_llm42_mode == 3:
+                #     # In llm42 mode 3, always use deterministic settings
                 #     enable_deterministic_current = True
                 current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
                 use_ragged = not enable_deterministic_current
@@ -528,10 +528,10 @@ class FlashInferAttnBackend(AttentionBackend):
             )
             self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
             self.forward_metadata = PrefillMetadata(prefill_wrappers, False, False)
-        elif forward_mode.is_target_det_verify():
-            # TARGET_DET_VERIFY is not expected to use CUDA graphs in initial implementation
+        elif forward_mode.is_target_llm42_verify():
+            # TARGET_LLM42_VERIFY is not expected to use CUDA graphs in initial implementation
             # It should follow the non-CUDA-graph path
-            raise ValueError(f"CUDA graph capture not supported for TARGET_DET_VERIFY mode")
+            raise ValueError(f"CUDA graph capture not supported for TARGET_LLM42_VERIFY mode")
         elif forward_mode.is_draft_extend():
             prefill_wrappers = []
             for i in range(self.num_wrappers):
@@ -614,9 +614,9 @@ class FlashInferAttnBackend(AttentionBackend):
                 encoder_lens=encoder_lens[:bs] if encoder_lens is not None else None,
                 spec_info=spec_info,
             )
-        elif forward_mode.is_target_det_verify():
-            # TARGET_DET_VERIFY is not expected to use CUDA graphs in replay
-            raise ValueError(f"CUDA graph replay not supported for TARGET_DET_VERIFY mode")
+        elif forward_mode.is_target_llm42_verify():
+            # TARGET_LLM42_VERIFY is not expected to use CUDA graphs in replay
+            raise ValueError(f"CUDA graph replay not supported for TARGET_LLM42_VERIFY mode")
         elif forward_mode.is_draft_extend():
             self.indices_updater_prefill.update(
                 req_pool_indices[:bs],

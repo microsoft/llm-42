@@ -1348,9 +1348,9 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                     {
                         "completion_tokens": recv_obj.completion_tokens[i],
                         "cached_tokens": recv_obj.cached_tokens[i],
-                        "llm_42_num_rollbacks": recv_obj.llm_42_num_rollbacks[i],
-                        "llm_42_tokens_rolled_back": recv_obj.llm_42_tokens_rolled_back[i],
-                        "llm_42_num_verification_windows": recv_obj.llm_42_num_verification_windows[i],
+                        "llm42_num_rollbacks": recv_obj.llm42_num_rollbacks[i],
+                        "llm42_tokens_rolled_back": recv_obj.llm42_tokens_rolled_back[i],
+                        "llm42_num_verification_windows": recv_obj.llm42_num_verification_windows[i],
                     }
                 )
 
@@ -1402,7 +1402,7 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                 meta_info["e2e_latency"] = state.finished_time - state.created_time
 
                 # Log deterministic request completion with generated text
-                # if meta_info.get("llm_42_num_rollbacks", 0) >= 0 and hasattr(state, 'text'):
+                # if meta_info.get("llm42_num_rollbacks", 0) >= 0 and hasattr(state, 'text'):
                 #     logger.info(
                 #         f"[TokenizerManager] Deterministic request finished: rid={rid}, "
                 #         f"prompt_len={recv_obj.prompt_tokens[i]}, "

@@ -439,11 +439,11 @@ class ServerArgs:
     scheduler_recv_interval: int = 1
     numa_node: Optional[List[int]] = None
     enable_deterministic_inference: int = 0  # Global: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
-    enable_llm_42: int = 0  # Forward-mode-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
+    enable_llm42: int = 0  # Forward-mode-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
     enable_selective_determinism: int = 0  # Batch-composition-based: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm
-    llm_42_window_size: int = 32
-    llm_42_verify_batch_size: int = 16  # Max requests per verification batch
-    llm_42_skip_mismatch: float = 100.0  # Mismatch rate (100.0=normal, 0.0=force no mismatches, 5.0=inject exactly 5% mismatches)
+    llm42_window_size: int = 32
+    llm42_verify_batch_size: int = 16  # Max requests per verification batch
+    llm42_skip_mismatch: float = 100.0  # Mismatch rate (100.0=normal, 0.0=force no mismatches, 5.0=inject exactly 5% mismatches)
 
     # Dynamic batch tokenizer
     enable_dynamic_batch_tokenizer: bool = False
@@ -1206,10 +1206,10 @@ class ServerArgs:
             "1" if self.disable_outlines_disk_cache else "0"
         )
         # Set environment variable for deterministic inference
-        # Use enable_deterministic_inference value, or set to 1 if enable_llm_42 is set
-        # (enable_llm_42 uses the same mode values: 0=disabled, 1=bi_kernel, 2=batch_invariant)
-        os.environ["SGLANG_ENABLE_LLM_42"] = (
-            str(self.enable_llm_42)
+        # Use enable_deterministic_inference value, or set to 1 if enable_llm42 is set
+        # (enable_llm42 uses the same mode values: 0=disabled, 1=bi_kernel, 2=batch_invariant)
+        os.environ["SGLANG_ENABLE_LLM42"] = (
+            str(self.enable_llm42)
         )
         os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = (
             str(self.enable_deterministic_inference)
@@ -1246,12 +1246,12 @@ class ServerArgs:
         # Enable deterministic inference flags
         # All three flags use simple number-based modes:
         # - enable_deterministic_inference: controls batch-invariant operations globally
-        # - enable_llm_42: controls deterministic verification and forward-mode-based batch-invariant switching
+        # - enable_llm42: controls deterministic verification and forward-mode-based batch-invariant switching
         # - enable_selective_determinism: batch-composition-based switching
         # Mode values: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm, 3=non-batch-invariant (default CUDA)
-        # Mode 3 is specifically for enable_llm_42 to use non-batch-invariant kernels during verification
+        # Mode 3 is specifically for enable_llm42 to use non-batch-invariant kernels during verification
         """Handle settings related to deterministic inference."""
-        if self.enable_selective_determinism or self.enable_deterministic_inference or self.enable_llm_42:
+        if self.enable_selective_determinism or self.enable_deterministic_inference or self.enable_llm42:
             # Check sampling backend
             self.sampling_backend = "pytorch"
             logger.warning(
@@ -2825,9 +2825,9 @@ class ServerArgs:
             help="Enable deterministic inference globally (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
         )
         parser.add_argument(
-            "--enable-llm-42",
+            "--enable-llm42",
             type=int,
-            default=ServerArgs.enable_llm_42,
+            default=ServerArgs.enable_llm42,
             help="Enable forward-mode-based deterministic switching (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
         )
         parser.add_argument(
@@ -2837,22 +2837,22 @@ class ServerArgs:
             help="Enable batch-composition-based deterministic switching (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
         )
         parser.add_argument(
-            "--llm-42-window-size",
+            "--llm42-window-size",
             type=int,
-            default=ServerArgs.llm_42_window_size,
+            default=ServerArgs.llm42_window_size,
             help="Number of tokens before verification (initial value for each request). If not set, verify only at the end.",
         )
         parser.add_argument(
-            "--llm-42-verify-batch-size",
+            "--llm42-verify-batch-size",
             type=int,
-            default=ServerArgs.llm_42_verify_batch_size,
+            default=ServerArgs.llm42_verify_batch_size,
             help="Fixed number of requests per verification batch (padded with dummies if needed). "
-                 "For example, with llm_42_verify_batch_size=10, 22 requests will be verified as 10+10+10 (2 real + 8 dummies in last batch).",
+                 "For example, with llm42_verify_batch_size=10, 22 requests will be verified as 10+10+10 (2 real + 8 dummies in last batch).",
         )
         parser.add_argument(
-            "--llm-42-skip-mismatch",
+            "--llm42-skip-mismatch",
             type=float,
-            default=ServerArgs.llm_42_skip_mismatch,
+            default=ServerArgs.llm42_skip_mismatch,
             help="Mismatch rate percentage (0.0-100.0). "
                  "100.0 means normal behavior (natural mismatches cause rollback). "
                  "0.0 means force no mismatches (skip all, verification runs but always assumes success). "

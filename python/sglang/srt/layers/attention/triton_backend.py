@@ -101,10 +101,10 @@ class TritonAttnBackend(AttentionBackend):
         self.max_kv_splits = model_runner.server_args.triton_attention_num_kv_splits
 
         # Decide whether enable deterministic inference with batch-invariant operations
-        # Enable for enable_deterministic_inference OR enable_llm_42 (when > 0)
+        # Enable for enable_deterministic_inference OR enable_llm42 (when > 0)
         self.enable_deterministic = (
             model_runner.server_args.enable_deterministic_inference > 0
-            or model_runner.server_args.enable_llm_42 > 0
+            or model_runner.server_args.enable_llm42 > 0
         )
 
         # Configure deterministic inference settings

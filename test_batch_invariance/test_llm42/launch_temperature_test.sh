@@ -34,5 +34,5 @@ $PYTHON_CMD -m sglang.launch_server \
     --disable-chunked-prefix-cache \
     --disable-overlap-schedule \
     --disable-cuda-graph \
-    --llm-42-window-size 10 \
-    --enable-llm-42 1
+    --llm42-window-size 10 \
+    --enable-llm42 1

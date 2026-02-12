@@ -216,8 +216,8 @@ with open('$temp_result', 'r') as f:
                 meta_info_list = result.get('meta_info', [])
                 output_lens = result.get('output_lens', [])
                 if meta_info_list:
-                    det_num_rollbacks = [m.get('llm_42_num_rollbacks', 0) for m in meta_info_list if m]
-                    det_tokens_rolled_back = [m.get('llm_42_tokens_rolled_back', 0) for m in meta_info_list if m]
+                    det_num_rollbacks = [m.get('llm42_num_rollbacks', 0) for m in meta_info_list if m]
+                    det_tokens_rolled_back = [m.get('llm42_tokens_rolled_back', 0) for m in meta_info_list if m]
                     
                     num_requests = len(det_num_rollbacks)
                     total_output_tokens = sum(output_lens) if output_lens else result.get('total_output_tokens', 0)
@@ -288,22 +288,22 @@ launch_server_for_config() {
             config_args="--enable-deterministic-inference 2"
             ;;
         "llm42_ws_32_bs_16")
-            config_args="--llm-42-window-size 32 --enable-llm-42 3 --llm-42-verify-batch-size 16"
+            config_args="--llm42-window-size 32 --enable-llm42 3 --llm42-verify-batch-size 16"
             ;;
         "llm42_ws_16_bs_32")
-            config_args="--llm-42-window-size 16 --enable-llm-42 3 --llm-42-verify-batch-size 32"
+            config_args="--llm42-window-size 16 --enable-llm42 3 --llm42-verify-batch-size 32"
             ;;
         "llm42_ws_64_bs_16")
-            config_args="--llm-42-window-size 64 --enable-llm-42 3 --llm-42-verify-batch-size 16"
+            config_args="--llm42-window-size 64 --enable-llm42 3 --llm42-verify-batch-size 16"
             ;;
         "llm42_ws_64_bs_8")
-            config_args="--llm-42-window-size 64 --enable-llm-42 3 --llm-42-verify-batch-size 8"
+            config_args="--llm42-window-size 64 --enable-llm42 3 --llm42-verify-batch-size 8"
             ;;
         "llm42_ws_128_bs_8")
-            config_args="--llm-42-window-size 128 --enable-llm-42 3 --llm-42-verify-batch-size 8"
+            config_args="--llm42-window-size 128 --enable-llm42 3 --llm42-verify-batch-size 8"
             ;;
         "llm42_ws_32_bs_32")
-            config_args="--llm-42-window-size 32 --enable-llm-42 3 --llm-42-verify-batch-size 32"
+            config_args="--llm42-window-size 32 --enable-llm42 3 --llm42-verify-batch-size 32"
             ;;
         *)
             echo "Error: Unknown config name: $config_name" >&2

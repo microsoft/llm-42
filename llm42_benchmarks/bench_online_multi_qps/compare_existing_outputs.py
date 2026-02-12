@@ -98,8 +98,8 @@ def load_config_result(filepath: Path, deterministic_only: bool = False) -> dict
     det_num_rollbacks = []
     det_tokens_rolled_back = []
     for meta in meta_info_filtered:
-        det_num_rollbacks.append(meta.get("llm_42_num_rollbacks", 0))
-        det_tokens_rolled_back.append(meta.get("llm_42_tokens_rolled_back", 0))
+        det_num_rollbacks.append(meta.get("llm42_num_rollbacks", 0))
+        det_tokens_rolled_back.append(meta.get("llm42_tokens_rolled_back", 0))
     
     # Calculate rollback statistics
     rollback_stats = {}

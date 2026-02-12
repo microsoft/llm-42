@@ -117,9 +117,9 @@ python -m sglang.launch_server \
 # LLM-42: Decode-Verify-Rollback mode (recommended)
 python -m sglang.launch_server \
     --model-path meta-llama/Llama-3.1-8B-Instruct \
-    --enable-llm-42 3 \
-    --llm-42-window-size 64 \
-    --llm-42-verify-batch-size 8
+    --enable-llm42 3 \
+    --llm42-window-size 64 \
+    --llm42-verify-batch-size 8
 ```
 
 ### Server Configuration
@@ -127,10 +127,10 @@ python -m sglang.launch_server \
 | Argument | Default | Description |
 |---|---|---|
 | `--enable-deterministic-inference` | `0` | Global batch-invariant mode: `1`=det matmul+rmsnorm, `2`=batch-invariant+native rmsnorm |
-| `--enable-llm-42` | `0` | DVR verification mode: `0`=off, `1`–`3`= different kernel configurations |
-| `--llm-42-window-size` | `32` | Number of tokens decoded before verification |
-| `--llm-42-verify-batch-size` | `16` | Number of requests verified together (grouped verification) |
-| `--llm-42-skip-mismatch` | `100.0` | Mismatch skip rate (for testing/debugging) |
+| `--enable-llm42` | `0` | DVR verification mode: `0`=off, `1`–`3`= different kernel configurations |
+| `--llm42-window-size` | `32` | Number of tokens decoded before verification |
+| `--llm42-verify-batch-size` | `16` | Number of requests verified together (grouped verification) |
+| `--llm42-skip-mismatch` | `100.0` | Mismatch skip rate (for testing/debugging) |
 
 ### Per-Request Determinism
 

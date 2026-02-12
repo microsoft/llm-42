@@ -47,6 +47,6 @@ $PYTHON_CMD -m sglang.launch_server \
     --random-seed 42 \
     --disable-cuda-graph \
     --chunked-prefill-size -1 \
-    --llm-42-window-size 32 \
-    --enable-llm-42 3 \
-    --llm-42-verify-batch-size 1 \
+    --llm42-window-size 32 \
+    --enable-llm42 3 \
+    --llm42-verify-batch-size 1 \

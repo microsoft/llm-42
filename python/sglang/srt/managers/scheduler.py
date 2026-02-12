@@ -453,22 +453,22 @@ class Scheduler(
             self.model_worker = self.draft_worker
 
         # Wrap with deterministic verification worker if enabled
-        if server_args.enable_llm_42:
-            from sglang.srt.llm42.det_verify_worker import (
+        if server_args.enable_llm42:
+            from sglang.srt.llm42.llm42_worker import (
                 DeterministicVerificationWorker,
             )
 
             self.model_worker = DeterministicVerificationWorker(
                 self.model_worker,
                 always_align=True,
-                fixed_requests_per_verify=server_args.llm_42_verify_batch_size,
+                fixed_requests_per_verify=server_args.llm42_verify_batch_size,
                 metrics_collector=getattr(self, 'metrics_collector', None),
-                skip_mismatch=server_args.llm_42_skip_mismatch,
+                skip_mismatch=server_args.llm42_skip_mismatch,
             )
             logger.info(
-                f"Deterministic verification worker enabled with llm_42_window_size={server_args.llm_42_window_size}, "
-                f"llm_42_verify_batch_size={server_args.llm_42_verify_batch_size}, "
-                f"llm_42_skip_mismatch={server_args.llm_42_skip_mismatch}"
+                f"Deterministic verification worker enabled with llm42_window_size={server_args.llm42_window_size}, "
+                f"llm42_verify_batch_size={server_args.llm42_verify_batch_size}, "
+                f"llm42_skip_mismatch={server_args.llm42_skip_mismatch}"
             )
 
         # Get token and memory info from the model worker
@@ -534,14 +534,14 @@ class Scheduler(
 
         # Initialize fixed-size verification pool for deterministic inference
         # (must be done after init_memory_pool_and_cache since allocators are needed)
-        if server_args.enable_llm_42:
-            from sglang.srt.llm42.det_verify_worker import DeterministicVerificationWorker
+        if server_args.enable_llm42:
+            from sglang.srt.llm42.llm42_worker import DeterministicVerificationWorker
             if isinstance(self.model_worker, DeterministicVerificationWorker):
-                # Use llm_42_window_size as the window size for fixed batches
+                # Use llm42_window_size as the window size for fixed batches
                 self.model_worker.init_fixed_pool(
                     req_to_token_pool=self.req_to_token_pool,
                     token_to_kv_pool_allocator=self.token_to_kv_pool_allocator,
-                    window_size=server_args.llm_42_window_size,
+                    window_size=server_args.llm42_window_size,
                     device=self.device,
                 )
                 # Track reserved slots for memory leak check
@@ -648,8 +648,8 @@ class Scheduler(
         self.init_metrics(tp_rank, pp_rank, dp_rank)
 
         # Set metrics_collector on DeterministicVerificationWorker if enabled
-        if server_args.enable_llm_42 and hasattr(self, 'metrics_collector'):
-            from sglang.srt.llm42.det_verify_worker import (
+        if server_args.enable_llm42 and hasattr(self, 'metrics_collector'):
+            from sglang.srt.llm42.llm42_worker import (
                 DeterministicVerificationWorker,
             )
             if isinstance(self.model_worker, DeterministicVerificationWorker):
@@ -717,8 +717,8 @@ class Scheduler(
 
     def init_deterministic_inference_config(self):
         """Initialize deterministic inference configuration for different attention backends."""
-        # Check both enable_deterministic_inference and enable_llm_42
-        if not (self.server_args.enable_deterministic_inference or self.server_args.enable_llm_42 or self.server_args.enable_selective_determinism):
+        # Check both enable_deterministic_inference and enable_llm42
+        if not (self.server_args.enable_deterministic_inference or self.server_args.enable_llm42 or self.server_args.enable_selective_determinism):
             self.truncation_align_size = None
             return
 
@@ -1912,15 +1912,15 @@ class Scheduler(
             self.priority_scheduling_preemption_threshold,
         )
 
-        # For enable_llm_42 modes, deterministic requests must be isolated (batch_size=1)
+        # For enable_llm42 modes, deterministic requests must be isolated (batch_size=1)
         # during prefill to ensure batch-invariant results. Decode can still be batched.
-        enable_llm_42_isolated_prefill = self.server_args.enable_llm_42 > 0
+        enable_llm42_isolated_prefill = self.server_args.enable_llm42 > 0
         has_deterministic_in_batch = False
 
         if self.chunked_req is not None:
             self.chunked_req.init_next_round_input()
-            # For llm_42 modes, if chunked_req is deterministic, mark it so we don't add other requests
-            if enable_llm_42_isolated_prefill and self.chunked_req.is_deterministic:
+            # For llm42 modes, if chunked_req is deterministic, mark it so we don't add other requests
+            if enable_llm42_isolated_prefill and self.chunked_req.is_deterministic:
                 has_deterministic_in_batch = True
             self.chunked_req = adder.add_chunked_req(self.chunked_req)
 
@@ -1929,14 +1929,14 @@ class Scheduler(
 
         # Get requests from the waiting queue to a new prefill batch
         for req in self.waiting_queue:
-            # In llm_42 modes, if we already have a deterministic request in the batch,
+            # In llm42 modes, if we already have a deterministic request in the batch,
             # don't add more requests (ensure batch_size=1 for deterministic prefill)
-            if enable_llm_42_isolated_prefill and has_deterministic_in_batch:
+            if enable_llm42_isolated_prefill and has_deterministic_in_batch:
                 break
             
-            # In llm_42 modes, if we already have non-deterministic requests in the batch,
+            # In llm42 modes, if we already have non-deterministic requests in the batch,
             # skip this deterministic request but continue adding non-deterministic ones
-            if enable_llm_42_isolated_prefill and len(adder.can_run_list) > 0 and req.is_deterministic:
+            if enable_llm42_isolated_prefill and len(adder.can_run_list) > 0 and req.is_deterministic:
                 continue
 
             if self.enable_lora and not self.tp_worker.can_run_lora_batch(
@@ -1977,7 +1977,7 @@ class Scheduler(
             
             # Track if we added a deterministic request to the batch
             # Check if req is in can_run_list (it gets appended if successfully added)
-            if enable_llm_42_isolated_prefill and req in adder.can_run_list and req.is_deterministic:
+            if enable_llm42_isolated_prefill and req in adder.can_run_list and req.is_deterministic:
                 has_deterministic_in_batch = True
 
             if res != AddReqResult.CONTINUE:

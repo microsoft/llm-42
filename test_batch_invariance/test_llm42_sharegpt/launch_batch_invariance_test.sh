@@ -45,17 +45,17 @@ $PYTHON_CMD -m sglang.launch_server \
     --chunked-prefill-size -1 \
     --disable-overlap-schedule \
     --enable-metrics \
-    --llm-42-window-size 128 \
-    --enable-llm-42 3 \
-    --llm-42-verify-batch-size 1
-    # Mode values for --enable-llm-42:
+    --llm42-window-size 128 \
+    --enable-llm42 3 \
+    --llm42-verify-batch-size 1
+    # Mode values for --enable-llm42:
     # 1 = bi_kernel + vllm_rmsnorm (batch-invariant during verification)
     # 2 = batch_invariant + native_rmsnorm (batch-invariant during verification)
     # 3 = non-batch-invariant (default CUDA kernels during verification)
     # --enable-selective-determinism 1 \
     # --enable-deterministic-inference 1 \
-    # --llm-42-window-size 10 \
-    # --enable-llm-42 1
+    # --llm42-window-size 10 \
+    # --enable-llm42 1
     # --enable-selective-determinism 1 \
     # --enable-deterministic-inference 1 \
     # --disable-cuda-graph \

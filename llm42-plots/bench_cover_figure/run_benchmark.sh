@@ -159,7 +159,7 @@ GLOBAL_DET_PID=$(launch_server "$GLOBAL_DET_PORT" "global_det" "--enable-determi
 echo "  Global-Det PID: $GLOBAL_DET_PID"
 
 # LLM42 server on GPU 2 (ws=64, bs=8)
-LLM42_PID=$(launch_server "$LLM42_PORT" "llm42" "--enable-llm-42 3 --llm-42-window-size 64 --llm-42-verify-batch-size 8" "$LLM42_GPU")
+LLM42_PID=$(launch_server "$LLM42_PORT" "llm42" "--enable-llm42 3 --llm42-window-size 64 --llm42-verify-batch-size 8" "$LLM42_GPU")
 echo "  LLM42 PID: $LLM42_PID"
 
 # Wait for servers to be ready

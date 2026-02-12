@@ -195,7 +195,7 @@ def test_logprobs_bitwise_batch_invariance_bs1_vs_bsN(
     """Test batch invariance with a running SGLang server.
     
     This test assumes a server is already running (e.g., via launch_temperature_test.sh).
-    The server should be started with --enable-llm-42 flag.
+    The server should be started with --enable-llm42 flag.
     
     Usage:
         # Start server:
