@@ -55,18 +55,9 @@ response = client.chat.completions.create(
 )
 ```
 
-## Reproducing paper results
+## Hardware
 
-```bash
-make figure_matmul       # Fig. 4a — GEMM kernel comparison
-make figure_rmsnorm      # Fig. 4b — RMSNorm comparison
-make figure_prefill      # Fig. 5  — FlashInfer attention
-```
-
-End-to-end experiments are in `llm42-plots/` (offline throughput, online latency CDFs, ablation study). See the Makefile for all targets.
-
-**Hardware:** 4× NVIDIA H100 PCIe (80 GB), 64-core CPU, ~1.65 TB DRAM.  
-**Models:** Llama-3.1-8B-Instruct (primary); Qwen-4B, Qwen3-14B, Qwen3-30B-A3B (correctness).
+4× NVIDIA H100 PCIe (80 GB HBM3), 64-core CPU, ~1.65 TB DRAM.
 
 ## Citation
 
