@@ -445,28 +445,6 @@ class ModelRunner:
                     "force_deterministic_mode flag."
                 )
 
-        # Store configuration for selective determinism
-        # Switches batch_invariant dynamically based on whether ANY request in batch is deterministic
-        # Global default is DISABLED. Context manager enables it only for deterministic batches.
-        # When enabled: If is_any_deterministic=True → enable batch_invariant, False → keep disabled
-        # With dual CUDA graphs: Two sets of graphs are captured (one deterministic, one not)
-        # to allow dynamic switching even during decode passes.
-        self.enable_selective_determinism = server_args.enable_selective_determinism
-        self.selective_determinism_mode = server_args.enable_selective_determinism  # 0=disabled, 1=bi_kernel, 2=batch_invariant
-
-        if self.enable_selective_determinism:
-            logger.info(
-                f"Selective determinism enabled (mode={self.selective_determinism_mode}). "
-                "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
-                "one without (non-deterministic). This will double CUDA graph memory usage "
-                "and capture time, but enables full batch-composition-based switching for all passes."
-            )
-
-        # Counters for tracking batch-invariant vs non-deterministic forward passes
-        self.num_batch_invariant = 0
-        self.num_non_deterministic = 0
-        self._stats_log_interval = 500  # Log stats every 500 forward passes
-
         # Init memory pool and attention backends
         self.init_memory_pool(
             min_per_gpu_memory,
@@ -2061,13 +2039,6 @@ class ModelRunner:
                         else:
                             # No sampling info, default to disabled
                             should_enable_batch_invariant = False
-        elif self.enable_selective_determinism and not is_verification_mode:
-            # Selective determinism: check if ANY request in batch needs deterministic behavior
-            if forward_batch.sampling_info is not None:
-                # is_any_deterministic=True means at least one request needs determinism (greedy/top_k==1)
-                # If False (all requests are non-deterministic), we can safely disable batch_invariant
-                is_any_deterministic = forward_batch.sampling_info.is_any_deterministic
-                should_enable_batch_invariant = is_any_deterministic
 
         batch_invariant_context = None
         if self.enable_llm42_mode:
@@ -2076,21 +2047,6 @@ class ModelRunner:
             if should_enable_batch_invariant:
                 batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.enable_llm42_mode)
                 batch_invariant_context.__enter__()
-        elif self.enable_selective_determinism:
-            # For selective determinism, global default is also DISABLED
-            # Only use context manager when we need to enable it
-            if should_enable_batch_invariant:
-                batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.selective_determinism_mode)
-                batch_invariant_context.__enter__()
-                self.num_batch_invariant += 1
-            else:
-                # No context manager needed - already disabled by default
-                self.num_non_deterministic += 1
-
-        if self.enable_selective_determinism:
-            total = self.num_batch_invariant + self.num_non_deterministic
-            if total > 0 and total % self._stats_log_interval == 0:
-                self.log_deterministic_stats()
 
         try:
             if can_run_graph:
@@ -2267,26 +2223,6 @@ class ModelRunner:
             f"Save sharded model to {path} with pattern {pattern} and max_size {max_size}"
         )
         ShardedStateLoader.save_model(self.model, path, pattern, max_size)
-
-    def get_deterministic_stats(self):
-        """Get statistics for batch-invariant vs non-deterministic forward passes."""
-        return {
-            "num_batch_invariant": self.num_batch_invariant,
-            "num_non_deterministic": self.num_non_deterministic,
-            "total": self.num_batch_invariant + self.num_non_deterministic,
-        }
-
-    def log_deterministic_stats(self):
-        """Log statistics for batch-invariant vs non-deterministic forward passes."""
-        if self.enable_selective_determinism:
-            stats = self.get_deterministic_stats()
-            logger.info(
-                f"Selective determinism stats: "
-                f"batch_invariant={stats['num_batch_invariant']}, "
-                f"non_deterministic={stats['num_non_deterministic']}, "
-                f"total={stats['total']}"
-            )
-
 
 def _model_load_weights_direct(model, named_tensors: List[Tuple[str, torch.Tensor]]):
     params_dict = dict(model.named_parameters())

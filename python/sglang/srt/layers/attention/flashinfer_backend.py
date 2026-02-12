@@ -136,12 +136,8 @@ class FlashInferAttnBackend(AttentionBackend):
 
         # Store deterministic inference configuration
         self.deterministic_inference_flag = model_runner.server_args.enable_deterministic_inference
-        self.enable_selective_determinism = model_runner.server_args.enable_selective_determinism
-        self.selective_determinism_mode = model_runner.server_args.enable_selective_determinism
 
-        # Static deterministic mode (enable_deterministic_inference OR enable_selective_determinism)
-        # Both modes now behave identically - batch_invariant is globally enabled
-        # When either is enabled, always use deterministic configuration
+        # Static deterministic mode (enable_deterministic_inference)
         self.enable_deterministic = (
             self.deterministic_inference_flag > 0
         )
@@ -154,12 +150,7 @@ class FlashInferAttnBackend(AttentionBackend):
         self.decode_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
 
-        # For selective determinism or llm42 mode, we DON'T override settings here.
-        # Instead, we apply different settings during CUDA graph capture based on
-        # is_batch_invariant_mode_enabled() in init_forward_metadata_capture_cuda_graph.
-        # This allows the deterministic graph to use deterministic settings and the
-        # non-deterministic graph to use non-deterministic settings.
-        if self.enable_deterministic > 0 or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3) or self.enable_selective_determinism > 0:
+        if self.enable_deterministic > 0 or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
             # Static deterministic mode: always use deterministic settings
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
@@ -277,13 +268,7 @@ class FlashInferAttnBackend(AttentionBackend):
 
     def init_forward_metadata(self, forward_batch: ForwardBatch):
         if forward_batch.forward_mode.is_decode_or_idle():
-            # Use self.enable_deterministic which is now True for both enable_deterministic_inference
-            # and enable_selective_determinism (both have batch_invariant globally enabled)
             enable_deterministic_current = self.enable_deterministic
-            if self.enable_selective_determinism > 0:
-                # Only selective_determinism needs dynamic checking (not llm42 mode)
-                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
-                enable_deterministic_current = is_batch_invariant_mode_enabled()
 
             current_decode_split_tile_size = (self.decode_split_tile_size if enable_deterministic_current else None)
             # For deterministic mode, also disable kv split to ensure consistent behavior
@@ -364,10 +349,9 @@ class FlashInferAttnBackend(AttentionBackend):
                 use_ragged = False
                 extend_no_prefix = False
             else:
-                # Use self.enable_deterministic which is now True for both enable_deterministic_inference
-                # and enable_selective_determinism (both have batch_invariant globally enabled)
+                # Use self.enable_deterministic for static deterministic mode
                 enable_deterministic_current = self.enable_deterministic
-                if self.enable_selective_determinism > 0 or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
+                if (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
                 # if self.enable_llm42_mode > 0 and self.enable_llm42_mode == 3:
@@ -439,26 +423,10 @@ class FlashInferAttnBackend(AttentionBackend):
         spec_info: Optional[SpecInput],
     ):
         if forward_mode.is_decode_or_idle():
-            # llm42 doesn't need dual graphs
-            uses_dual_graphs = self.enable_selective_determinism > 0
-            if uses_dual_graphs:
-                from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
-                is_deterministic_graph = is_batch_invariant_mode_enabled()
-                # Choose settings based on which graph we're capturing
-                if is_deterministic_graph:
-                    # Deterministic graph: use tensor cores and disable kv split
-                    use_tensor_cores = True
-                    disable_split_kv = True
-                else:
-                    # Non-deterministic graph: use original settings
-                    use_tensor_cores = self.original_decode_use_tensor_cores
-                    disable_split_kv = False
-            else:
-                # Static mode (enable_deterministic or enable_selective_determinism)
-                # Both now use configured settings since batch_invariant is globally enabled
-                is_deterministic_graph = self.enable_deterministic
-                use_tensor_cores = self.decode_use_tensor_cores
-                disable_split_kv = self.disable_cuda_graph_kv_split
+            # Static mode: use configured settings
+            is_deterministic_graph = self.enable_deterministic
+            use_tensor_cores = self.decode_use_tensor_cores
+            disable_split_kv = self.disable_cuda_graph_kv_split
 
             decode_wrappers = []
             for i in range(self.num_wrappers):
@@ -578,19 +546,12 @@ class FlashInferAttnBackend(AttentionBackend):
         use_deterministic: Optional[bool] = None,
     ):
         if forward_mode.is_decode_or_idle():
-            # Determine which wrappers to use based on deterministic mode
-            uses_dual_graphs = self.enable_selective_determinism > 0 
-            if uses_dual_graphs and use_deterministic is not None:
-                storage_key = (bs, use_deterministic)
-                # Match the settings used during capture for this graph
-                disable_split_kv = use_deterministic
+            # Static mode: use configured settings
+            storage_key = bs
+            if self.enable_deterministic > 0:
+                disable_split_kv = self.disable_cuda_graph_kv_split
             else:
-                storage_key = bs
-                # For static deterministic mode, use the same restrictive settings
-                if self.enable_deterministic > 0:
-                    disable_split_kv = self.disable_cuda_graph_kv_split
-                else:
-                    disable_split_kv = False
+                disable_split_kv = False
             self.indices_updater_decode.update(
                 req_pool_indices[:bs],
                 seq_lens[:bs],

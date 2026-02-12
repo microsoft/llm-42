@@ -200,10 +200,11 @@ class Envs:
     SGLANG_SYNC_TOKEN_IDS_ACROSS_TP = EnvBool(False)
     SGLANG_ENABLE_COLOCATED_BATCH_GEN = EnvBool(False)
 
-    # Deterministic inference
+    # Deterministic inference (see arXiv:2601.17768)
     SGLANG_ENABLE_DETERMINISTIC_INFERENCE = EnvInt(0)
-    SGLANG_ENABLE_SELECTIVE_DETERMINISM = EnvInt(0)
     SGLANG_ENABLE_LLM42 = EnvInt(0)
+
+    # Attention kernel split/tile sizes for deterministic execution
     SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE = EnvInt(4096)
     SGLANG_FLASHINFER_DECODE_SPLIT_TILE_SIZE = EnvInt(2048)
     SGLANG_TRITON_PREFILL_TRUNCATION_ALIGN_SIZE = EnvInt(4096)

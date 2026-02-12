@@ -218,14 +218,9 @@ class CudaGraphRunner:
         self.model_runner = model_runner
         self.device = model_runner.device
         self.device_module = torch.get_device_module(self.device)
-        # For dual graph support: keys are (batch_size, batch_invariant_mode)
-        # batch_invariant_mode: True = deterministic, False = non-deterministic
         self.graphs = {}
         self.output_buffers = {}
-        # Enable dual graphs only for selective_determinism mode
-        # (llm42 mode doesn't need dual graphs: decode uses non-deterministic kernels,
-        # and verification doesn't use CUDA graph)
-        self.enable_dual_graphs = model_runner.enable_selective_determinism
+        self.enable_dual_graphs = False
         self.enable_torch_compile = model_runner.server_args.enable_torch_compile
         self.disable_padding = model_runner.server_args.disable_cuda_graph_padding
         self.is_encoder_decoder = model_runner.model_config.is_encoder_decoder
@@ -391,10 +386,7 @@ class CudaGraphRunner:
         # Check if the batch size is supported
         # For dual graphs, check if either (bs, True) or (bs, False) exists
         if self.disable_padding:
-            if self.enable_dual_graphs:
-                is_bs_supported = (cuda_graph_bs, True) in self.graphs or (cuda_graph_bs, False) in self.graphs
-            else:
-                is_bs_supported = cuda_graph_bs in self.graphs
+            is_bs_supported = cuda_graph_bs in self.graphs
         else:
             is_bs_supported = cuda_graph_bs <= self.max_bs
 
@@ -445,13 +437,6 @@ class CudaGraphRunner:
         )
 
     def capture(self) -> None:
-        if self.enable_dual_graphs:
-            logger.info(
-                "Dual CUDA graphs enabled (enable_selective_determinism). "
-                "Capturing two graphs per batch size: one deterministic (batch_invariant=True), "
-                "one non-deterministic (batch_invariant=False). This will double CUDA graph memory usage."
-            )
-        
         profile_context = empty_context()
         if self.enable_profile_cuda_graph:
             profile_context = profile(
@@ -496,38 +481,12 @@ class CudaGraphRunner:
                         num_tokens=bs * self.num_tokens_per_bs,
                         tp_group=self.model_runner.tp_group,
                     ) as forward:
-                        if self.enable_dual_graphs:
-                            # Capture two graphs: one with batch_invariant, one without
-                            # First capture with batch_invariant enabled (deterministic)
-                            from sglang.srt.batch_invariant_ops import set_batch_invariant_mode
-                            
-                            # Use enable_selective_determinism mode for batch_invariant settings
-                            selective_det_mode = self.model_runner.enable_selective_determinism
-                            logger.info(f"Capturing CUDA graph for bs={bs} with batch_invariant_mode=True (selective_det_mode={selective_det_mode})")
-                            with set_batch_invariant_mode(enabled=True, mode=selective_det_mode):
-                                (
-                                    graph_det,
-                                    output_buffers_det,
-                                ) = self.capture_one_batch_size(bs, forward)
-                                self.graphs[(bs, True)] = graph_det
-                                self.output_buffers[(bs, True)] = output_buffers_det
-                            
-                            # Then capture with batch_invariant disabled (non-deterministic)
-                            with set_batch_invariant_mode(enabled=False):
-                                (
-                                    graph_nondet,
-                                    output_buffers_nondet,
-                                ) = self.capture_one_batch_size(bs, forward)
-                                self.graphs[(bs, False)] = graph_nondet
-                                self.output_buffers[(bs, False)] = output_buffers_nondet
-                        else:
-                            # Standard single graph capture
-                            (
-                                graph,
-                                output_buffers,
-                            ) = self.capture_one_batch_size(bs, forward)
-                            self.graphs[bs] = graph
-                            self.output_buffers[bs] = output_buffers
+                        (
+                            graph,
+                            output_buffers,
+                        ) = self.capture_one_batch_size(bs, forward)
+                        self.graphs[bs] = graph
+                        self.output_buffers[bs] = output_buffers
 
                     # Save gemlite cache after each capture
                     save_gemlite_cache()
@@ -816,15 +775,6 @@ class CudaGraphRunner:
         if forward_batch.forward_mode.is_idle() and forward_batch.spec_info is not None:
             forward_batch.spec_info.custom_mask = self.custom_mask
         
-        # Determine which graph to use (for dual graphs)
-        self.use_deterministic = None  # Store for use in replay()
-        if self.enable_dual_graphs:
-            self.use_deterministic = True  # Default to deterministic
-            
-            if forward_batch.sampling_info is not None:
-                # For enable_selective_determinism, use is_any_deterministic
-                self.use_deterministic = forward_batch.sampling_info.is_any_deterministic
-        
         # Attention backend
         self.model_runner.attn_backend.init_forward_metadata_replay_cuda_graph(
             bs,
@@ -835,7 +785,6 @@ class CudaGraphRunner:
             self.capture_forward_mode,
             forward_batch.spec_info,
             seq_lens_cpu=seq_lens_cpu,
-            use_deterministic=self.use_deterministic,
         )
 
         # Store fields
@@ -856,27 +805,10 @@ class CudaGraphRunner:
             self.input_ids[: self.raw_num_token].copy_(forward_batch.input_ids)
             self.positions[: self.raw_num_token].copy_(forward_batch.positions)
 
-        # Determine which graph to use based on temperature (for dual graphs)
-        if self.enable_dual_graphs:
-            # Use the value computed in replay_prepare()
-            # If skip_attn_backend_init=True (speculative decoding), compute it here
-            if not skip_attn_backend_init:
-                use_deterministic = self.use_deterministic
-            else:
-                use_deterministic = True  # Default to deterministic
-                
-                if forward_batch.sampling_info is not None:
-                    # For enable_selective_determinism, use is_any_deterministic
-                    use_deterministic = forward_batch.sampling_info.is_any_deterministic
-            
-            graph_key = (self.bs, use_deterministic)
-        else:
-            graph_key = self.bs
-        
         # Replay
-        self.graphs[graph_key].replay()
+        self.graphs[self.bs].replay()
 
-        output = self.output_buffers[graph_key]
+        output = self.output_buffers[self.bs]
         if isinstance(output, LogitsProcessorOutput):
             return LogitsProcessorOutput(
                 next_token_logits=output.next_token_logits[: self.raw_num_token],

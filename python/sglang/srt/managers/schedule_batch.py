@@ -113,7 +113,6 @@ GLOBAL_SERVER_ARGS_KEYS = [
     "disaggregation_mode",
     "enable_deterministic_inference",
     "enable_llm42",
-    "enable_selective_determinism",
 ]
 
 # Put some global args for easy access
