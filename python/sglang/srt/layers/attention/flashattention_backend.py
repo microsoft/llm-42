@@ -692,11 +692,6 @@ class FlashAttentionBackend(AttentionBackend):
                     else forward_batch.encoder_out_cache_loc
                 )
                 if not self.use_mla:
-                    # if layer.layer_id == 0:
-                    #     logger.info(f"[KV_WRITE] forward_extend: layer={layer.layer_id}, "
-                    #                 f"mode={forward_batch.forward_mode}, "
-                    #                 f"cache_loc[:5]={cache_loc[:5].tolist() if len(cache_loc) >= 5 else cache_loc.tolist()}, "
-                    #                 f"num_tokens={len(cache_loc)}")
                     forward_batch.token_to_kv_pool.set_kv_buffer(
                         layer, cache_loc, k, v, layer.k_scale, layer.v_scale
                     )
@@ -1010,11 +1005,6 @@ class FlashAttentionBackend(AttentionBackend):
                     else forward_batch.encoder_out_cache_loc
                 )
                 if not self.use_mla:
-                    # if layer.layer_id == 0:
-                    #     logger.info(f"[KV_WRITE] forward_decode: layer={layer.layer_id}, "
-                    #                 f"mode={forward_batch.forward_mode}, "
-                    #                 f"cache_loc[:5]={cache_loc[:5].tolist() if len(cache_loc) >= 5 else cache_loc.tolist()}, "
-                    #                 f"num_tokens={len(cache_loc)}")
                     forward_batch.token_to_kv_pool.set_kv_buffer(
                         layer, cache_loc, k, v, layer.k_scale, layer.v_scale
                     )

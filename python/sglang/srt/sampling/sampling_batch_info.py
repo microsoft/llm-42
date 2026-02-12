@@ -87,14 +87,9 @@ class SamplingBatchInfo:
         global_server_args_dict = cls._get_global_server_args_dict()
         enable_deterministic = global_server_args_dict["enable_deterministic_inference"] > 0 or global_server_args_dict["enable_llm42"] > 0
 
-        #logger.info(f"[SamplingBatchInfo.from_schedule_batch] Creating sampling_info for {len(batch.reqs)} requests, enable_deterministic={enable_deterministic}")
-
         reqs = batch.reqs
         device = batch.device
-        
-        # DIAGNOSTIC: Check if reqs list size matches expectations
-        # print(f"[SamplingBatchInfo.from_schedule_batch] Creating sampling_info for {len(reqs)} requests", flush=True)
-        
+
         temperatures = torch.tensor(
             [r.sampling_params.temperature for r in reqs],
             dtype=torch.float,
@@ -109,10 +104,7 @@ class SamplingBatchInfo:
             dtype=torch.int64,
             device=device,
         ).view(-1, 1)
-        
-        # print(f"[SamplingBatchInfo.from_schedule_batch] Created tensors: "
-        #       f"temperatures.shape={temperatures.shape}, "
-        #       f"deterministic_indices.shape={deterministic_indices.shape}", flush=True)
+
         top_ps = torch.tensor(
             [r.sampling_params.top_p for r in reqs], dtype=torch.float, device=device
         )

@@ -1401,16 +1401,6 @@ class TokenizerManager(TokenizerCommunicatorMixin):
                 state.finished_time = time.time()
                 meta_info["e2e_latency"] = state.finished_time - state.created_time
 
-                # Log deterministic request completion with generated text
-                # if meta_info.get("llm42_num_rollbacks", 0) >= 0 and hasattr(state, 'text'):
-                #     logger.info(
-                #         f"[TokenizerManager] Deterministic request finished: rid={rid}, "
-                #         f"prompt_len={recv_obj.prompt_tokens[i]}, "
-                #         f"completion_tokens={recv_obj.completion_tokens[i]}, "
-                #         f"output_ids={state.output_ids}, "
-                #         f"generated_text={repr(state.text)}"
-                #     )
-
                 trace_req_finish(rid, ts=int(state.finished_time * 1e9))
 
                 del self.rid_to_state[rid]

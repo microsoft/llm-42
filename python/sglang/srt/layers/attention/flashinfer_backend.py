@@ -271,8 +271,6 @@ class FlashInferAttnBackend(AttentionBackend):
             enable_deterministic_current = self.enable_deterministic
 
             current_decode_split_tile_size = (self.decode_split_tile_size if enable_deterministic_current else None)
-            # For deterministic mode, also disable kv split to ensure consistent behavior
-            # current_disable_split_kv = self.disable_cuda_graph_kv_split if enable_deterministic_current else False
             self.indices_updater_decode.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
@@ -354,9 +352,6 @@ class FlashInferAttnBackend(AttentionBackend):
                 if (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
-                # if self.enable_llm42_mode > 0 and self.enable_llm42_mode == 3:
-                #     # In llm42 mode 3, always use deterministic settings
-                #     enable_deterministic_current = True
                 current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
                 use_ragged = not enable_deterministic_current
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)

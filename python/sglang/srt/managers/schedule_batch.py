@@ -629,13 +629,16 @@ class Req:
         # This is used to compute the average acceptance length per request.
         self.spec_verify_ct = 0
 
-        # For deterministic verification
+        # LLM-42 DVR state (§4.2, arXiv:2601.17768)
+        # Whether this request requires deterministic output (set via is_deterministic API flag)
         self.is_deterministic: bool = sampling_params.is_deterministic
-        self.llm42_verified_tokens: int = 0  # Number of tokens that have been verified
-        # Request-level rollback stats
-        self.llm42_num_rollbacks: int = 0  # Number of rollback events for this request
-        self.llm42_tokens_rolled_back: int = 0  # Total tokens rolled back for this request
-        self.llm42_num_verification_windows: int = 0  # Number of verification windows executed for this request 
+        # Number of output tokens that have passed verification. Tokens up to this
+        # index are guaranteed consistent across runs; tokens beyond it are speculative.
+        self.llm42_verified_tokens: int = 0
+        # Per-request rollback statistics (reported in response metadata)
+        self.llm42_num_rollbacks: int = 0            # how many times verification detected a mismatch
+        self.llm42_tokens_rolled_back: int = 0       # total tokens discarded across all rollbacks
+        self.llm42_num_verification_windows: int = 0  # number of verification passes executed
         
     
         # For metrics
@@ -742,7 +745,8 @@ class Req:
                 self.read_offset - INIT_INCREMENTAL_DETOKENIZATION_OFFSET, 0
             )
             if needs_verification :
-                # only send verified tokens for deterministic inference
+                # LLM-42 DVR: only expose tokens up to llm42_verified_tokens to the
+                # detokenizer, so the user never sees unverified (speculative) tokens.
                 self.surr_and_decode_ids = (
                     self.origin_input_ids_unpadded[self.surr_offset :] + self.output_ids[:self.llm42_verified_tokens]
                 )
@@ -754,7 +758,9 @@ class Req:
                 self.cur_decode_ids_len = len(self.output_ids)
         else:
             if needs_verification:
-                # only send verified tokens for deterministic inference
+                # LLM-42 DVR: only send newly-verified tokens to the detokenizer.
+                # Tokens between cur_decode_ids_len and llm42_verified_tokens
+                # have just passed verification and can be released.
                 self.surr_and_decode_ids.extend(
                     self.output_ids[self.cur_decode_ids_len : self.llm42_verified_tokens]
                 )

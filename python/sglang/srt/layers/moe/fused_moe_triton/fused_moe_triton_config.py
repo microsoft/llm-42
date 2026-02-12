@@ -64,15 +64,13 @@ def get_moe_configs(
     kernel on a given batch size bs, the closest batch size in the grid should
     be picked and the associated configuration chosen to invoke the kernel.
     """
-    # Check for deterministic inference - use default config for batch invariance
-    # Mode 3 (enable_llm42=3) uses non-batch-invariant kernels, so skip this check
+    # Deterministic inference: return None (default config) for batch invariance.
+    # Mode 3 (enable_llm42=3) uses standard kernels, so skip this check.
     enable_deterministic_inference, enable_llm42 = _get_deterministic_flags()
-    logger.info(f"Checking deterministic inference settings in get_moe_configs...")
-    logger.info(f"  enable_deterministic_inference: {enable_deterministic_inference}, enable_llm42: {enable_llm42}")
     if enable_deterministic_inference > 0 or (enable_llm42 > 0 and enable_llm42 != 3):
-        logger.warning(
-            "Deterministic inference is enabled (enable_deterministic_inference=%d, enable_llm42=%d), "
-            "using default MoE kernel config for batch invariance.",
+        logger.debug(
+            "Deterministic inference enabled, using default MoE kernel config "
+            "for batch invariance (enable_deterministic_inference=%d, enable_llm42=%d).",
             enable_deterministic_inference, enable_llm42
         )
         return None

@@ -92,8 +92,9 @@ class SchedulerOutputProcessorMixin:
                     # req output_ids are set here
                     req.output_ids.append(next_token_id)
                     
-                    # For deterministic requests, mark the first token as verified after prefill
-                    # since prefill runs deterministically (no batching interference)
+                    # LLM-42: the first output token comes from prefill which runs in
+                    # isolation (batch_size=1), so it is deterministic by construction.
+                    # Mark it as verified so the DVR loop starts from a consistent state.
                     if (req.is_deterministic and self.server_args.enable_llm42 
                         and len(req.output_ids) == 1):
                         req.llm42_verified_tokens = 1
@@ -258,7 +259,8 @@ class SchedulerOutputProcessorMixin:
                 # speculative worker will solve the output_ids in speculative decoding
                 req.output_ids.append(next_token_id)
                 
-                # Add logprobs BEFORE verification so verification can update them
+                # Append logprobs BEFORE verification so that verify_and_compare()
+                # can replace them with verified values on mismatch
                 if req.return_logprob and batch.return_logprob:
                     req.output_token_logprobs_val.append(next_token_logprobs[i])
                     req.output_token_logprobs_idx.append(next_token_id)
@@ -277,22 +279,19 @@ class SchedulerOutputProcessorMixin:
                             logits_output.next_token_token_ids_logprobs_idx[i]
                         )
 
-            # Check if finished, but DON'T cache yet for deterministic requests
+            # Check if finished, but DON'T cache yet — verification may roll back
             req.check_finished()
-        # Handle deterministic verification and get rollback info
+
+        # LLM-42 DVR: run verification on requests that have accumulated enough
+        # unverified tokens (>= window_size) or have finished. On mismatch,
+        # output_ids is truncated and the corrected verifier token is appended.
         if self.server_args.enable_llm42:
             rollback_results = self.model_worker.check_and_verify_deterministic_requests(batch)
-            # Free KV cache slots for rolled back tokens (inside free_group for proper batching)
-            # logger.info(
-            #     f" rollback_results: {[ (req.rid, tokens_rolled_back) for req, tokens_rolled_back in rollback_results ]}"
-            # )
+
+            # Free KV cache slots for the rolled-back token positions
             for req, tokens_rolled_back in rollback_results:
-                # logger.info(
-                #     f"Request {req.rid} rolled back {tokens_rolled_back} tokens for deterministic verification."
-                # )
-                # Get the KV cache indices for the slots to free
-                # After rollback, output_ids has been truncated and corrected token appended
-                # The corrected token is at position (origin + output_len - 1), so we start freeing AFTER that
+                # The corrected token occupies the last position in output_ids;
+                # free KV slots for the discarded positions after it.
                 start_free_pos = len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0)
                 end_free_pos = start_free_pos + tokens_rolled_back
                 
@@ -301,8 +300,9 @@ class SchedulerOutputProcessorMixin:
                 ]
                 if kv_indices_to_free_raw.numel() > 0:
                     self.token_to_kv_pool_allocator.free(kv_indices_to_free_raw)
-        # Now cache finished requests after verification is complete
-        # For deterministic requests, verification might have caused rollback which could change finished state
+        # Cache finished requests AFTER verification is complete.
+        # Verification may have rolled back a request (clearing finished_reason),
+        # so we must re-check the finished state before caching.
         for i, (req, next_token_id) in enumerate(zip(batch.reqs, next_token_ids)):
             if req.is_retracted:
                 continue
@@ -311,9 +311,8 @@ class SchedulerOutputProcessorMixin:
                 # Already handled in first loop
                 continue
 
-            # For deterministic requests, re-check finished state after verification
-            # Rollback might have cleared finished_reason, and the accepted corrected token
-            # might itself trigger a new finish condition (e.g., EOS token or stop string)
+            # Re-check: rollback may have cleared finished_reason, and the
+            # accepted verifier token might itself be EOS or match a stop string.
             if req.sampling_params.is_deterministic:
                 req.check_finished()
             
@@ -328,7 +327,7 @@ class SchedulerOutputProcessorMixin:
 
                 req.time_stats.completion_time = time.perf_counter()
 
-            # Logprobs already added in first loop before verification
+            # Logprobs were added before verification (see above)
 
             if req.return_hidden_states and logits_output.hidden_states is not None:
                 req.hidden_states.append(
@@ -643,17 +642,12 @@ class SchedulerOutputProcessorMixin:
                 
                 req.finished_output = True
                 should_output = True
-                # logger.info(
-                #     f"[Scheduler] Request finished: rid={req.rid}, "
-                #     f"prompt_tokens={len(req.origin_input_ids)}, "
-                #     f"completion_tokens={len(req.output_ids)}, "
-                #     f"finish_reason={req.finished_reason.to_json() if req.finished_reason else None}"
-                # )
             else:
                 if needs_verification:
+                    # LLM-42 streaming: gate output on llm42_verified_tokens
+                    # instead of output_ids length, so users only see verified tokens
                     if req.llm42_verified_tokens > req.send_token_offset and req.stream:
                         stream_interval = req.sampling_params.stream_interval or self.stream_interval
-                        # should_output = req.llm42_verified_tokens % stream_interval == 0 if stream_interval > 1 else True
                         should_output = (
                             req.llm42_verified_tokens % stream_interval == 1
                             if not self.model_config.is_multimodal_gen
@@ -699,6 +693,8 @@ class SchedulerOutputProcessorMixin:
                 req.send_decode_id_offset = len(decode_ids)
                 read_offsets.append(read_offset)
                 
+                # LLM-42: only send verified tokens to the user; unverified
+                # tokens are speculative and may be rolled back.
                 if needs_verification and not req.finished():
                     max_tokens_to_send = min(len(req.output_ids), req.llm42_verified_tokens)
                     output_ids.append(req.output_ids[send_token_offset:max_tokens_to_send])
@@ -715,6 +711,7 @@ class SchedulerOutputProcessorMixin:
                 prompt_tokens.append(len(req.origin_input_ids))
                 completion_tokens.append(len(req.output_ids))
                 if needs_verification:
+                    # Report verified count as completion_tokens (not total decoded)
                     completion_tokens[-1] = req.llm42_verified_tokens
                 cached_tokens.append(req.cached_tokens)
                 llm42_num_rollbacks.append(req.llm42_num_rollbacks)
@@ -804,22 +801,8 @@ class SchedulerOutputProcessorMixin:
             ):
                 req.log_time_stats()
 
-            # Log deterministic rollback stats when request finishes
-            # if req.finished() and self.tp_rank == 0 and req.is_deterministic:
-            #     # req.log_det_rollback_stats()
-            #     logger.info(
-            #         f"[Scheduler] Deterministic request finished: rid={req.rid}, "
-            #         f"prompt_len={len(req.origin_input_ids)}, output_len={len(req.output_ids)}, "
-            #         f"output_tokens={req.output_ids}, "
-            #     )
-
         # Send to detokenizer
         if rids:
-            # Log which requests are being sent to detokenizer
-            # finished_rids = [rid for rid, fr in zip(rids, finished_reasons) if fr is not None]
-            # if finished_rids:
-            #     logger.info(f"[Scheduler] Sending {len(finished_rids)} finished request(s) to detokenizer: {finished_rids}")
-            
             if self.model_config.is_multimodal_gen:
                 return
 
