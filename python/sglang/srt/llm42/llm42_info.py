@@ -103,7 +103,6 @@ class LLM42Info:
     def from_requests(
         cls, 
         reqs: List[Req], 
-        start_idx: int = 0,
         always_align: bool = True,
         force_include_all: bool = False,
         window_size: Optional[int] = None,
@@ -113,7 +112,6 @@ class LLM42Info:
         
         Args:
             reqs: List of requests to verify
-            start_idx: Index from which to start verifying tokens (for incremental verification)
             always_align: If True, pad finished requests to window_size with dummy tokens
             force_include_all: If True, include and pad all requests regardless of finished status.
                               Used for fixed-size batches where we need to include not-yet-ready requests.
@@ -123,7 +121,6 @@ class LLM42Info:
             LLM42Info instance
         """
         original_outputs = []
-        seq_lens = []
         output_lens = []
         padded_lens = []
         padding_masks = []
@@ -171,7 +168,6 @@ class LLM42Info:
         
         return cls(
             original_outputs=torch.tensor(original_outputs, dtype=torch.int64),
-            # seq_lens=torch.tensor(seq_lens, dtype=torch.int64),
             output_lens=output_lens,
             padded_lens=padded_lens,
             padding_masks=padding_masks,
@@ -735,8 +731,7 @@ class LLM42Info:
                     req.output_token_logprobs_idx.extend(verify_output[:mismatch_pos])
                 
                 req.finished_reason = None
-                # req.finished_output = None
-                
+
                 if mismatch_pos < len(verify_output):
                     req.output_ids.append(verify_output[mismatch_pos])
                     
