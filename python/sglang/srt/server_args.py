@@ -446,8 +446,8 @@ class ServerArgs:
     #              3=use standard (non-batch-invariant) kernels in verification pass
     enable_deterministic_inference: int = 0
     enable_llm42: int = 0
-    llm42_window_size: int = 32             # tokens decoded before verification
-    llm42_verify_batch_size: int = 16       # requests per verification batch (grouped verification)
+    llm42_window_size: int = 64             # tokens decoded before verification
+    llm42_verify_batch_size: int = 8        # requests per verification batch (grouped verification)
     llm42_skip_mismatch: float = 100.0      # 100.0=normal, 0.0=skip all rollbacks, X=inject X% rollback
 
     # Dynamic batch tokenizer

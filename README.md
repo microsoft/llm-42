@@ -40,8 +40,8 @@ python -m sglang.launch_server \
 | Flag | Default | Description |
 |---|---|---|
 | `--enable-llm42` | `0` | Enable LLM-42 DVR (`3` = recommended) |
-| `--llm42-window-size` | `32` | Tokens decoded before verification |
-| `--llm42-verify-batch-size` | `16` | Requests per verification batch (grouped verification) |
+| `--llm42-window-size` | `64` | Tokens decoded before verification |
+| `--llm42-verify-batch-size` | `8` | Requests per verification batch (grouped verification) |
 
 Additional flags for benchmarking: `--enable-deterministic-inference` (global batch-invariant baseline), `--llm42-skip-mismatch` (synthetic mismatch injection).
 
