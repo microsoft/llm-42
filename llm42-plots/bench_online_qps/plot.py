@@ -31,7 +31,7 @@ CONFIG_COLORS = {
     'global': 'tab:red',
 }
 
-# Colors for different detinfer ratios
+# Colors for different llm42 ratios
 RATIO_COLORS = {
     0.02: 'tab:blue',
     0.05: 'tab:orange',
@@ -134,7 +134,7 @@ def get_label(server_config: str, ratio: float) -> str:
     elif server_config == 'global':
         return 'SGLang deterministic'
     else:
-        # For detinfer configs, show as LLM-42 @X%
+        # For llm42 configs, show as LLM-42 @X%
         pct = int(ratio * 100)
         return f"LLM-42 @{pct}%"
 
@@ -145,20 +145,20 @@ def plot_cdf_for_qps(
     qps: float,
     output_dir: Path,
 ):
-    """Plot separate CDF plots for each detinfer config, with default, global, and all ratios."""
+    """Plot separate CDF plots for each llm42 config, with default, global, and all ratios."""
     
-    # Identify detinfer configs
-    detinfer_configs = set()
+    # Identify llm42 configs
+    llm42_configs = set()
     for (server_config, ratio) in qps_data.keys():
-        if server_config.startswith('detinfer_'):
-            detinfer_configs.add(server_config)
+        if server_config.startswith('llm42_'):
+            llm42_configs.add(server_config)
     
-    # For each detinfer config, create separate TTFT and E2E plots
-    for detinfer_config in sorted(detinfer_configs):
-        # Extract ws and bs from config name (e.g., detinfer_ws64_bs8 -> ws64_bs8)
-        config_suffix = detinfer_config.replace('detinfer_', '')
+    # For each llm42 config, create separate TTFT and E2E plots
+    for llm42_config in sorted(llm42_configs):
+        # Extract ws and bs from config name (e.g., llm42_ws64_bs8 -> ws64_bs8)
+        config_suffix = llm42_config.replace('llm42_', '')
         
-        # Collect data for this plot: default, global, and all ratios of this detinfer
+        # Collect data for this plot: default, global, and all ratios of this llm42
         plot_configs = []
         
         # Add default (ratio 1.0)
@@ -169,9 +169,9 @@ def plot_cdf_for_qps(
         if ('global', 1.0) in qps_data:
             plot_configs.append(('global', 1.0))
         
-        # Add all ratios for this detinfer config
+        # Add all ratios for this llm42 config
         for (server_config, ratio) in sorted(qps_data.keys(), key=lambda x: x[1]):
-            if server_config == detinfer_config:
+            if server_config == llm42_config:
                 plot_configs.append((server_config, ratio))
         
         # --- Plot TTFT CDF ---
@@ -184,7 +184,7 @@ def plot_cdf_for_qps(
                 continue
             
             x_vals, y_vals = compute_cdf(data)
-            # Use CONFIG_COLORS for default/global, RATIO_COLORS for detinfer
+            # Use CONFIG_COLORS for default/global, RATIO_COLORS for llm42
             if server_config in CONFIG_COLORS:
                 color = CONFIG_COLORS[server_config]
             else:
@@ -218,7 +218,7 @@ def plot_cdf_for_qps(
                 continue
             
             x_vals, y_vals = compute_cdf(data)
-            # Use CONFIG_COLORS for default/global, RATIO_COLORS for detinfer
+            # Use CONFIG_COLORS for default/global, RATIO_COLORS for llm42
             if server_config in CONFIG_COLORS:
                 color = CONFIG_COLORS[server_config]
             else:
@@ -249,27 +249,27 @@ def generate_table_for_qps(
     qps: float,
     output_dir: Path,
 ):
-    """Generate table with P50, P75, P90, P99 for TTFT and E2E, per detinfer config."""
+    """Generate table with P50, P75, P90, P99 for TTFT and E2E, per llm42 config."""
     
-    # Identify detinfer configs
-    detinfer_configs = set()
+    # Identify llm42 configs
+    llm42_configs = set()
     for (server_config, ratio) in qps_data.keys():
-        if server_config.startswith('detinfer_'):
-            detinfer_configs.add(server_config)
+        if server_config.startswith('llm42_'):
+            llm42_configs.add(server_config)
     
-    # For each detinfer config, create a separate table
-    for detinfer_config in sorted(detinfer_configs):
-        config_suffix = detinfer_config.replace('detinfer_', '')
+    # For each llm42 config, create a separate table
+    for llm42_config in sorted(llm42_configs):
+        config_suffix = llm42_config.replace('llm42_', '')
         rows = []
         
-        # Collect configs: default, global, and all ratios of this detinfer
+        # Collect configs: default, global, and all ratios of this llm42
         plot_configs = []
         if ('default', 1.0) in qps_data:
             plot_configs.append(('default', 1.0))
         if ('global', 1.0) in qps_data:
             plot_configs.append(('global', 1.0))
         for (server_config, ratio) in sorted(qps_data.keys(), key=lambda x: x[1]):
-            if server_config == detinfer_config:
+            if server_config == llm42_config:
                 plot_configs.append((server_config, ratio))
         
         for (server_config, ratio) in plot_configs:
@@ -332,27 +332,27 @@ def generate_latex_table(
     qps: float,
     output_dir: Path,
 ):
-    """Generate LaTeX table, per detinfer config."""
+    """Generate LaTeX table, per llm42 config."""
     
-    # Identify detinfer configs
-    detinfer_configs = set()
+    # Identify llm42 configs
+    llm42_configs = set()
     for (server_config, ratio) in qps_data.keys():
-        if server_config.startswith('detinfer_'):
-            detinfer_configs.add(server_config)
+        if server_config.startswith('llm42_'):
+            llm42_configs.add(server_config)
     
-    # For each detinfer config, create a separate table
-    for detinfer_config in sorted(detinfer_configs):
-        config_suffix = detinfer_config.replace('detinfer_', '')
+    # For each llm42 config, create a separate table
+    for llm42_config in sorted(llm42_configs):
+        config_suffix = llm42_config.replace('llm42_', '')
         rows = []
         
-        # Collect configs: default, global, and all ratios of this detinfer
+        # Collect configs: default, global, and all ratios of this llm42
         plot_configs = []
         if ('default', 1.0) in qps_data:
             plot_configs.append(('default', 1.0))
         if ('global', 1.0) in qps_data:
             plot_configs.append(('global', 1.0))
         for (server_config, ratio) in sorted(qps_data.keys(), key=lambda x: x[1]):
-            if server_config == detinfer_config:
+            if server_config == llm42_config:
                 plot_configs.append((server_config, ratio))
         
         for (server_config, ratio) in plot_configs:

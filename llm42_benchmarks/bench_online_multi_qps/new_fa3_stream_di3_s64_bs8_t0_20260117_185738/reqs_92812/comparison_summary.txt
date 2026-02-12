@@ -1,0 +1,135 @@
+================================================================================
+Multi-Config Comparison Summary (from existing files)
+================================================================================
+
+Input Directory: /home/t-gondraja/batch_inv/fa-llm42/llm42_benchmarks/bench_online_multi_qps/new_fa3_stream_di3_s64_bs8_t0_20260117_185738/reqs_92812
+Configs: ['qps4.0_o132_a16', 'qps4.5_o133_a17', 'qps5.0_o134_a18', 'qps5.5_o135_a19', 'qps6.0_o136_a20', 'qps6.5_o137_a21', 'qps7.0_o138_a22', 'qps7.5_o139_a23']
+
+--------------------------------------------------------------------------------
+Per-Config Benchmark Stats:
+--------------------------------------------------------------------------------
+
+qps4.0_o132_a16:
+  QPS: 4.0, Order Seed: 132, Arrival Seed: 16
+  Completed: 92812
+  Duration: 23234.95s
+  Request Throughput: 3.99 req/s
+  Output Throughput: 767.37 tok/s
+  Mean E2E Latency: 3921.94 ms
+  P99 E2E Latency: 16179.41 ms
+  Mean TTFT: 39.22 ms
+  Mean TPOT: 21.77 ms
+  Total Output Tokens: 17829692
+  Total Tokens Rolled Back: 1911184
+  Rollback %: 10.7191%
+
+qps4.5_o133_a17:
+  QPS: 4.5, Order Seed: 133, Arrival Seed: 17
+  Completed: 92812
+  Duration: 20660.76s
+  Request Throughput: 4.49 req/s
+  Output Throughput: 862.97 tok/s
+  Mean E2E Latency: 4573.95 ms
+  P99 E2E Latency: 18872.86 ms
+  Mean TTFT: 42.43 ms
+  Mean TPOT: 25.10 ms
+  Total Output Tokens: 17829692
+  Total Tokens Rolled Back: 2107587
+  Rollback %: 11.8207%
+
+qps5.0_o134_a18:
+  QPS: 5.0, Order Seed: 134, Arrival Seed: 18
+  Completed: 92812
+  Duration: 18616.59s
+  Request Throughput: 4.99 req/s
+  Output Throughput: 957.73 tok/s
+  Mean E2E Latency: 5098.95 ms
+  P99 E2E Latency: 20963.59 ms
+  Mean TTFT: 44.03 ms
+  Mean TPOT: 27.71 ms
+  Total Output Tokens: 17829692
+  Total Tokens Rolled Back: 2240729
+  Rollback %: 12.5674%
+
+qps5.5_o135_a19:
+  QPS: 5.5, Order Seed: 135, Arrival Seed: 19
+  Completed: 92812
+  Duration: 16920.92s
+  Request Throughput: 5.49 req/s
+  Output Throughput: 1053.71 tok/s
+  Mean E2E Latency: 5431.73 ms
+  P99 E2E Latency: 22327.33 ms
+  Mean TTFT: 44.13 ms
+  Mean TPOT: 29.31 ms
+  Total Output Tokens: 17829692
+  Total Tokens Rolled Back: 2324937
+  Rollback %: 13.0397%
+
+qps6.0_o136_a20:
+  QPS: 6.0, Order Seed: 136, Arrival Seed: 20
+  Completed: 92812
+  Duration: 15520.27s
+  Request Throughput: 5.98 req/s
+  Output Throughput: 1148.80 tok/s
+  Mean E2E Latency: 5958.02 ms
+  P99 E2E Latency: 24367.44 ms
+  Mean TTFT: 45.39 ms
+  Mean TPOT: 31.93 ms
+  Total Output Tokens: 17829692
+  Total Tokens Rolled Back: 2408885
+  Rollback %: 13.5105%
+
+qps6.5_o137_a21:
+  QPS: 6.5, Order Seed: 137, Arrival Seed: 21
+  Completed: 92812
+  Duration: 14335.40s
+  Request Throughput: 6.47 req/s
+  Output Throughput: 1243.75 tok/s
+  Mean E2E Latency: 6603.35 ms
+  P99 E2E Latency: 27267.22 ms
+  Mean TTFT: 47.15 ms
+  Mean TPOT: 35.07 ms
+  Total Output Tokens: 17829692
+  Total Tokens Rolled Back: 2480178
+  Rollback %: 13.9104%
+
+qps7.0_o138_a22:
+  QPS: 7.0, Order Seed: 138, Arrival Seed: 22
+  Completed: 92812
+  Duration: 13323.24s
+  Request Throughput: 6.97 req/s
+  Output Throughput: 1338.24 tok/s
+  Mean E2E Latency: 7656.86 ms
+  P99 E2E Latency: 31309.66 ms
+  Mean TTFT: 50.42 ms
+  Mean TPOT: 40.42 ms
+  Total Output Tokens: 17829692
+  Total Tokens Rolled Back: 2550397
+  Rollback %: 14.3042%
+
+qps7.5_o139_a23:
+  QPS: 7.5, Order Seed: 139, Arrival Seed: 23
+  Completed: 92812
+  Duration: 12437.33s
+  Request Throughput: 7.46 req/s
+  Output Throughput: 1433.56 tok/s
+  Mean E2E Latency: 8190.40 ms
+  P99 E2E Latency: 33312.51 ms
+  Mean TTFT: 51.14 ms
+  Mean TPOT: 43.02 ms
+  Total Output Tokens: 17829692
+  Total Tokens Rolled Back: 2584097
+  Rollback %: 14.4932%
+
+--------------------------------------------------------------------------------
+Per-Prompt Comparison:
+--------------------------------------------------------------------------------
+
+================================================================================
+TOTAL SUMMARY
+================================================================================
+Total prompts compared: 92812
+Text Matched: 92812 (100.00%)
+Tokens Matched: 92812 (100.00%)
+Overall Matched (text OR tokens): 92812 (100.00%)
+Mismatched: 0 (0.00%)

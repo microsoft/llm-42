@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plot output throughput vs batch size for global-det vs detinfer (LLM-42).
+Plot output throughput vs batch size for global-det vs llm42 (LLM-42).
 Creates a line graph showing how throughput scales with batch size.
 """
 
@@ -53,7 +53,7 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
     plt.figure(figsize=(9, 6))
     
     # Config styles - plot order determines z-order (first = back)
-    # non_det should be widest (back), then global_det, then detinfer (front)
+    # non_det should be widest (back), then global_det, then llm42 (front)
     styles = {
         'non_det': {
             'label': 'SGLang non-deterministic',
@@ -69,7 +69,7 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
             'width': 1.0,
             'zorder': 3,
         },
-        'detinfer': {
+        'llm42': {
             'label': 'LLM-42',
             'color': 'tab:green',
             'hatch': '',
@@ -87,8 +87,8 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
     x = np.arange(len(all_batch_sizes))
     
     # Plot bars for each config (overlapped - same position, decreasing widths)
-    # Plot in order: non_det (widest, back), global_det, detinfer (narrowest, front)
-    plot_order = ['non_det', 'global_det', 'detinfer']
+    # Plot in order: non_det (widest, back), global_det, llm42 (narrowest, front)
+    plot_order = ['non_det', 'global_det', 'llm42']
     for config_name in plot_order:
         if config_name not in data:
             continue

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plot heatmaps for DetInfer Matrix Ablation: Window Size vs Batch Size.
+Plot heatmaps for LLM42 Matrix Ablation: Window Size vs Batch Size.
 
 Creates two 6x6 heatmaps:
   1. P99 E2E Latency (ms) - lower is better
@@ -91,7 +91,7 @@ def extract_metrics(results: list) -> dict:
     
     for result in results:
         config_name = result.get('config_name', '')
-        if not config_name.startswith('detinfer_ws_'):
+        if not config_name.startswith('llm42_ws_'):
             continue
         
         ws = result.get('window_size')
@@ -100,7 +100,7 @@ def extract_metrics(results: list) -> dict:
         if ws is None or bs is None:
             # Try to parse from config_name
             import re
-            match = re.match(r'detinfer_ws_(\d+)_bs_(\d+)', config_name)
+            match = re.match(r'llm42_ws_(\d+)_bs_(\d+)', config_name)
             if match:
                 ws = int(match.group(1))
                 bs = int(match.group(2))
@@ -677,7 +677,7 @@ def plot_recompute_cost_bar_bs1(
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Plot heatmaps for DetInfer matrix ablation results'
+        description='Plot heatmaps for LLM42 matrix ablation results'
     )
     parser.add_argument(
         '--results-file',

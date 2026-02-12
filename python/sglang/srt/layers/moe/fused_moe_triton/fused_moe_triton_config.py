@@ -16,14 +16,14 @@ from sglang.srt.utils import get_device_name, is_hip
 def _get_deterministic_flags():
     """Get deterministic inference flags from global_server_args_dict.
     
-    Returns (enable_deterministic_inference, enable_det_infer) tuple.
+    Returns (enable_deterministic_inference, enable_llm_42) tuple.
     Falls back to (0, 0) if dict is not available (e.g., in tuning scripts).
     """
     try:
         from sglang.srt.managers.schedule_batch import global_server_args_dict
-        enable_det_infer = global_server_args_dict.get("enable_det_infer", 0) or 0
+        enable_llm_42 = global_server_args_dict.get("enable_llm_42", 0) or 0
         enable_deterministic_inference = global_server_args_dict.get("enable_deterministic_inference", 0) or 0
-        return enable_deterministic_inference, enable_det_infer
+        return enable_deterministic_inference, enable_llm_42
     except (ImportError, KeyError):
         return 0, 0
 
@@ -65,15 +65,15 @@ def get_moe_configs(
     be picked and the associated configuration chosen to invoke the kernel.
     """
     # Check for deterministic inference - use default config for batch invariance
-    # Mode 3 (enable_det_infer=3) uses non-batch-invariant kernels, so skip this check
-    enable_deterministic_inference, enable_det_infer = _get_deterministic_flags()
+    # Mode 3 (enable_llm_42=3) uses non-batch-invariant kernels, so skip this check
+    enable_deterministic_inference, enable_llm_42 = _get_deterministic_flags()
     logger.info(f"Checking deterministic inference settings in get_moe_configs...")
-    logger.info(f"  enable_deterministic_inference: {enable_deterministic_inference}, enable_det_infer: {enable_det_infer}")
-    if enable_deterministic_inference > 0 or (enable_det_infer > 0 and enable_det_infer != 3):
+    logger.info(f"  enable_deterministic_inference: {enable_deterministic_inference}, enable_llm_42: {enable_llm_42}")
+    if enable_deterministic_inference > 0 or (enable_llm_42 > 0 and enable_llm_42 != 3):
         logger.warning(
-            "Deterministic inference is enabled (enable_deterministic_inference=%d, enable_det_infer=%d), "
+            "Deterministic inference is enabled (enable_deterministic_inference=%d, enable_llm_42=%d), "
             "using default MoE kernel config for batch invariance.",
-            enable_deterministic_inference, enable_det_infer
+            enable_deterministic_inference, enable_llm_42
         )
         return None
 
@@ -150,9 +150,9 @@ def get_default_config(
     block_shape: Optional[List[int]] = None,
 ) -> Dict[str, int]:
     # Check for deterministic inference - use fixed config for batch invariance
-    # Mode 3 (enable_det_infer=3) uses non-batch-invariant kernels, so skip this check
-    enable_deterministic_inference, enable_det_infer = _get_deterministic_flags()
-    if enable_deterministic_inference > 0 or (enable_det_infer > 0 and enable_det_infer != 3):
+    # Mode 3 (enable_llm_42=3) uses non-batch-invariant kernels, so skip this check
+    enable_deterministic_inference, enable_llm_42 = _get_deterministic_flags()
+    if enable_deterministic_inference > 0 or (enable_llm_42 > 0 and enable_llm_42 != 3):
         # Return fixed config regardless of M, E, dtype for batch invariance
         return {
             "BLOCK_SIZE_M": 64,

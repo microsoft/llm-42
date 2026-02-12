@@ -9,15 +9,15 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # Server configuration
 NON_DET_PORT=${NON_DET_PORT:-30005}
 GLOBAL_DET_PORT=${GLOBAL_DET_PORT:-30006}
-DETINFER_PORT=${DETINFER_PORT:-30007}
+LLM42_PORT=${LLM42_PORT:-30007}
 NON_DET_URL="http://127.0.0.1:${NON_DET_PORT}"
 GLOBAL_DET_URL="http://127.0.0.1:${GLOBAL_DET_PORT}"
-DETINFER_URL="http://127.0.0.1:${DETINFER_PORT}"
+LLM42_URL="http://127.0.0.1:${LLM42_PORT}"
 
 # GPU assignment (use different GPUs for each server)
 NON_DET_GPU=${NON_DET_GPU:-0}
 GLOBAL_DET_GPU=${GLOBAL_DET_GPU:-1}
-DETINFER_GPU=${DETINFER_GPU:-2}
+LLM42_GPU=${LLM42_GPU:-2}
 
 # Model and server parameters
 MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
@@ -43,7 +43,7 @@ mkdir -p "$OUTPUT_DIR"
 # PIDs for cleanup
 NON_DET_PID=""
 GLOBAL_DET_PID=""
-DETINFER_PID=""
+LLM42_PID=""
 
 # Function to check server health
 check_server_health() {
@@ -104,7 +104,7 @@ stop_servers() {
     
     echo ""
     echo "Stopping servers..."
-    for pid in $NON_DET_PID $GLOBAL_DET_PID $DETINFER_PID; do
+    for pid in $NON_DET_PID $GLOBAL_DET_PID $LLM42_PID; do
         if [ -n "$pid" ]; then
             echo "  Killing PID $pid and children..."
             pkill -P "$pid" 2>/dev/null || true
@@ -115,7 +115,7 @@ stop_servers() {
     # Also kill any remaining sglang processes on our ports
     fuser -k ${NON_DET_PORT}/tcp 2>/dev/null || true
     fuser -k ${GLOBAL_DET_PORT}/tcp 2>/dev/null || true
-    fuser -k ${DETINFER_PORT}/tcp 2>/dev/null || true
+    fuser -k ${LLM42_PORT}/tcp 2>/dev/null || true
     sleep 2
     echo "Servers stopped."
 }
@@ -142,7 +142,7 @@ echo "Output Length: $OUTPUT_LEN"
 echo "Batch Sizes: $BATCH_SIZES"
 echo "Non-Det Server: $NON_DET_URL (GPU $NON_DET_GPU)"
 echo "Global-Det Server: $GLOBAL_DET_URL (GPU $GLOBAL_DET_GPU)"
-echo "DetInfer Server: $DETINFER_URL (GPU $DETINFER_GPU)"
+echo "LLM42 Server: $LLM42_URL (GPU $LLM42_GPU)"
 echo "Output Dir: $OUTPUT_DIR"
 echo "=============================================="
 echo ""
@@ -158,9 +158,9 @@ echo "  Non-Det PID: $NON_DET_PID"
 GLOBAL_DET_PID=$(launch_server "$GLOBAL_DET_PORT" "global_det" "--enable-deterministic-inference 2" "$GLOBAL_DET_GPU")
 echo "  Global-Det PID: $GLOBAL_DET_PID"
 
-# DetInfer server on GPU 2 (ws=64, bs=8)
-DETINFER_PID=$(launch_server "$DETINFER_PORT" "detinfer" "--enable-det-infer 3 --det-infer-window-size 64 --det-infer-verify-batch-size 8" "$DETINFER_GPU")
-echo "  DetInfer PID: $DETINFER_PID"
+# LLM42 server on GPU 2 (ws=64, bs=8)
+LLM42_PID=$(launch_server "$LLM42_PORT" "llm42" "--enable-llm-42 3 --llm-42-window-size 64 --llm-42-verify-batch-size 8" "$LLM42_GPU")
+echo "  LLM42 PID: $LLM42_PID"
 
 # Wait for servers to be ready
 echo ""
@@ -184,12 +184,12 @@ else
     exit 1
 fi
 
-echo -n "  Checking DetInfer server... "
-if check_server_health "$DETINFER_URL" 120 5; then
+echo -n "  Checking LLM42 server... "
+if check_server_health "$LLM42_URL" 120 5; then
     echo "✓"
 else
     echo "✗ FAILED"
-    echo "ERROR: DetInfer server failed to start. Check log: ${OUTPUT_DIR}/server_detinfer.log"
+    echo "ERROR: LLM42 server failed to start. Check log: ${OUTPUT_DIR}/server_llm42.log"
     exit 1
 fi
 
@@ -263,12 +263,12 @@ echo "========== Batch Size: 11 (All configs) =========="
 # Run all 3 configs in parallel
 # Non-det: det_ratio doesn't matter (no deterministic processing)
 # Global-det: det_ratio=1.0 (all deterministic)
-# DetInfer: det_ratio=0.09 (1 out of 11 requests deterministic)
+# LLM42: det_ratio=0.09 (1 out of 11 requests deterministic)
 run_benchmark "$NON_DET_URL" "non_det" "11" "1.0" &
 pid1=$!
 run_benchmark "$GLOBAL_DET_URL" "global_det" "11" "1.0" &
 pid2=$!
-run_benchmark "$DETINFER_URL" "detinfer" "11" "0.09" &
+run_benchmark "$LLM42_URL" "llm42" "11" "0.09" &
 pid3=$!
 
 wait $pid1

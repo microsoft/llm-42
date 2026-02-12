@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 Generate LaTeX tables for rollback metrics.
-Creates two tables (one per DetInfer config: ws_32_bs_16, ws_64_bs_8).
+Creates two tables (one per LLM42 config: ws_32_bs_16, ws_64_bs_8).
 
 Each table has:
 - Rows: Dataset configurations (ArXiv, ShareGPT, in=X out=Y)
-- Columns: DetInfer@2pct, @5pct, @10pct, @20pct, @50pct, @100pct
+- Columns: LLM42@2pct, @5pct, @10pct, @20pct, @50pct, @100pct
 """
 
 import argparse
@@ -57,14 +57,14 @@ def parse_dataset_config_from_dir(dir_name: str) -> str:
         return dir_name
 
 
-# Config order for columns (DetInfer only for rollback tables)
-DETINFER_CONFIGS = [
-    ('detinfer_0.02', '2pct'),
-    ('detinfer_0.05', '5pct'),
-    ('detinfer_0.1', '10pct'),
-    ('detinfer_0.2', '20pct'),
-    ('detinfer_0.5', '50pct'),
-    ('detinfer_1.0', '100pct'),
+# Config order for columns (LLM42 only for rollback tables)
+LLM42_CONFIGS = [
+    ('llm42_0.02', '2pct'),
+    ('llm42_0.05', '5pct'),
+    ('llm42_0.1', '10pct'),
+    ('llm42_0.2', '20pct'),
+    ('llm42_0.5', '50pct'),
+    ('llm42_1.0', '100pct'),
 ]
 
 # Dataset order for rows
@@ -82,31 +82,31 @@ DATASET_ORDER = [
 ]
 
 
-def generate_rollback_table(data: dict, detinfer_config: str, output_path: Path):
+def generate_rollback_table(data: dict, llm42_config: str, output_path: Path):
     """Generate LaTeX table for rollback metrics."""
     
-    config_label = "ws=32, bs=16" if "32" in detinfer_config else "ws=64, bs=8"
+    config_label = "ws=32, bs=16" if "32" in llm42_config else "ws=64, bs=8"
     
     lines = []
     lines.append("% LaTeX Table: Rollback Metrics")
-    lines.append(f"% DetInfer Config: {config_label}")
+    lines.append(f"% LLM42 Config: {config_label}")
     lines.append("% Format: rollbacks/recomputed_tokens")
     lines.append("% Required packages: booktabs, graphicx")
     lines.append("")
     lines.append("\\begin{table*}[!t]")
     lines.append("\\centering")
     lines.append(f"\\caption{{Rollback Metrics ({config_label}). Format: rollbacks/recomputed\\_tokens}}")
-    lines.append("\\label{tab:rollback_" + detinfer_config + "}")
+    lines.append("\\label{tab:rollback_" + llm42_config + "}")
     lines.append("\\resizebox{\\textwidth}{!}{%")
     
     # Header
     lines.append("\\begin{tabular}{l|cccccc}")
     lines.append("\\toprule")
-    lines.append("& \\multicolumn{6}{c}{\\textbf{LLM-42 (DetInfer) Deterministic Ratio}} \\\\")
+    lines.append("& \\multicolumn{6}{c}{\\textbf{LLM-42 (LLM42) Deterministic Ratio}} \\\\")
     lines.append("\\cmidrule(lr){2-7}")
     
     header_row = "\\textbf{Dataset Config}"
-    for _, label in DETINFER_CONFIGS:
+    for _, label in LLM42_CONFIGS:
         header_row += f" & {label}"
     header_row += " \\\\"
     lines.append(header_row)
@@ -118,7 +118,7 @@ def generate_rollback_table(data: dict, detinfer_config: str, output_path: Path)
             continue
         
         row = dataset
-        for config_key, _ in DETINFER_CONFIGS:
+        for config_key, _ in LLM42_CONFIGS:
             if config_key in data[dataset]:
                 rollbacks = data[dataset][config_key].get('rollbacks', 0)
                 tokens = data[dataset][config_key].get('recomputed_tokens', 0)
@@ -151,7 +151,7 @@ def main():
     # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Data structure: {detinfer_config: {dataset: {config_key: {throughput, rollbacks, recomputed_tokens}}}}
+    # Data structure: {llm42_config: {dataset: {config_key: {throughput, rollbacks, recomputed_tokens}}}}
     all_data = {
         'ws_32_bs_16': defaultdict(lambda: defaultdict(dict)),
         'ws_64_bs_8': defaultdict(lambda: defaultdict(dict)),
@@ -192,7 +192,7 @@ def main():
             # Determine config key
             if config_name == 'sglang_non_deterministic':
                 config_key = 'non_det'
-                # Add to both detinfer configs
+                # Add to both llm42 configs
                 for di_cfg in all_data.keys():
                     all_data[di_cfg][dataset_config][config_key] = {
                         'throughput': total_tp,
@@ -207,14 +207,14 @@ def main():
                         'rollbacks': rollbacks,
                         'recomputed_tokens': recomputed_tokens,
                     }
-            elif 'detinfer' in config_name:
+            elif 'llm42' in config_name:
                 # Format ratio consistently
                 if det_ratio == int(det_ratio):
-                    config_key = f'detinfer_{int(det_ratio)}.0'
+                    config_key = f'llm42_{int(det_ratio)}.0'
                 else:
-                    config_key = f'detinfer_{det_ratio}'
+                    config_key = f'llm42_{det_ratio}'
                 
-                # Determine which detinfer config
+                # Determine which llm42 config
                 if 'ws_32_bs_16' in config_name or 'ws32' in config_name:
                     all_data['ws_32_bs_16'][dataset_config][config_key] = {
                         'throughput': total_tp,
@@ -232,7 +232,7 @@ def main():
         print("Error: No data found")
         return 1
     
-    # Generate tables for each detinfer config
+    # Generate tables for each llm42 config
     for di_cfg, data in all_data.items():
         if not data:
             continue

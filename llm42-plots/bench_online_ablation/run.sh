@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Matrix Ablation Experiment for DetInfer Window Size vs Batch Size
+# Matrix Ablation Experiment for LLM42 Window Size vs Batch Size
 # Runs a 6x6 grid of configurations (36 total) in batches of 4 configs per batch.
 # Uses ShareGPT dataset with 100% deterministic ratio.
 #
@@ -44,7 +44,7 @@ ALL_CONFIGS=()
 for ws in "${WINDOW_SIZES[@]}"; do
     for bs in "${BATCH_SIZES[@]}"; do
         if [ $((ws * bs)) -le 512 ]; then
-            ALL_CONFIGS+=("detinfer_ws_${ws}_bs_${bs}")
+            ALL_CONFIGS+=("llm42_ws_${ws}_bs_${bs}")
         fi
     done
 done
@@ -86,10 +86,10 @@ echo ""
 # Function to get config-specific arguments (same as in launch_servers_parallel.sh)
 get_config_args() {
     local config_name="$1"
-    # Dynamic parsing: detinfer_ws_<window_size>_bs_<batch_size>
-    local ws=$(echo "$config_name" | sed -E 's/detinfer_ws_([0-9]+)_bs_([0-9]+)/\1/')
-    local bs=$(echo "$config_name" | sed -E 's/detinfer_ws_([0-9]+)_bs_([0-9]+)/\2/')
-    echo "--det-infer-window-size $ws --enable-det-infer 3 --det-infer-verify-batch-size $bs"
+    # Dynamic parsing: llm42_ws_<window_size>_bs_<batch_size>
+    local ws=$(echo "$config_name" | sed -E 's/llm42_ws_([0-9]+)_bs_([0-9]+)/\1/')
+    local bs=$(echo "$config_name" | sed -E 's/llm42_ws_([0-9]+)_bs_([0-9]+)/\2/')
+    echo "--llm-42-window-size $ws --enable-llm-42 3 --llm-42-verify-batch-size $bs"
 }
 
 # Function to wait for server to be ready
@@ -146,8 +146,8 @@ run_benchmark() {
     # Extract metrics and append to results
     if [ -f "$temp_result" ]; then
         # Parse ws and bs from config name
-        local ws=$(echo "$config_name" | sed -E 's/detinfer_ws_([0-9]+)_bs_([0-9]+)/\1/')
-        local bs=$(echo "$config_name" | sed -E 's/detinfer_ws_([0-9]+)_bs_([0-9]+)/\2/')
+        local ws=$(echo "$config_name" | sed -E 's/llm42_ws_([0-9]+)_bs_([0-9]+)/\1/')
+        local bs=$(echo "$config_name" | sed -E 's/llm42_ws_([0-9]+)_bs_([0-9]+)/\2/')
         
         $PYTHON_CMD -c "
 import json
@@ -169,9 +169,9 @@ with open('$temp_result', 'r') as f:
                 meta_info_list = result.get('meta_info', [])
                 output_lens = result.get('output_lens', [])
                 if meta_info_list:
-                    det_num_rollbacks = [m.get('det_infer_num_rollbacks', 0) for m in meta_info_list if m]
-                    det_tokens_rolled_back = [m.get('det_infer_tokens_rolled_back', 0) for m in meta_info_list if m]
-                    det_num_verification_windows = [m.get('det_infer_num_verification_windows', 0) for m in meta_info_list if m]
+                    det_num_rollbacks = [m.get('llm_42_num_rollbacks', 0) for m in meta_info_list if m]
+                    det_tokens_rolled_back = [m.get('llm_42_tokens_rolled_back', 0) for m in meta_info_list if m]
+                    det_num_verification_windows = [m.get('llm_42_num_verification_windows', 0) for m in meta_info_list if m]
                     
                     num_requests = len(det_num_rollbacks)
                     total_output_tokens = sum(output_lens) if output_lens else result.get('total_output_tokens', 0)

@@ -146,20 +146,20 @@ class FlashInferAttnBackend(AttentionBackend):
             self.deterministic_inference_flag > 0
         )
         
-        # Separate flag for det_infer mode (dynamic batch-invariant control)
-        self.enable_det_infer_mode = model_runner.server_args.enable_det_infer
+        # Separate flag for llm_42 mode (dynamic batch-invariant control)
+        self.enable_llm_42_mode = model_runner.server_args.enable_llm_42
         # Store original (non-deterministic) settings
         self.original_decode_use_tensor_cores = self.decode_use_tensor_cores
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
 
-        # For selective determinism or det_infer mode, we DON'T override settings here.
+        # For selective determinism or llm_42 mode, we DON'T override settings here.
         # Instead, we apply different settings during CUDA graph capture based on
         # is_batch_invariant_mode_enabled() in init_forward_metadata_capture_cuda_graph.
         # This allows the deterministic graph to use deterministic settings and the
         # non-deterministic graph to use non-deterministic settings.
-        if self.enable_deterministic > 0 or (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3) or self.enable_selective_determinism > 0:
+        if self.enable_deterministic > 0 or (self.enable_llm_42_mode > 0 and self.enable_llm_42_mode != 3) or self.enable_selective_determinism > 0:
             # Static deterministic mode: always use deterministic settings
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
@@ -172,7 +172,7 @@ class FlashInferAttnBackend(AttentionBackend):
             # Increased workspace size for deterministic inference with larger prefill batches
             global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
         
-        if self.enable_det_infer_mode > 0 and self.enable_det_infer_mode == 3:
+        if self.enable_llm_42_mode > 0 and self.enable_llm_42_mode == 3:
             # Mode 3: use deterministic attention settings
             self.verification_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -230,7 +230,7 @@ class FlashInferAttnBackend(AttentionBackend):
         # Using two wrappers is unnecessary in the current PR, but are prepared for future PRs
         self.prefill_wrappers_paged = []
         self.prefill_wrappers_verify = []
-        self.detinfer_verification_wrappers = []
+        self.llm42_verification_wrappers = []
         self.decode_wrappers = []
         for _ in range(self.num_wrappers):
             if not skip_prefill:
@@ -247,7 +247,7 @@ class FlashInferAttnBackend(AttentionBackend):
                         "NHD",
                     )
                 )
-                self.detinfer_verification_wrappers.append(
+                self.llm42_verification_wrappers.append(
                     BatchPrefillWithPagedKVCacheWrapper(
                         self.workspace_buffer,
                         "NHD",
@@ -281,7 +281,7 @@ class FlashInferAttnBackend(AttentionBackend):
             # and enable_selective_determinism (both have batch_invariant globally enabled)
             enable_deterministic_current = self.enable_deterministic
             if self.enable_selective_determinism > 0:
-                # Only selective_determinism needs dynamic checking (not det_infer mode)
+                # Only selective_determinism needs dynamic checking (not llm_42 mode)
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                 enable_deterministic_current = is_batch_invariant_mode_enabled()
 
@@ -346,7 +346,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 forward_batch.seq_lens_cpu,
                 forward_batch.seq_lens_sum,
                 prefix_lens=forward_batch.extend_prefix_lens,
-                prefill_wrappers=self.detinfer_verification_wrappers,
+                prefill_wrappers=self.llm42_verification_wrappers,
                 use_ragged=False,
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=None,
@@ -354,7 +354,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 disable_split_kv=False,
             )
             self.forward_metadata = PrefillMetadata(
-                self.detinfer_verification_wrappers, False, extend_no_prefix,
+                self.llm42_verification_wrappers, False, extend_no_prefix,
             )
         else:
             prefix_lens = forward_batch.extend_prefix_lens
@@ -367,11 +367,11 @@ class FlashInferAttnBackend(AttentionBackend):
                 # Use self.enable_deterministic which is now True for both enable_deterministic_inference
                 # and enable_selective_determinism (both have batch_invariant globally enabled)
                 enable_deterministic_current = self.enable_deterministic
-                if self.enable_selective_determinism > 0 or (self.enable_det_infer_mode > 0 and self.enable_det_infer_mode != 3):
+                if self.enable_selective_determinism > 0 or (self.enable_llm_42_mode > 0 and self.enable_llm_42_mode != 3):
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
                     enable_deterministic_current = is_batch_invariant_mode_enabled()
-                # if self.enable_det_infer_mode > 0 and self.enable_det_infer_mode == 3:
-                #     # In det_infer mode 3, always use deterministic settings
+                # if self.enable_llm_42_mode > 0 and self.enable_llm_42_mode == 3:
+                #     # In llm_42 mode 3, always use deterministic settings
                 #     enable_deterministic_current = True
                 current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
                 use_ragged = not enable_deterministic_current
@@ -439,7 +439,7 @@ class FlashInferAttnBackend(AttentionBackend):
         spec_info: Optional[SpecInput],
     ):
         if forward_mode.is_decode_or_idle():
-            # detinfer doesn't need dual graphs
+            # llm42 doesn't need dual graphs
             uses_dual_graphs = self.enable_selective_determinism > 0
             if uses_dual_graphs:
                 from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled

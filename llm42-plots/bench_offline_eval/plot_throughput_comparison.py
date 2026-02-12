@@ -2,9 +2,9 @@
 """
 Plot throughput comparison across different server configurations and datasets.
 
-Creates two plots (one per detinfer config):
+Creates two plots (one per llm42 config):
 - Each plot has grouped bars by dataset config
-- 7 bars per group: Non-Det, Global-Det, DetInfer@0.02, @0.05, @0.1, @0.2, @0.5, @1.0
+- 7 bars per group: Non-Det, Global-Det, LLM42@0.02, @0.05, @0.1, @0.2, @0.5, @1.0
 - Uses hatching, tab colors, unfilled bars
 """
 
@@ -70,19 +70,19 @@ def parse_dataset_config_from_dir(dir_name: str) -> str:
 BAR_CONFIGS = [
     ('non_det', 'SGLang non-deterministic', 'tab:green', '|||'),
     ('global_det', 'SGLang deterministic', 'tab:red', '////'),
-    ('detinfer_0.02', 'LLM-42\n@2%', 'tab:purple', '\\\\\\\\'),
-    ('detinfer_0.05', 'LLM-42\n@5%', 'tab:purple', '+++'),
-    ('detinfer_0.1', 'LLM-42\n@10%', 'tab:purple', '///'),
-    ('detinfer_0.2', 'LLM-42\n@20%', 'tab:purple', '---'),
-    ('detinfer_0.5', 'LLM-42\n@50%', 'tab:purple', '...'),
-    ('detinfer_1.0', 'LLM-42\n@100%', 'tab:purple', 'xxxx'),
+    ('llm42_0.02', 'LLM-42\n@2%', 'tab:purple', '\\\\\\\\'),
+    ('llm42_0.05', 'LLM-42\n@5%', 'tab:purple', '+++'),
+    ('llm42_0.1', 'LLM-42\n@10%', 'tab:purple', '///'),
+    ('llm42_0.2', 'LLM-42\n@20%', 'tab:purple', '---'),
+    ('llm42_0.5', 'LLM-42\n@50%', 'tab:purple', '...'),
+    ('llm42_1.0', 'LLM-42\n@100%', 'tab:purple', 'xxxx'),
 ]
 
 
 def plot_throughput_comparison(
     data: dict,
     output_path: Path,
-    detinfer_config: str,
+    llm42_config: str,
     title_suffix: str = "",
 ):
     """
@@ -91,7 +91,7 @@ def plot_throughput_comparison(
     data structure:
     {
         'dataset_config': {
-            'bar_key': throughput_value  # e.g., 'non_det', 'global_det', 'detinfer_0.02', etc.
+            'bar_key': throughput_value  # e.g., 'non_det', 'global_det', 'llm42_0.02', etc.
         }
     }
     """
@@ -202,8 +202,8 @@ def main():
     
     args = parser.parse_args()
     
-    # Data structure: {detinfer_config: {dataset: {bar_key: throughput}}}
-    # detinfer_config is 'ws_32_bs_16' or 'ws_64_bs_8'
+    # Data structure: {llm42_config: {dataset: {bar_key: throughput}}}
+    # llm42_config is 'ws_32_bs_16' or 'ws_64_bs_8'
     all_data = {
         'ws_32_bs_16': defaultdict(dict),
         'ws_64_bs_8': defaultdict(dict),
@@ -240,20 +240,20 @@ def main():
             # Determine bar key
             if config_name == 'sglang_non_deterministic':
                 bar_key = 'non_det'
-                # Add to both detinfer plots
+                # Add to both llm42 plots
                 for di_cfg in all_data.keys():
                     all_data[di_cfg][dataset_config][bar_key] = total_tp
             elif config_name == 'sglang_global_deterministic':
                 bar_key = 'global_det'
                 for di_cfg in all_data.keys():
                     all_data[di_cfg][dataset_config][bar_key] = total_tp
-            elif 'detinfer' in config_name:
+            elif 'llm42' in config_name:
                 # Format ratio consistently (ensure trailing zero for whole numbers)
                 if det_ratio == int(det_ratio):
-                    bar_key = f'detinfer_{int(det_ratio)}.0'
+                    bar_key = f'llm42_{int(det_ratio)}.0'
                 else:
-                    bar_key = f'detinfer_{det_ratio}'
-                # Determine which detinfer config
+                    bar_key = f'llm42_{det_ratio}'
+                # Determine which llm42 config
                 if 'ws_32_bs_16' in config_name or 'ws32' in config_name:
                     all_data['ws_32_bs_16'][dataset_config][bar_key] = total_tp
                 elif 'ws_64_bs_8' in config_name or 'ws64' in config_name:
@@ -276,13 +276,13 @@ def main():
         sorted_data = dict(sorted(data.items()))
         
         output_file = Path(f"{output_base}_{di_cfg.replace('_', '')}.pdf")
-        title_suffix = f"DetInfer {di_cfg.replace('_', '-')}"
+        title_suffix = f"LLM42 {di_cfg.replace('_', '-')}"
         plot_throughput_comparison(sorted_data, output_file, di_cfg, title_suffix)
     
     # Save CSV with all data
     csv_path = args.output.with_suffix('.csv')
     with open(csv_path, 'w') as f:
-        f.write("dataset,bar_key,detinfer_config,total_throughput\n")
+        f.write("dataset,bar_key,llm42_config,total_throughput\n")
         for di_cfg, data in all_data.items():
             for dataset in data:
                 dataset_clean = dataset.replace('\n', ' ')

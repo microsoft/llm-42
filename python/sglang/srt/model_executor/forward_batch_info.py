@@ -72,7 +72,7 @@ class ForwardMode(IntEnum):
 
     # Used in speculative decoding: verify a batch in the target model.
     TARGET_VERIFY = auto()
-    # Used in DETInfer: verify a batch in the model with deterministic inference and in-place KV cache updates.
+    # Used in LLM42: verify a batch in the model with deterministic inference and in-place KV cache updates.
     TARGET_DET_VERIFY = auto()
     # Used in speculative decoding: extend a batch in the draft model.
     DRAFT_EXTEND = auto()

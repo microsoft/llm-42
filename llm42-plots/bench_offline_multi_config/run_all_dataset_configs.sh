@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Run offline throughput benchmarks for multiple dataset configurations
 # - Non-det and Global-det: run with det_ratio=1.0
-# - DetInfer: run with det_ratios 0.02, 0.05, 0.1, 0.2, 0.5, 1.0
+# - LLM42: run with det_ratios 0.02, 0.05, 0.1, 0.2, 0.5, 1.0
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
@@ -17,7 +17,7 @@ echo "NUM_PROMPTS: $NUM_PROMPTS"
 echo ""
 echo "Configurations:"
 echo "  - Non-Det, Global-Det: det_ratio=1.0"
-echo "  - DetInfer: det_ratios=0.02, 0.05, 0.1, 0.2, 0.5, 1.0"
+echo "  - LLM42: det_ratios=0.02, 0.05, 0.1, 0.2, 0.5, 1.0"
 echo ""
 
 # Dataset configurations
@@ -127,8 +127,8 @@ python "${ROOT}/plot_throughput_comparison.py" \
 
 echo ""
 echo "Generated:"
-echo "  - throughput_comparison_ws32bs16.pdf (DetInfer ws=32, bs=16)"
-echo "  - throughput_comparison_ws64bs8.pdf (DetInfer ws=64, bs=8)"
+echo "  - throughput_comparison_ws32bs16.pdf (LLM42 ws=32, bs=16)"
+echo "  - throughput_comparison_ws64bs8.pdf (LLM42 ws=64, bs=8)"
 echo "  - throughput_comparison.csv"
 echo ""
 echo "To regenerate plots:"

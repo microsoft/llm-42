@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Run offline throughput benchmarks against pre-launched servers
 # For non-det and global-det: run with det_ratio=1.0
-# For detinfer configs: run with multiple det_ratios (0.02, 0.05, 0.1, 0.2, 0.5, 1.0)
+# For llm42 configs: run with multiple det_ratios (0.02, 0.05, 0.1, 0.2, 0.5, 1.0)
 #
 # Two modes:
 #   - SEQUENTIAL_MODE=true (default): Run configs sequentially on a single server (for TP4)
@@ -19,7 +19,7 @@ SEQUENTIAL_MODE=${SEQUENTIAL_MODE:-true}
 BASE_URL=${BASE_URL:-"http://127.0.0.1:30005"}
 # For parallel mode: comma-separated URLs
 BASE_URLS=${BASE_URLS:-"$BASE_URL"}
-CONFIG_NAMES=${CONFIG_NAMES:-"sglang_non_deterministic,sglang_global_deterministic,detinfer_ws_128_bs_8"}
+CONFIG_NAMES=${CONFIG_NAMES:-"sglang_non_deterministic,sglang_global_deterministic,llm42_ws_128_bs_8"}
 
 # Benchmark parameters
 MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
@@ -35,7 +35,7 @@ BACKEND=${BACKEND:-sglang}
 
 # Deterministic ratios for different config types
 BASELINE_RATIOS="1.0"
-DETINFER_RATIOS="1.0"
+LLM42_RATIOS="1.0"
 
 # Output directory (use existing OUTPUT_DIR if set, otherwise create one)
 if [ -z "${OUTPUT_DIR:-}" ]; then
@@ -79,7 +79,7 @@ else
     echo "  Output Length: (from dataset)"
 fi
 echo "Baseline Ratios: $BASELINE_RATIOS"
-echo "DetInfer Ratios: $DETINFER_RATIOS"
+echo "LLM42 Ratios: $LLM42_RATIOS"
 echo "Output Dir: $OUTPUT_DIR"
 echo ""
 if [ "$SEQUENTIAL_MODE" = true ]; then
@@ -216,8 +216,8 @@ with open('$temp_result', 'r') as f:
                 meta_info_list = result.get('meta_info', [])
                 output_lens = result.get('output_lens', [])
                 if meta_info_list:
-                    det_num_rollbacks = [m.get('det_infer_num_rollbacks', 0) for m in meta_info_list if m]
-                    det_tokens_rolled_back = [m.get('det_infer_tokens_rolled_back', 0) for m in meta_info_list if m]
+                    det_num_rollbacks = [m.get('llm_42_num_rollbacks', 0) for m in meta_info_list if m]
+                    det_tokens_rolled_back = [m.get('llm_42_tokens_rolled_back', 0) for m in meta_info_list if m]
                     
                     num_requests = len(det_num_rollbacks)
                     total_output_tokens = sum(output_lens) if output_lens else result.get('total_output_tokens', 0)
@@ -253,9 +253,9 @@ run_server_benchmarks() {
     local url="$1"
     local config_name="$2"
     
-    if [[ "$config_name" == *"detinfer"* ]]; then
-        # DetInfer: run all ratios sequentially
-        for ratio in $DETINFER_RATIOS; do
+    if [[ "$config_name" == *"llm42"* ]]; then
+        # LLM42: run all ratios sequentially
+        for ratio in $LLM42_RATIOS; do
             run_benchmark "$url" "$config_name" "$ratio"
         done
     else
@@ -287,23 +287,23 @@ launch_server_for_config() {
         "sglang_global_deterministic")
             config_args="--enable-deterministic-inference 2"
             ;;
-        "detinfer_ws_32_bs_16")
-            config_args="--det-infer-window-size 32 --enable-det-infer 3 --det-infer-verify-batch-size 16"
+        "llm42_ws_32_bs_16")
+            config_args="--llm-42-window-size 32 --enable-llm-42 3 --llm-42-verify-batch-size 16"
             ;;
-        "detinfer_ws_16_bs_32")
-            config_args="--det-infer-window-size 16 --enable-det-infer 3 --det-infer-verify-batch-size 32"
+        "llm42_ws_16_bs_32")
+            config_args="--llm-42-window-size 16 --enable-llm-42 3 --llm-42-verify-batch-size 32"
             ;;
-        "detinfer_ws_64_bs_16")
-            config_args="--det-infer-window-size 64 --enable-det-infer 3 --det-infer-verify-batch-size 16"
+        "llm42_ws_64_bs_16")
+            config_args="--llm-42-window-size 64 --enable-llm-42 3 --llm-42-verify-batch-size 16"
             ;;
-        "detinfer_ws_64_bs_8")
-            config_args="--det-infer-window-size 64 --enable-det-infer 3 --det-infer-verify-batch-size 8"
+        "llm42_ws_64_bs_8")
+            config_args="--llm-42-window-size 64 --enable-llm-42 3 --llm-42-verify-batch-size 8"
             ;;
-        "detinfer_ws_128_bs_8")
-            config_args="--det-infer-window-size 128 --enable-det-infer 3 --det-infer-verify-batch-size 8"
+        "llm42_ws_128_bs_8")
+            config_args="--llm-42-window-size 128 --enable-llm-42 3 --llm-42-verify-batch-size 8"
             ;;
-        "detinfer_ws_32_bs_32")
-            config_args="--det-infer-window-size 32 --enable-det-infer 3 --det-infer-verify-batch-size 32"
+        "llm42_ws_32_bs_32")
+            config_args="--llm-42-window-size 32 --enable-llm-42 3 --llm-42-verify-batch-size 32"
             ;;
         *)
             echo "Error: Unknown config name: $config_name" >&2
@@ -380,7 +380,7 @@ if [ "$SEQUENTIAL_MODE" = true ]; then
     # Sequential mode: launch server, run benchmarks, stop server, repeat
     echo "========== Running Configs Sequentially (TP4 Mode) =========="
     echo "Baseline configs: det_ratio=1.0"
-    echo "DetInfer configs: det_ratios=$DETINFER_RATIOS"
+    echo "LLM42 configs: det_ratios=$LLM42_RATIOS"
     echo ""
     
     # Extract port from BASE_URL
@@ -408,7 +408,7 @@ else
     # Parallel mode: run against pre-launched servers
     echo "========== Running All Servers in Parallel =========="
     echo "Baseline configs: det_ratio=1.0"
-    echo "DetInfer configs: det_ratios=$DETINFER_RATIOS"
+    echo "LLM42 configs: det_ratios=$LLM42_RATIOS"
     echo ""
 
     pids=()

@@ -96,7 +96,7 @@ class RMSNorm(CustomOp):
 
         self.deterministic = get_int_env_var("SGLANG_ENABLE_DETERMINISTIC_INFERENCE")
         self.enable_selective_determinism = get_int_env_var("SGLANG_ENABLE_SELECTIVE_DETERMINISM")
-        self.enable_det_infer = get_int_env_var("SGLANG_ENABLE_DET_INFER")
+        self.enable_llm_42 = get_int_env_var("SGLANG_ENABLE_LLM_42")
         
         self.vllm_rmsnorm_mode = os.getenv("SGLANG_USE_VLLM_RMSNORM", "").lower()
 
@@ -105,15 +105,15 @@ class RMSNorm(CustomOp):
             self._forward_method = self.forward_vllm
         elif self.deterministic == 2:
             self._forward_method = self.forward_native
-        elif self.enable_selective_determinism == 1 or self.enable_det_infer == 1:
+        elif self.enable_selective_determinism == 1 or self.enable_llm_42 == 1:
             self.vllm_rmsnorm_mode = "256"
 
         self.triton_rmsnorm_mode = os.getenv("SGLANG_USE_TRITON_RMSNORM", "").lower()
         if self.triton_rmsnorm_mode:
             self._forward_method = self.forward_triton_invariant
 
-        # if self.enable_det_infer > 0:
-        #     logger.info(f"RMSNorm initialized with deterministic inference mode: {self.deterministic}, selective determinism: {self.enable_selective_determinism}, det_infer: {self.enable_det_infer}, vllm_rmsnorm_mode: {self.vllm_rmsnorm_mode}")
+        # if self.enable_llm_42 > 0:
+        #     logger.info(f"RMSNorm initialized with deterministic inference mode: {self.deterministic}, selective determinism: {self.enable_selective_determinism}, llm_42: {self.enable_llm_42}, vllm_rmsnorm_mode: {self.vllm_rmsnorm_mode}")
         #     self._forward_method = self.forward_native
 
     def forward_cuda(
@@ -122,7 +122,7 @@ class RMSNorm(CustomOp):
         residual: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         with record_function("rmsnorm"):
-            if self.enable_selective_determinism or (self.enable_det_infer == 1 or self.enable_det_infer == 2):
+            if self.enable_selective_determinism or (self.enable_llm_42 == 1 or self.enable_llm_42 == 2):
                 if is_batch_invariant_mode_enabled():
                     return self.forward_vllm(x, residual) if self.vllm_rmsnorm_mode else self.forward_native(x, residual)
 

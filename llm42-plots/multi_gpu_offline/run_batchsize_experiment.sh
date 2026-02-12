@@ -2,14 +2,14 @@
 set -euo pipefail
 
 # Run batch size experiment: vary num_prompts (batch size) with fixed input/output lengths
-# Compare global-deterministic vs detinfer (LLM-42)
+# Compare global-deterministic vs llm42 (LLM-42)
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-# Server URLs - 3 servers: non-det, global-det, and detinfer
+# Server URLs - 3 servers: non-det, global-det, and llm42
 NON_DET_URL=${NON_DET_URL:-"http://127.0.0.1:30005"}
 GLOBAL_DET_URL=${GLOBAL_DET_URL:-"http://127.0.0.1:30006"}
-DETINFER_URL=${DETINFER_URL:-"http://127.0.0.1:30007"}
+LLM42_URL=${LLM42_URL:-"http://127.0.0.1:30007"}
 
 # Benchmark parameters
 MODEL=${MODEL:-meta-llama/Llama-3.1-8B-Instruct}
@@ -39,14 +39,14 @@ echo "Output Length: $OUTPUT_LEN"
 echo "Batch Sizes: $BATCH_SIZES"
 echo "Non-Det Server: $NON_DET_URL"
 echo "Global-Det Server: $GLOBAL_DET_URL"
-echo "DetInfer Server: $DETINFER_URL"
+echo "LLM42 Server: $LLM42_URL"
 echo "Output Dir: $OUTPUT_DIR"
 echo "=============================================="
 echo ""
 
 # Check server health
 echo "Checking server health..."
-for URL in "$NON_DET_URL" "$GLOBAL_DET_URL" "$DETINFER_URL"; do
+for URL in "$NON_DET_URL" "$GLOBAL_DET_URL" "$LLM42_URL"; do
     echo -n "  Checking $URL ... "
     RESPONSE=$(timeout 5 curl -s "${URL}/v1/models" 2>&1)
     if echo "$RESPONSE" | grep -q '"object":"list"'; then
@@ -131,7 +131,7 @@ for batch_size in $BATCH_SIZES; do
     pid1=$!
     run_benchmark "$GLOBAL_DET_URL" "global_det" "$batch_size" &
     pid2=$!
-    run_benchmark "$DETINFER_URL" "detinfer" "$batch_size" &
+    run_benchmark "$LLM42_URL" "llm42" "$batch_size" &
     pid3=$!
     
     wait $pid1

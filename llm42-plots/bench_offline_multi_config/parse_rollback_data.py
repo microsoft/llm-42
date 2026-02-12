@@ -45,8 +45,8 @@ def extract_dataset_name(dir_name):
     return dir_name
 
 
-# DetInfer configurations to extract
-DETINFER_CONFIGS = ["detinfer_ws_32_bs_16", "detinfer_ws_64_bs_8"]
+# LLM42 configurations to extract
+LLM42_CONFIGS = ["llm42_ws_32_bs_16", "llm42_ws_64_bs_8"]
 
 
 def parse_benchmark_file(filepath, config_filter=None):
@@ -54,7 +54,7 @@ def parse_benchmark_file(filepath, config_filter=None):
     
     Args:
         filepath: Path to the benchmark_results.jsonl file
-        config_filter: If set, only include results from this config (e.g., "detinfer_ws_32_bs_16")
+        config_filter: If set, only include results from this config (e.g., "llm42_ws_32_bs_16")
     """
     results = {}
     
@@ -107,10 +107,10 @@ def main():
         "Random (4096/512)",
     ]
     
-    # Collect data for each DetInfer config
+    # Collect data for each LLM42 config
     all_data_by_config = {}
     
-    for detinfer_config in DETINFER_CONFIGS:
+    for llm42_config in LLM42_CONFIGS:
         all_data = {}
         
         for dir_name in RESULTS_DIRS:
@@ -127,18 +127,18 @@ def main():
             dataset_key = extract_dataset_name(dir_name)
             dataset_label = DATASET_MAP.get(dataset_key, dataset_key)
             
-            results = parse_benchmark_file(results_file, config_filter=detinfer_config)
+            results = parse_benchmark_file(results_file, config_filter=llm42_config)
             if results:
                 all_data[dataset_label] = results
         
-        all_data_by_config[detinfer_config] = all_data
+        all_data_by_config[llm42_config] = all_data
     
     # Print summary tables for each config
-    for detinfer_config in DETINFER_CONFIGS:
-        all_data = all_data_by_config[detinfer_config]
+    for llm42_config in LLM42_CONFIGS:
+        all_data = all_data_by_config[llm42_config]
         
         print("\n" + "=" * 100)
-        print(f"ROLLBACK STATISTICS - {detinfer_config}")
+        print(f"ROLLBACK STATISTICS - {llm42_config}")
         print("Format: rollbacks / recomputed_tokens")
         print("=" * 100)
         
@@ -171,7 +171,7 @@ def main():
     print("=" * 100)
     
     # Use ws_32_bs_16 for the table (or change as needed)
-    primary_config = "detinfer_ws_32_bs_16"
+    primary_config = "llm42_ws_32_bs_16"
     all_data = all_data_by_config[primary_config]
     
     print(f"\n% Using config: {primary_config}")

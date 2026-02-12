@@ -6,12 +6,12 @@
 # Server configs:
 #   - default: no deterministic inference
 #   - global: --enable-deterministic-inference 2
-#   - detinfer_ws64_bs8: --enable-det-infer 3 --det-infer-window-size 64 --det-infer-verify-batch-size 8
-#   - detinfer_ws32_bs16: --enable-det-infer 3 --det-infer-window-size 32 --det-infer-verify-batch-size 16
+#   - llm42_ws64_bs8: --enable-llm-42 3 --llm-42-window-size 64 --llm-42-verify-batch-size 8
+#   - llm42_ws32_bs16: --enable-llm-42 3 --llm-42-window-size 32 --llm-42-verify-batch-size 16
 #
 # For each QPS:
 #   - default, global: deterministic-ratio 1.0
-#   - detinfer: deterministic-ratio [0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+#   - llm42: deterministic-ratio [0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
 
 set -euo pipefail
 
@@ -34,11 +34,11 @@ DETERMINISTIC_SEED="${DETERMINISTIC_SEED:-142}"
 SHAREGPT_QPS_VALUES=(12 14 16 18)
 ARXIV_QPS_VALUES=()
 
-# Deterministic ratios for detinfer configs
-DETINFER_RATIOS=(0.02 0.05 0.1 0.2 0.5 1.0)
+# Deterministic ratios for llm42 configs
+LLM42_RATIOS=(0.02 0.05 0.1 0.2 0.5 1.0)
 
 # Server configurations
-SERVER_CONFIGS=("default" "global" "detinfer_ws64_bs8")
+SERVER_CONFIGS=("default" "global" "llm42_ws64_bs8")
 
 # Output directory
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -69,7 +69,7 @@ echo "Num Prompts: $NUM_PROMPTS"
 echo "ShareGPT QPS Values: ${SHAREGPT_QPS_VALUES[*]}"
 echo "ArXiv QPS Values: ${ARXIV_QPS_VALUES[*]}"
 echo "Server Configs: ${SERVER_CONFIGS[*]}"
-echo "DetInfer Ratios: ${DETINFER_RATIOS[*]}"
+echo "LLM42 Ratios: ${LLM42_RATIOS[*]}"
 echo "Output Dir: $OUTPUT_DIR"
 echo "=============================================="
 echo ""
@@ -84,11 +84,11 @@ get_server_args() {
         "global")
             echo "--enable-deterministic-inference 2"
             ;;
-        "detinfer_ws64_bs8")
-            echo "--enable-det-infer 3 --det-infer-window-size 64 --det-infer-verify-batch-size 8"
+        "llm42_ws64_bs8")
+            echo "--enable-llm-42 3 --llm-42-window-size 64 --llm-42-verify-batch-size 8"
             ;;
-        "detinfer_ws32_bs16")
-            echo "--enable-det-infer 3 --det-infer-window-size 32 --det-infer-verify-batch-size 16"
+        "llm42_ws32_bs16")
+            echo "--enable-llm-42 3 --llm-42-window-size 32 --llm-42-verify-batch-size 16"
             ;;
         *)
             echo ""
@@ -199,13 +199,13 @@ run_qps_benchmarks() {
     echo "Running ${dataset} benchmarks at QPS=${qps}"
     echo "=========================================="
     
-    # Launch 4 servers: default, global, and 2x detinfer_ws64_bs8
+    # Launch 4 servers: default, global, and 2x llm42_ws64_bs8
     declare -a SERVER_PIDS=()
     declare -a SERVER_URLS=()
     declare -a SERVER_CONFIGS_RUNNING=()
     
-    # GPU 0: default, GPU 1: global, GPU 2: detinfer_ws64_bs8, GPU 3: detinfer_ws64_bs8
-    local configs_to_launch=("default" "global" "detinfer_ws64_bs8" "detinfer_ws64_bs8")
+    # GPU 0: default, GPU 1: global, GPU 2: llm42_ws64_bs8, GPU 3: llm42_ws64_bs8
+    local configs_to_launch=("default" "global" "llm42_ws64_bs8" "llm42_ws64_bs8")
     
     for ((i=0; i<4 && i<NUM_GPUS; i++)); do
         GPU_ID=$i
@@ -262,10 +262,10 @@ run_qps_benchmarks() {
     echo ""
     echo "All servers ready. Running benchmarks..."
     
-    # Phase 1: Run ratio=1.0 on default, global, and one detinfer server
-    # Use the second detinfer server (GPU 3) to start on ratio 0.5
+    # Phase 1: Run ratio=1.0 on default, global, and one llm42 server
+    # Use the second llm42 server (GPU 3) to start on ratio 0.5
     echo ""
-    echo "=== Phase 1: Running ratio=1.0 on default/global/detinfer + ratio=0.5 on detinfer ==="
+    echo "=== Phase 1: Running ratio=1.0 on default/global/llm42 + ratio=0.5 on llm42 ==="
     declare -a BENCH_PIDS=()
     
     # default (GPU 0) - ratio 1.0
@@ -286,21 +286,21 @@ run_qps_benchmarks() {
         BENCH_PIDS+=($!)
     fi
     
-    # detinfer (GPU 2) - ratio 1.0
-    config_name="${dataset}_qps${qps}_detinfer_ws64_bs8_ratio1.0"
+    # llm42 (GPU 2) - ratio 1.0
+    config_name="${dataset}_qps${qps}_llm42_ws64_bs8_ratio1.0"
     if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
         echo "[${config_name}] Results already exist. Skipping..."
     else
-        run_benchmark "${SERVER_URLS[2]}" "$qps" "$dataset" "detinfer_ws64_bs8" "1.0" &
+        run_benchmark "${SERVER_URLS[2]}" "$qps" "$dataset" "llm42_ws64_bs8" "1.0" &
         BENCH_PIDS+=($!)
     fi
     
-    # detinfer (GPU 3) - ratio 0.5
-    config_name="${dataset}_qps${qps}_detinfer_ws64_bs8_ratio0.5"
+    # llm42 (GPU 3) - ratio 0.5
+    config_name="${dataset}_qps${qps}_llm42_ws64_bs8_ratio0.5"
     if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
         echo "[${config_name}] Results already exist. Skipping..."
     else
-        run_benchmark "${SERVER_URLS[3]}" "$qps" "$dataset" "detinfer_ws64_bs8" "0.5" &
+        run_benchmark "${SERVER_URLS[3]}" "$qps" "$dataset" "llm42_ws64_bs8" "0.5" &
         BENCH_PIDS+=($!)
     fi
     
@@ -310,7 +310,7 @@ run_qps_benchmarks() {
     done
     
     echo ""
-    echo "=== Phase 2: Stopping default/global, launching 2 more detinfer servers ==="
+    echo "=== Phase 2: Stopping default/global, launching 2 more llm42 servers ==="
     
     # Kill default and global servers (GPU 0 and 1)
     echo "Stopping default and global servers..."
@@ -318,21 +318,21 @@ run_qps_benchmarks() {
     kill "${SERVER_PIDS[1]}" 2>/dev/null || true
     sleep 3
     
-    # Launch additional detinfer servers on GPU 0 and 1
-    declare -a DETINFER_PIDS=()
-    declare -a DETINFER_URLS=()
+    # Launch additional llm42 servers on GPU 0 and 1
+    declare -a LLM42_PIDS=()
+    declare -a LLM42_URLS=()
     
-    # Keep original detinfer servers (GPU 2 and 3)
-    DETINFER_PIDS+=("${SERVER_PIDS[2]}")
-    DETINFER_PIDS+=("${SERVER_PIDS[3]}")
-    DETINFER_URLS+=("${SERVER_URLS[2]}")
-    DETINFER_URLS+=("${SERVER_URLS[3]}")
+    # Keep original llm42 servers (GPU 2 and 3)
+    LLM42_PIDS+=("${SERVER_PIDS[2]}")
+    LLM42_PIDS+=("${SERVER_PIDS[3]}")
+    LLM42_URLS+=("${SERVER_URLS[2]}")
+    LLM42_URLS+=("${SERVER_URLS[3]}")
     
-    # Launch new detinfer servers on GPU 0 and 1
+    # Launch new llm42 servers on GPU 0 and 1
     for i in 0 1; do
         GPU_ID=$i
         PORT=$((BASE_PORT + i))
-        config="detinfer_ws64_bs8"
+        config="llm42_ws64_bs8"
         config_args=$(get_server_args "$config")
         SERVER_LOG="${LOG_DIR}/server_${dataset}_qps${qps}_${config}_gpu${i}_phase2.log"
         
@@ -353,17 +353,17 @@ run_qps_benchmarks() {
             $config_args \
             > "$SERVER_LOG" 2>&1 &
         
-        DETINFER_PIDS+=($!)
-        DETINFER_URLS+=("http://127.0.0.1:$PORT")
+        LLM42_PIDS+=($!)
+        LLM42_URLS+=("http://127.0.0.1:$PORT")
         
         sleep 2
     done
     
     # Wait for new servers to be ready
-    echo "Waiting for new detinfer servers..."
+    echo "Waiting for new llm42 servers..."
     for i in 2 3; do
-        url="${DETINFER_URLS[$i]}"
-        echo -n "  Waiting for detinfer_ws64_bs8 (GPU $((i-2))) at $url..."
+        url="${LLM42_URLS[$i]}"
+        echo -n "  Waiting for llm42_ws64_bs8 (GPU $((i-2))) at $url..."
         if wait_for_server "$url" 180; then
             echo " ✓"
         else
@@ -372,7 +372,7 @@ run_qps_benchmarks() {
     done
     
     echo ""
-    echo "=== Phase 3: Running remaining ratios with 4 detinfer servers ==="
+    echo "=== Phase 3: Running remaining ratios with 4 llm42 servers ==="
     
     # Remaining ratios: 0.02, 0.05, 0.1, 0.2
     # With 4 servers, we can run 4 ratios in parallel per wave
@@ -380,15 +380,15 @@ run_qps_benchmarks() {
     REMAINING_RATIOS=(0.02 0.05 0.1 0.2)
     
     BENCH_PIDS=()
-    for ((i=0; i<${#REMAINING_RATIOS[@]} && i<${#DETINFER_URLS[@]}; i++)); do
+    for ((i=0; i<${#REMAINING_RATIOS[@]} && i<${#LLM42_URLS[@]}; i++)); do
         ratio="${REMAINING_RATIOS[$i]}"
-        url="${DETINFER_URLS[$i]}"
-        config_name="${dataset}_qps${qps}_detinfer_ws64_bs8_ratio${ratio}"
+        url="${LLM42_URLS[$i]}"
+        config_name="${dataset}_qps${qps}_llm42_ws64_bs8_ratio${ratio}"
         
         if grep -q "\"config_name\": \"$config_name\"" "$RESULTS_FILE" 2>/dev/null; then
             echo "[${config_name}] Results already exist. Skipping..."
         else
-            run_benchmark "$url" "$qps" "$dataset" "detinfer_ws64_bs8" "$ratio" &
+            run_benchmark "$url" "$qps" "$dataset" "llm42_ws64_bs8" "$ratio" &
             BENCH_PIDS+=($!)
         fi
     done
@@ -400,7 +400,7 @@ run_qps_benchmarks() {
     
     echo ""
     echo "QPS=${qps} benchmarks complete. Stopping servers..."
-    kill_servers "${DETINFER_PIDS[@]}"
+    kill_servers "${LLM42_PIDS[@]}"
     sleep 5
 }
 

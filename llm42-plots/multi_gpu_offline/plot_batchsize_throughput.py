@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plot output throughput vs batch size for global-det vs detinfer (LLM-42).
+Plot output throughput vs batch size for global-det vs llm42 (LLM-42).
 Creates a line graph showing how throughput scales with batch size.
 """
 
@@ -60,7 +60,7 @@ def plot_throughput_vs_batchsize(results: list, output_path: Path):
             'marker': 's',
             'linestyle': '-',
         },
-        'detinfer': {
+        'llm42': {
             'label': 'LLM42',
             'color': 'tab:purple',
             'marker': 'o',

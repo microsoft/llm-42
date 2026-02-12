@@ -7,8 +7,8 @@ Extracts the following fields per request:
 - is_deterministic: Whether the request was marked as deterministic
 - input_len: Input/prompt length in tokens
 - output_len: Output length in tokens
-- rollbacks: Number of rollback events (det_infer_num_rollbacks)
-- tokens_rolled_back: Total tokens rolled back (det_infer_tokens_rolled_back)
+- rollbacks: Number of rollback events (llm_42_num_rollbacks)
+- tokens_rolled_back: Total tokens rolled back (llm_42_tokens_rolled_back)
 - ttft: Time to first token (seconds)
 - latency: End-to-end latency (seconds)
 
@@ -71,8 +71,8 @@ def extract_per_request_data(result: Dict[str, Any], config_name: str = "", det_
             "is_deterministic": is_deterministic_list[i] if is_deterministic_list[i] is not None else "",
             "input_len": input_lens[i] if input_lens[i] is not None else "",
             "output_len": output_lens[i] if output_lens[i] is not None else "",
-            "rollbacks": meta.get("det_infer_num_rollbacks", 0),
-            "tokens_rolled_back": meta.get("det_infer_tokens_rolled_back", 0),
+            "rollbacks": meta.get("llm_42_num_rollbacks", 0),
+            "tokens_rolled_back": meta.get("llm_42_tokens_rolled_back", 0),
             "ttft_s": ttfts[i] if ttfts[i] is not None else "",
             "latency_s": latencies[i] if latencies[i] is not None else "",
             "error": errors[i] if errors[i] else "",

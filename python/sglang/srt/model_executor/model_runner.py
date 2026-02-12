@@ -416,30 +416,30 @@ class ModelRunner:
             self.init_double_sparsity_channel_config(server_args.ds_heavy_channel_type)
 
         
-        # enable_det_infer: Dynamic batch-invariant control based on forward mode
+        # enable_llm_42: Dynamic batch-invariant control based on forward mode
         # - TARGET_DET_VERIFY: batch_invariant enabled
         # - EXTEND (prefill): batch_invariant enabled
         # - DECODE (normal mode): batch_invariant disabled
-        self.enable_det_infer_mode = server_args.enable_det_infer
+        self.enable_llm_42_mode = server_args.enable_llm_42
         
         if server_args.enable_deterministic_inference:
             from sglang.srt.batch_invariant_ops import enable_batch_invariant_mode
             # Use the mode specified by enable_deterministic_inference (1 or 2)
             # This enables batch_invariant GLOBALLY and keeps it enabled always
             enable_batch_invariant_mode(server_args.enable_deterministic_inference)
-        elif server_args.enable_det_infer:
-            # For enable_det_infer, we keep batch_invariant DISABLED by default globally
+        elif server_args.enable_llm_42:
+            # For enable_llm_42, we keep batch_invariant DISABLED by default globally
             # It will be dynamically enabled only when needed (prefill/verification) via context manager
             # This avoids the toggle overhead during decode passes
-            if server_args.enable_det_infer == 3:
+            if server_args.enable_llm_42 == 3:
                 logger.info(
-                    f"Det infer mode enabled (mode={server_args.enable_det_infer}). "
+                    f"Det infer mode enabled (mode={server_args.enable_llm_42}). "
                     "Using non-batch-invariant kernels with single CUDA graph set. "
                     "Deterministic requests will be isolated (batch_size=1)."
                 )
             else:
                 logger.info(
-                    f"Det infer mode enabled (mode={server_args.enable_det_infer}). "
+                    f"Det infer mode enabled (mode={server_args.enable_llm_42}). "
                     "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
                     "one without (non-deterministic). Decode passes will dynamically select based on "
                     "force_deterministic_mode flag."
@@ -2037,14 +2037,14 @@ class ModelRunner:
         # During verification modes, batch-invariant mode must be enabled for deterministic results
         is_verification_mode = forward_batch.forward_mode.is_target_det_verify()
         
-        # enable_det_infer: Dynamic control based on forward mode
+        # enable_llm_42: Dynamic control based on forward mode
         # Global default is DISABLED. We enable only when needed:
         # - TARGET_DET_VERIFY: always enabled (via is_verification_mode), except mode 3
         # - EXTEND (prefill): enabled if is_any_deterministic
         # - DECODE: enabled if any req has force_deterministic_mode
         # Mode 3: Use non-batch-invariant kernels during verification (skip enabling batch_invariant)
-        if self.enable_det_infer_mode:
-            if self.enable_det_infer_mode == 3:
+        if self.enable_llm_42_mode:
+            if self.enable_llm_42_mode == 3:
                 should_enable_batch_invariant = is_verification_mode
             else:
                 if is_verification_mode:
@@ -2070,11 +2070,11 @@ class ModelRunner:
                 should_enable_batch_invariant = is_any_deterministic
 
         batch_invariant_context = None
-        if self.enable_det_infer_mode:
-            # For det_infer mode, global default is DISABLED
+        if self.enable_llm_42_mode:
+            # For llm_42 mode, global default is DISABLED
             # Only use context manager when we need to enable it
             if should_enable_batch_invariant:
-                batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
+                batch_invariant_context = set_batch_invariant_mode(enabled=True, mode=self.enable_llm_42_mode)
                 batch_invariant_context.__enter__()
         elif self.enable_selective_determinism:
             # For selective determinism, global default is also DISABLED
@@ -2170,13 +2170,13 @@ class ModelRunner:
         # to maintain determinism in logprobs computation (log_softmax, softmax, etc.)
         # BUT: Don't create a nested context if batch_invariant is already enabled from forward pass
         is_verification = forward_batch.forward_mode.is_any_verify()
-        should_enable_batch_invariant = is_verification and self.enable_det_infer_mode > 0
+        should_enable_batch_invariant = is_verification and self.enable_llm_42_mode > 0
         
         batch_inv_context = None
         if should_enable_batch_invariant:
             # Only create context if not already enabled (avoid nested contexts)
             if not is_batch_invariant_mode_enabled():
-                batch_inv_context = set_batch_invariant_mode(enabled=True, mode=self.enable_det_infer_mode)
+                batch_inv_context = set_batch_invariant_mode(enabled=True, mode=self.enable_llm_42_mode)
                 batch_inv_context.__enter__()
         
         try:
