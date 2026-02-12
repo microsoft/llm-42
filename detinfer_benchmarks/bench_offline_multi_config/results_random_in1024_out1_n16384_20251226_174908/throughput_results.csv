@@ -1,5 +1,0 @@
-deterministic_ratio,config_name,throughput
-1.0,detinfer_ws_16_bs_32,40.17830034047125
-1.0,detinfer_ws_32_bs_16,40.194077862521205
-1.0,sglang_global_deterministic,33.211860295493956
-1.0,sglang_non_deterministic,51.065606758516886
