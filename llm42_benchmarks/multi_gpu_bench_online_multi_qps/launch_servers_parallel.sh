@@ -9,11 +9,11 @@ set -e
 NUM_GPUS="${NUM_GPUS:-4}"
 TP_SIZE="${SGLANG_TP_SIZE:-4}"
 NUM_SERVERS=$((NUM_GPUS / TP_SIZE))  # Calculate servers based on available GPUs and TP size
-MODEL_PATH="${SGLANG_TEST_MODEL:-Qwen/Qwen3-14B}"
+MODEL_PATH="${SGLANG_TEST_MODEL:-Qwen/Qwen3-30B-A3B-Instruct-2507}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
-LOG_DIR="${LOG_DIR:-./server_logs_dense_tp${TP_SIZE}}"
+LOG_DIR="${LOG_DIR:-./server_logs_moe_tp${TP_SIZE}}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -87,7 +87,9 @@ for ((i=0; i<NUM_SERVERS; i++)); do
         --enable-metrics \
         --random-seed 42 \
         --chunked-prefill-size -1 \
-        --enable-deterministic-inference 2 \
+        --llm42-window-size 64 \
+        --enable-llm42 3 \
+        --llm42-verify-batch-size 8 \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!

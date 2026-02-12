@@ -54,7 +54,7 @@ if [[ -z "${CONFIGS:-}" ]]; then
 fi
 
 SELECT_SEED=${SELECT_SEED:-42}
-MODEL=${MODEL:-Qwen/Qwen3-14B}
+MODEL=${MODEL:-Qwen/Qwen3-30B-A3B-Instruct-2507}
 TOKENIZER=${TOKENIZER:-}
 DATASET_PATH=${DATASET_PATH:-}
 NUM_PROMPTS_ARRAY=${NUM_PROMPTS_ARRAY:-"100"}
@@ -64,7 +64,7 @@ BACKEND=${BACKEND:-sglang}
 DETERMINISTIC_RATIO=${DETERMINISTIC_RATIO:-1.0}
 WARMUP_REQUESTS=${WARMUP_REQUESTS:-0}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BASE_OUTPUT_DIR=${OUTPUT_DIR:-"${ROOT}/tp4_qwen_fa3_stream_global_t0_${TIMESTAMP}_n${NUM_PROMPTS_ARRAY}"}
+BASE_OUTPUT_DIR=${OUTPUT_DIR:-"${ROOT}/tp4_qwen_fa3_stream_di3_ws64_bs8_t0_${TIMESTAMP}_n${NUM_PROMPTS_ARRAY}"}
 
 # Convert comma-separated strings to arrays for display
 IFS=',' read -ra URLS_ARRAY <<< "$BASE_URLS"
