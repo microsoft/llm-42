@@ -9,7 +9,7 @@ Environment variables:
   - SGLANG_TP_SIZE: tensor parallelism size (e.g., 4)
   - SGLANG_HOST: server host (default: 127.0.0.1)
   - SGLANG_PORT: server port (default: 30000)
-  - SGLANG_ATTENTION_BACKEND: backend name (default: flashinfer)
+  - SGLANG_ATTENTION_BACKEND: backend name (default: fa3)
   - SGLANG_TEST_SEED: random seed (default: 12345)
 
 Usage:
@@ -283,10 +283,10 @@ def test_multi_batch_invariance(
             print(f"  [{passed_tests + failed_tests + 1}/{total_tests}] {test_name}... ", end="", flush=True)
             
             sp_kwargs: dict[str, Any] = {
-                "temperature": 0.0,
+                "temperature": 0.5,
                 "max_tokens": max_tokens,
                 "seed": 42,
-                "logprobs": 1,
+                "logprobs": 3,
                 "ignore_eos": True,
             }
             
@@ -361,7 +361,7 @@ if __name__ == "__main__":
     backend = os.getenv("SGLANG_ATTENTION_BACKEND", "fa3")
     
     # Configure batch sizes and max_tokens to test
-    batch_sizes = [i for i in range(2, 64, 3)]  # From 2 to 63 with step 3
+    batch_sizes = [i for i in range(2, 257, 254)]  # From 2 to 256 with step 254
     max_tokens_list = [236]
     
     # Configure prompt length (words)

@@ -255,7 +255,7 @@ if __name__ == "__main__":
     host = os.getenv("SGLANG_HOST", "127.0.0.1")
     port = int(os.getenv("SGLANG_PORT", "30000"))
     base_url = f"http://{host}:{port}"
-    backend = os.getenv("SGLANG_ATTENTION_BACKEND", "flashinfer")
+    backend = os.getenv("SGLANG_ATTENTION_BACKEND", "fa3")
     n_prompts = int(os.getenv("SGLANG_TEST_N_PROMPTS", "8"))
     
     print(f"Server: {base_url}")

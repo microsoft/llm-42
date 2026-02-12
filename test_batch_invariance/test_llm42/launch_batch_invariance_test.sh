@@ -10,7 +10,7 @@ MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 PORT="${SGLANG_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
-ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-flashinfer}"
+ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -47,6 +47,6 @@ $PYTHON_CMD -m sglang.launch_server \
     --random-seed 42 \
     --disable-cuda-graph \
     --chunked-prefill-size -1 \
-    --llm42-window-size 32 \
+    --llm42-window-size 64 \
     --enable-llm42 3 \
-    --llm42-verify-batch-size 1 \
+    --llm42-verify-batch-size 8 \
