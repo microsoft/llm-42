@@ -21,13 +21,20 @@ Only requests marked `is_deterministic=True` incur verification; the rest run at
 ## Quick start
 
 ```bash
-# Docker
+# Create and attach to a GPU-enabled Docker container (uses lmsysorg/sglang:v0.5.4)
 ./run_container.sh create && ./run_container.sh attach
 
-# Build
+# Inside the container: workspace is mounted at /workspace
+cd /workspace
+apt update; apt upgrade -y
+
+# Build sgl-kernel (custom CUDA/Triton kernels) and install sglang in editable mode
 ./build_all.sh
 
-# Launch server with LLM-42 enabled
+# Authenticate with Hugging Face to download gated models (e.g., Llama)
+huggingface-cli login --token <HF_TOKEN>
+
+# Launch the server with LLM-42 decode-verify-rollback enabled
 python -m sglang.launch_server \
     --model-path meta-llama/Llama-3.1-8B-Instruct \
     --enable-llm42 3 \
