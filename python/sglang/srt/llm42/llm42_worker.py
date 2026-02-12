@@ -463,130 +463,17 @@ class LLM42Worker:
         real_reqs: List[Req],
         num_dummies: int,
     ) -> List[Tuple[Req, int]]:
+        """Verify a fixed-size batch (real requests + dummy padding).
+
+        Thin wrapper around :meth:`_run_verification` that adds dummy entries
+        from the pre-allocated :class:`FixedSizeVerificationPool`.
         """
-        Verify requests in a fixed-size batch with dummy padding.
-        
-        All real requests are included (ready or not), padded to window_size.
-        Remaining slots are filled with pre-allocated dummy requests.
-        
-        Args:
-            original_batch: Original batch context
-            real_reqs: All deterministic requests to include (must be <= fixed_size)
-            num_dummies: Number of dummy requests to add
-            
-        Returns:
-            List of (req, tokens_rolled_back) tuples for requests that had rollback.
-        """
-        try:
-            # Create LLM42Info with force_include_all=True to include not-ready requests
-            llm42_info = LLM42Info.from_requests(
-                real_reqs, 
-                always_align=self.always_align,
-                force_include_all=True,  # Include requests even if not at window_size boundary
-                window_size=self._window_size,
-            )
-            
-            # Append dummy entries if needed
-            if num_dummies > 0:
-                llm42_info.append_dummy_entries(num_dummies, self.fixed_pool.window_size)
-            
-            # Allocate temporary KV cache for padding tokens of real requests
-            if llm42_info.total_padding_cache_slots > 0:
-                llm42_info.allocate_padding_kv_cache(
-                    original_batch.token_to_kv_pool_allocator
-                )
-            
-            # Prepare verification batch with dummy data and pre-allocated sampling tensors
-            dummy_input_ids, dummy_cache_locs, dummy_req_pool_indices = self.fixed_pool.get_dummy_data(num_dummies)
-            dummy_sampling_tuple = self.fixed_pool.get_dummy_sampling_tensors(num_dummies) if num_dummies > 0 else None
-            verify_batch = llm42_info.prepare_verify_batch(
-                original_batch, 
-                real_reqs,
-                dummy_input_ids=dummy_input_ids,
-                dummy_cache_locs=dummy_cache_locs,
-                dummy_req_pool_indices=dummy_req_pool_indices,
-                num_dummies=num_dummies,
-                window_size=self.fixed_pool.window_size,
-                dummy_sampling_tuple=dummy_sampling_tuple,
-            )
-            
-            # Run verification forward pass
-            verify_model_worker_batch = verify_batch.get_model_worker_batch()
-            verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
-            
-            # Extract results
-            verified_token_ids = verify_output.next_token_ids
-            verified_logprobs = verify_output.logits_output.next_token_logprobs
-            
-            # Compare outputs (only for real requests, dummies are ignored via padding_masks)
-            if self.skip_mismatch >= 100.0:
-                rollback_info = llm42_info.verify_and_compare(
-                    real_reqs, verified_token_ids, verified_logprobs
-                )
-            elif self.skip_mismatch <= 0.0:
-                rollback_info = [(len(req.output_ids) - req.llm42_verified_tokens, 0) for req in real_reqs]
-            else:
-                rollback_info = llm42_info.verify_and_compare(
-                    real_reqs, verified_token_ids, verified_logprobs,
-                    mismatch_percentage=self.skip_mismatch
-                )
-            
-            # Collect rollback results
-            rollback_results = []
-            for req, info in zip(real_reqs, rollback_info):
-                # Increment verification window count for this request
-                req.llm42_num_verification_windows += 1
-                if info is not None and info[1] > 0:
-                    req.llm42_num_rollbacks += 1
-                    req.llm42_tokens_rolled_back += info[1]
-                    if self.metrics_collector:
-                        self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
-                        self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
-                    rollback_results.append((req, info[1]))
-                    req.llm42_verified_tokens = len(req.output_ids)
-                else:
-                    req.llm42_verified_tokens = len(req.output_ids)
-            
-            # Update batch state if there was rollback
-            if rollback_results:
-                self._update_batch_state(original_batch)
-            
-            # Cleanup
-            verify_batch.out_cache_loc = None
-            verify_batch.input_ids = None
-            verify_batch.seq_lens = None
-            verify_batch.seq_lens_cpu = None
-            verify_batch.req_pool_indices = None
-            
-            if hasattr(verify_batch, 'sampling_info') and verify_batch.sampling_info is not None:
-                verify_batch.sampling_info.temperatures = None
-                verify_batch.sampling_info.top_ps = None
-                verify_batch.sampling_info.top_ks = None
-                verify_batch.sampling_info.min_ps = None
-                verify_batch.sampling_info.sampling_seed = None
-                verify_batch.sampling_info.deterministic_indices = None
-            
-            verify_batch.req_to_token_pool = None
-            verify_batch.token_to_kv_pool_allocator = None
-            
-            # Free temporary KV cache for real request padding
-            if llm42_info.total_padding_cache_slots > 0:
-                llm42_info.free_padding_kv_cache(
-                    original_batch.token_to_kv_pool_allocator
-                )
-            
-            return rollback_results
-            
-        except Exception as e:
-            if 'llm42_info' in locals() and llm42_info.total_padding_cache_slots > 0:
-                try:
-                    llm42_info.free_padding_kv_cache(
-                        original_batch.token_to_kv_pool_allocator
-                    )
-                except Exception:
-                    pass
-            logger.error(f"Error during fixed-batch verification: {e}")
-            raise
+        return self._run_verification(
+            original_batch,
+            real_reqs,
+            force_include_all=True,
+            num_dummies=num_dummies,
+        )
 
     def _verify_deterministic_requests_batched(
         self,
@@ -595,90 +482,106 @@ class LLM42Worker:
         always_align: bool = True,
         max_requests: Optional[int] = None,
     ) -> List[Tuple[Req, int]]:
-        """
-        Verify deterministic requests in batches.
-        
-        If max_requests is set, requests are verified in chunks of that size.
-        For example, 22 requests with max_requests=10 will be verified as 10+10+2.
-        
-        Args:
-            original_batch: Original batch context
-            reqs: All requests to verify
-            always_align: If True, pad to window_size with dummy tokens
-            max_requests: Maximum requests per verification batch. None means all at once.
-            
-        Returns:
-            List of (req, tokens_rolled_back) tuples for all requests that had rollback.
-        """
+        """Verify requests in variable-size chunks of at most ``max_requests``."""
         if max_requests is None or len(reqs) <= max_requests:
-            # No batching needed, verify all at once
-            return self._verify_deterministic_requests(original_batch, reqs, always_align)
-        
-        # Split into batches and verify each
+            return self._run_verification(original_batch, reqs)
+
         all_rollback_results = []
         for i in range(0, len(reqs), max_requests):
-            batch_reqs = reqs[i:i + max_requests]
-            rollback_results = self._verify_deterministic_requests(
-                original_batch, batch_reqs, always_align
+            all_rollback_results.extend(
+                self._run_verification(original_batch, reqs[i:i + max_requests])
             )
-            all_rollback_results.extend(rollback_results)
-        
         return all_rollback_results
 
+    # ------------------------------------------------------------------
+    # Core verification pipeline (shared by fixed-size and variable-size)
+    # ------------------------------------------------------------------
 
-    def _verify_deterministic_requests(
-        self, 
-        original_batch: Union[ScheduleBatch, ModelWorkerBatch], 
+    def _run_verification(
+        self,
+        original_batch: Union[ScheduleBatch, ModelWorkerBatch],
         reqs: List[Req],
-        always_align: bool = True,
+        force_include_all: bool = False,
+        num_dummies: int = 0,
     ) -> List[Tuple[Req, int]]:
-        """
-        Verify deterministic requests by re-running them.
-        Tokens are already in req.output_ids at this point.
-        
+        """Run the full verify-and-rollback pipeline for a single batch.
+
+        This is the single implementation behind both ``_verify_fixed_batch``
+        (grouped verification with dummies) and the variable-size path.
+
         Args:
-            original_batch: Original batch context
-            reqs: Requests to verify (tokens already appended)
-            always_align: If True, pad to window_size with dummy tokens for finished requests
-            
+            original_batch: Decode-phase batch (provides KV pools etc.).
+            reqs: Real requests to verify.
+            force_include_all: If True, include requests even if they have not
+                yet accumulated ``window_size`` unverified tokens (used for
+                fixed-size batches where partial requests are padded).
+            num_dummies: Number of dummy requests to append from the
+                :class:`FixedSizeVerificationPool` (0 for variable-size path).
+
         Returns:
-            List of (req, tokens_rolled_back) tuples for requests that had rollback.
+            List of ``(req, tokens_rolled_back)`` for requests that were
+            rolled back.
         """
         try:
-            llm42_info = LLM42Info.from_requests(reqs, always_align=always_align, window_size=self._window_size)
+            # 1. Build verification metadata
+            llm42_info = LLM42Info.from_requests(
+                reqs,
+                always_align=self.always_align,
+                force_include_all=force_include_all,
+                window_size=self._window_size,
+            )
 
-            # Allocate temporary KV cache for padding tokens (if any)
+            if num_dummies > 0:
+                llm42_info.append_dummy_entries(num_dummies, self.fixed_pool.window_size)
+
+            # 2. Allocate temporary KV cache for padding positions
             if llm42_info.total_padding_cache_slots > 0:
                 llm42_info.allocate_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
 
-            verify_batch = llm42_info.prepare_verify_batch(original_batch, reqs)
+            # 3. Build the verification ScheduleBatch
+            if num_dummies > 0:
+                dummy_input_ids, dummy_cache_locs, dummy_req_pool_indices = (
+                    self.fixed_pool.get_dummy_data(num_dummies)
+                )
+                dummy_sampling_tuple = self.fixed_pool.get_dummy_sampling_tensors(num_dummies)
+                verify_batch = llm42_info.prepare_verify_batch(
+                    original_batch,
+                    reqs,
+                    dummy_input_ids=dummy_input_ids,
+                    dummy_cache_locs=dummy_cache_locs,
+                    dummy_req_pool_indices=dummy_req_pool_indices,
+                    num_dummies=num_dummies,
+                    window_size=self.fixed_pool.window_size,
+                    dummy_sampling_tuple=dummy_sampling_tuple,
+                )
+            else:
+                verify_batch = llm42_info.prepare_verify_batch(original_batch, reqs)
 
-            # Run verification forward pass
+            # 4. Run verification forward pass
             verify_model_worker_batch = verify_batch.get_model_worker_batch()
             verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
-
             verified_token_ids = verify_output.next_token_ids
             verified_logprobs = verify_output.logits_output.next_token_logprobs
-            
-            # Compare outputs and handle rollback
+
+            # 5. Compare outputs and determine rollbacks
             if self.skip_mismatch >= 100.0:
-                # Normal verification - natural mismatches cause rollback
                 rollback_info = llm42_info.verify_and_compare(
                     reqs, verified_token_ids, verified_logprobs
                 )
             elif self.skip_mismatch <= 0.0:
-                # Force no mismatches - skip all rollbacks
-                rollback_info = [(len(req.output_ids) - req.llm42_verified_tokens, 0) for req in reqs]
+                rollback_info = [
+                    (len(req.output_ids) - req.llm42_verified_tokens, 0)
+                    for req in reqs
+                ]
             else:
-                # Percentage-based: inject mismatch at position (window - ceil(X% * window))
                 rollback_info = llm42_info.verify_and_compare(
                     reqs, verified_token_ids, verified_logprobs,
-                    mismatch_percentage=self.skip_mismatch
+                    mismatch_percentage=self.skip_mismatch,
                 )
-            
-            # Collect rollback info for KV cache freeing (will be done by caller)
+
+            # 6. Collect rollback results and update per-request stats
             rollback_results = []
             for req, info in zip(reqs, rollback_info):
                 req.llm42_num_verification_windows += 1
@@ -686,55 +589,57 @@ class LLM42Worker:
                     req.llm42_num_rollbacks += 1
                     req.llm42_tokens_rolled_back += info[1]
                     if self.metrics_collector:
-                        self.metrics_collector.num_rollbacks_total.labels(**self.metrics_collector.labels).inc()
-                        self.metrics_collector.tokens_rolled_back_total.labels(**self.metrics_collector.labels).inc(info[1])
+                        self.metrics_collector.num_rollbacks_total.labels(
+                            **self.metrics_collector.labels
+                        ).inc()
+                        self.metrics_collector.tokens_rolled_back_total.labels(
+                            **self.metrics_collector.labels
+                        ).inc(info[1])
                     rollback_results.append((req, info[1]))
-                    req.llm42_verified_tokens = len(req.output_ids)
-                else:
-                    req.llm42_verified_tokens = len(req.output_ids)
+                req.llm42_verified_tokens = len(req.output_ids)
 
-            # Update batch state if there was any rollback
             if rollback_results:
                 self._update_batch_state(original_batch)
-            
-            # Free verification batch tensors to avoid GPU memory accumulation.
-            verify_batch.out_cache_loc = None
-            verify_batch.input_ids = None
-            verify_batch.seq_lens = None
-            verify_batch.seq_lens_cpu = None
-            verify_batch.req_pool_indices = None
 
-            if hasattr(verify_batch, 'sampling_info') and verify_batch.sampling_info is not None:
-                verify_batch.sampling_info.temperatures = None
-                verify_batch.sampling_info.top_ps = None
-                verify_batch.sampling_info.top_ks = None
-                verify_batch.sampling_info.min_ps = None
-                verify_batch.sampling_info.sampling_seed = None
-                verify_batch.sampling_info.deterministic_indices = None
+            # 7. Release verification-batch tensor references
+            self._cleanup_verify_batch(verify_batch)
 
-            # Drop shared-resource references (don't free the pools themselves).
-            verify_batch.req_to_token_pool = None
-            verify_batch.token_to_kv_pool_allocator = None
-
-            # Free temporary KV cache allocated for padding tokens.
+            # 8. Free temporary KV cache for padding
             if llm42_info.total_padding_cache_slots > 0:
                 llm42_info.free_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
-            
+
             return rollback_results
-            
+
         except Exception as e:
-            # Make sure to free padding KV cache even on error
             if 'llm42_info' in locals() and llm42_info.total_padding_cache_slots > 0:
                 try:
                     llm42_info.free_padding_kv_cache(
                         original_batch.token_to_kv_pool_allocator
                     )
                 except Exception:
-                    pass  # Best effort cleanup
+                    pass
             logger.error(f"Error during verification: {e}")
             raise
+
+    @staticmethod
+    def _cleanup_verify_batch(verify_batch):
+        """Null out tensor references on a verification batch to free GPU memory."""
+        verify_batch.out_cache_loc = None
+        verify_batch.input_ids = None
+        verify_batch.seq_lens = None
+        verify_batch.seq_lens_cpu = None
+        verify_batch.req_pool_indices = None
+        if hasattr(verify_batch, 'sampling_info') and verify_batch.sampling_info is not None:
+            verify_batch.sampling_info.temperatures = None
+            verify_batch.sampling_info.top_ps = None
+            verify_batch.sampling_info.top_ks = None
+            verify_batch.sampling_info.min_ps = None
+            verify_batch.sampling_info.sampling_seed = None
+            verify_batch.sampling_info.deterministic_indices = None
+        verify_batch.req_to_token_pool = None
+        verify_batch.token_to_kv_pool_allocator = None
 
     def _update_batch_state(self, batch: Union[ScheduleBatch, ModelWorkerBatch]):
         """Sync ``batch.output_ids`` and ``batch.seq_lens`` with the current
