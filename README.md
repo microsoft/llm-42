@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/42.png" alt="LLM-42 Logo" width="200">
+</p>
+
 # LLM-42: Enabling Determinism in LLM Inference with Verified Speculation
 
 [![arXiv](https://img.shields.io/badge/arXiv-2601.17768-b31b1b.svg)](https://arxiv.org/abs/2601.17768)
@@ -73,6 +77,31 @@ response = client.chat.completions.create(
 
 4× NVIDIA H100 PCIe (80 GB HBM3), 64-core CPU, ~1.65 TB DRAM.
 
+## Project Structure
+
+```
+├── python/sglang/
+│   ├── srt/
+│   │   ├── llm42/              # Core LLM-42 decode–verify–rollback logic
+│   │   ├── batch_invariant_ops/ # Batch-invariant kernel wrappers
+│   │   ├── layers/             # Model layers (attention, MoE, etc.)
+│   │   ├── models/             # Supported model architectures
+│   │   ├── managers/           # Request scheduling & memory management
+│   │   └── sampling/           # Sampling strategies
+│   ├── launch_server.py        # Server entry point
+│   └── bench_serving.py        # Serving benchmark client
+├── sgl-kernel/                 # Custom CUDA/Triton kernels
+│   ├── csrc/                   # C++/CUDA sources
+│   └── python/                 # Python bindings
+├── llm42_benchmarks/           # LLM-42 benchmark scripts
+├── llm42-plots/                # Plotting scripts for paper figures
+├── benchmark/                  # Upstream SGLang benchmarks
+├── docker/                     # Dockerfiles & Kubernetes manifests
+├── scripts/                    # CI, utility, and helper scripts
+├── build_all.sh                # Build sgl-kernel + install sglang
+└── run_container.sh            # Create/attach to dev container
+```
+
 ## Citation
 
 ```bibtex
@@ -87,7 +116,7 @@ response = client.chat.completions.create(
 
 ## License
 
-This project is licensed under the terms in the [LICENSE](LICENSE) file.
+This project is licensed under the terms in the [LICENSE](LICENSE) file. It is built on [SGLang](https://github.com/sgl-project/sglang), which is licensed under the [Apache License 2.0](https://github.com/sgl-project/sglang/blob/main/LICENSE).
 
 ## Trademark Notice
 
