@@ -2,7 +2,7 @@
   <img src="assets/42.png" alt="LLM-42 Logo" width="200">
 </p>
 
-# LLM-42: Enabling Determinism in LLM Inference with Verified Speculation
+## LLM-42: Enabling Determinism in LLM Inference with Verified Speculation
 
 [![arXiv](https://img.shields.io/badge/arXiv-2601.17768-b31b1b.svg)](https://arxiv.org/abs/2601.17768)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
@@ -33,24 +33,14 @@ cd /workspace
 apt update; apt upgrade -y
 git config --global --add safe.directory /workspace
 
-# Build sgl-kernel (custom CUDA/Triton kernels) and install sglang in editable mode
+# Build sgl-kernel and install sglang in editable mode
 ./build_all.sh
 
 # Authenticate with Hugging Face to download gated models (e.g., Llama)
 huggingface-cli login --token <HF_TOKEN>
 
 # Launch the server with LLM-42 decode-verify-rollback enabled
-python -m sglang.launch_server \
-    --model-path meta-llama/Llama-3.1-8B-Instruct \
-    --enable-llm42 3 \
-    --llm42-window-size 64 \
-    --llm42-verify-batch-size 8 \
-    --attention-backend fa3 \
-    --disable-radix-cache \
-    --disable-chunked-prefix-cache \
-    --disable-overlap-schedule \
-    --chunked-prefill-size -1 \
-    --random-seed 42
+bash llm42_benchmarks/basic/launch_server.sh
 ```
 
 ## Configuration
