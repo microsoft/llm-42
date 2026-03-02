@@ -39,8 +39,11 @@ git config --global --add safe.directory /workspace
 # Authenticate with Hugging Face to download gated models (e.g., Llama)
 huggingface-cli login --token <HF_TOKEN>
 
-# Launch the server with LLM-42 decode-verify-rollback enabled
+# Terminal 1: Start the LLM-42 server (waits for model to load)
 bash llm42_benchmarks/basic/launch_server.sh
+
+# Terminal 2: Once the server is ready, run the determinism-check client
+python3 llm42_benchmarks/basic/client.py
 ```
 
 ## Configuration
@@ -51,17 +54,8 @@ bash llm42_benchmarks/basic/launch_server.sh
 | `--llm42-window-size` | `64` | Tokens decoded before verification |
 | `--llm42-verify-batch-size` | `8` | Requests per verification batch (grouped verification) |
 
-Additional flags for benchmarking: `--enable-deterministic-inference` (global batch-invariant baseline), `--llm42-skip-mismatch` (synthetic mismatch injection).
+Additional flags for benchmarking: `--enable-deterministic-inference 2` (global batch-invariant baseline), `--llm42-skip-mismatch` (mismatch rate control / synthetic mismatch injection).
 
-Per-request control via the OpenAI-compatible API:
-
-```python
-response = client.chat.completions.create(
-    model="meta-llama/Llama-3.1-8B-Instruct",
-    messages=[{"role": "user", "content": "Hello!"}],
-    extra_body={"is_deterministic": True},
-)
-```
 
 ## Hardware
 
