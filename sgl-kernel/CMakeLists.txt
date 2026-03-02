@@ -90,7 +90,7 @@ FetchContent_Populate(repo-flashinfer)
 FetchContent_Declare(
     repo-flash-attention
     GIT_REPOSITORY https://github.com/sgl-project/sgl-attn
-    GIT_TAG        sgl-kernel
+    GIT_TAG        10d78675c42d9dcfeed16af68695d87e40983f68  # sgl-kernel branch, pinned to avoid ptxas segfault on CUDA 12.9
     GIT_SHALLOW    OFF
 )
 FetchContent_Populate(repo-flash-attention)
