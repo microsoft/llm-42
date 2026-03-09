@@ -25,6 +25,11 @@ from sgl_kernel.elementwise import (
     copy_to_gpu_no_ce,
     downcast_fp8,
     fused_add_rmsnorm,
+    vllm_fused_add_rmsnorm_dynamic,
+    vllm_fused_add_rmsnorm_fixed,
+    vllm_fused_add_rmsnorm_256,
+    vllm_fused_add_rmsnorm_1024,
+    vllm_rmsnorm,
     gelu_and_mul,
     gelu_tanh_and_mul,
     gemma_fused_add_rmsnorm,
@@ -41,6 +46,8 @@ from sgl_kernel.expert_specialization import (
 from sgl_kernel.fused_moe import moe_wna16_marlin_gemm
 from sgl_kernel.gemm import (
     awq_dequantize,
+    bf16_batch_invariant_mm,
+    bf16_batch_invariant_fused_mm,
     bmm_fp8,
     cutlass_scaled_fp4_mm,
     dsv3_fused_a_gemm,

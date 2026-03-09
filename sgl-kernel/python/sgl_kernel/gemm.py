@@ -5,6 +5,13 @@ from sgl_kernel.scalar_type import ScalarType
 from sgl_kernel.utils import _get_cache_buf
 
 
+def bf16_batch_invariant_mm(mat_a, mat_b, out_dtype, bias=None, out=None):
+    return torch.ops.sgl_kernel.bf16_batch_invariant_mm.default(mat_a, mat_b, out_dtype, bias, out)
+
+def bf16_batch_invariant_fused_mm(mat_a, mat_b, out_dtype, split_frac, bias=None, out=None):
+    return torch.ops.sgl_kernel.bf16_batch_invariant_fused_mm.default(mat_a, mat_b, out_dtype, split_frac, bias, out)
+
+
 def awq_dequantize(
     qweight: torch.Tensor, scales: torch.Tensor, qzeros: torch.Tensor
 ) -> torch.ByteTensor:
