@@ -629,7 +629,17 @@ class ServerArgs:
     enable_return_routed_experts: bool = False
     scheduler_recv_interval: int = 1
     numa_node: Optional[List[int]] = None
-    enable_deterministic_inference: bool = False
+    enable_deterministic_inference: int = 0
+
+    # Deterministic inference (see arXiv:2601.17768)
+    #   enable_deterministic_inference: globally replace all kernels with batch-invariant versions
+    #     Mode values: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm,
+    #                  3=use standard (non-batch-invariant) kernels in verification pass
+    #   enable_llm42: LLM-42 DVR — decode with fast kernels, verify with fixed-shape reductions
+    enable_llm42: int = 0
+    llm42_window_size: int = 64             # tokens decoded before verification
+    llm42_verify_batch_size: int = 8        # requests per verification batch (grouped verification)
+    llm42_skip_mismatch: float = 100.0      # 100.0=normal, 0.0=skip all rollbacks, X=inject X% rollback
     rl_on_policy_target: Optional[str] = None
     enable_attn_tp_input_scattered: bool = False
     # Context parallelism used in the long sequence prefill phase of DeepSeek v3.2
@@ -2677,8 +2687,10 @@ class ServerArgs:
             "1" if self.disable_outlines_disk_cache else "0"
         )
         envs.SGLANG_ENABLE_DETERMINISTIC_INFERENCE.set(
-            "1" if self.enable_deterministic_inference else "0"
+            str(self.enable_deterministic_inference)
         )
+        # Deterministic inference env vars (read by kernels via sglang.srt.environ)
+        os.environ["SGLANG_ENABLE_LLM42"] = str(self.enable_llm42)
 
     def _handle_cache_compatibility(self):
         if self.enable_hierarchical_cache and self.disable_radix_cache:
@@ -2714,7 +2726,7 @@ class ServerArgs:
             # TODO remove this environment variable as a whole
             os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = "1"
 
-        if self.enable_deterministic_inference:
+        if self.enable_deterministic_inference or self.enable_llm42:
             # Check sampling backend
             self.sampling_backend = "pytorch"
             logger.warning(
