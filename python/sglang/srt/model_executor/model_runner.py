@@ -186,6 +186,7 @@ from sglang.srt.weight_sync.tensor_bucket import (
     FlattenedTensorBucket,
     FlattenedTensorMetadata,
 )
+from sglang.srt.batch_invariant_ops import set_batch_invariant_mode, is_batch_invariant_mode_enabled
 
 _is_hip = is_hip()
 _is_npu = is_npu()
@@ -577,11 +578,33 @@ class ModelRunner(ModelRunnerKVCacheMixin):
                 )
             self.init_double_sparsity_channel_config(server_args.ds_heavy_channel_type)
 
-        # Enable batch invariant mode
+        # enable_llm42: Dynamic batch-invariant control based on forward mode
+        # - TARGET_VERIFY: batch_invariant enabled
+        # - EXTEND (prefill): batch_invariant enabled
+        # - DECODE (normal mode): batch_invariant disabled
+        self.enable_llm42_mode = server_args.enable_llm42
+
         if server_args.enable_deterministic_inference:
             from sglang.srt.batch_invariant_ops import enable_batch_invariant_mode
 
-            enable_batch_invariant_mode()
+            # Enables batch_invariant GLOBALLY and keeps it enabled always
+            enable_batch_invariant_mode(server_args.enable_deterministic_inference)
+        elif server_args.enable_llm42:
+            # For enable_llm42, batch_invariant stays DISABLED by default globally.
+            # It is dynamically enabled only when needed (prefill/verification).
+            if server_args.enable_llm42 == 3:
+                logger.info(
+                    f"Det infer mode enabled (mode={server_args.enable_llm42}). "
+                    "Using non-batch-invariant kernels with single CUDA graph set. "
+                    "Deterministic requests will be isolated (batch_size=1)."
+                )
+            else:
+                logger.info(
+                    f"Det infer mode enabled (mode={server_args.enable_llm42}). "
+                    "Dual CUDA graphs will be captured: one with batch-invariant (deterministic), "
+                    "one without (non-deterministic). Decode passes will dynamically select based on "
+                    "force_deterministic_mode flag."
+                )
 
         # Deduce KV cache dtype
         self.configure_kv_cache_dtype()
@@ -2455,59 +2478,98 @@ class ModelRunner(ModelRunnerKVCacheMixin):
             and self.graph_runner.can_run(forward_batch)
         )
 
-        if can_run_graph:
-            ret = self.graph_runner.replay(
-                forward_batch,
-                skip_attn_backend_init=skip_attn_backend_init,
-                pp_proxy_tensors=pp_proxy_tensors,
-            )
-            return ModelRunnerOutput(logits_output=ret, can_run_graph=can_run_graph)
+        should_enable_batch_invariant = False
 
-        # For MLP sync
-        if forward_batch.global_num_tokens_cpu is not None:
-            forward_batch.prepare_mlp_sync_batch(self)
-        else:
-            forward_batch.prepare_attn_tp_scatter_input(self)
+        # During verification modes, batch-invariant mode must be enabled for deterministic results
+        is_verification_mode = forward_batch.forward_mode.is_target_verify()
 
-        # Normalize num_token_non_padded to be local to this attention TP rank if needed.
-        if (
-            forward_batch.num_token_non_padded is not None
-            and forward_batch.global_num_tokens_gpu is not None
-            and require_gathered_buffer(self.server_args)
-            and not is_nsa_enable_prefill_cp()
-        ):
-            forward_batch.adjust_num_token_non_padded_for_attn_tp(
-                server_args=self.server_args,
-            )
+        # enable_llm42: Dynamic control based on forward mode
+        # Global default is DISABLED. We enable only when needed:
+        # - TARGET_VERIFY: always enabled (via is_verification_mode), except mode 3
+        # - EXTEND (prefill): enabled for deterministic prefill
+        # - DECODE: batch_invariant disabled (fast path)
+        if self.enable_llm42_mode:
+            if self.enable_llm42_mode == 3:
+                should_enable_batch_invariant = is_verification_mode
+            else:
+                if is_verification_mode:
+                    should_enable_batch_invariant = True
+                else:
+                    is_decode_mode = forward_batch.forward_mode.is_decode()
+                    if not is_decode_mode:
+                        # EXTEND and other non-decode modes: enable for deterministic prefill
+                        should_enable_batch_invariant = True
 
-        if forward_batch.forward_mode.is_decode():
-            ret = self.forward_decode(
-                forward_batch,
-                skip_attn_backend_init=skip_attn_backend_init,
-                pp_proxy_tensors=pp_proxy_tensors,
+        batch_invariant_context = None
+        if self.enable_llm42_mode and should_enable_batch_invariant:
+            batch_invariant_context = set_batch_invariant_mode(
+                enabled=True, mode=self.enable_llm42_mode
             )
-        elif forward_batch.forward_mode.is_split_prefill():
-            ret = self.forward_split_prefill(
-                forward_batch,
-                reinit_attn_backend=reinit_attn_backend,
-                forward_count=split_forward_count,
-            )
-        elif forward_batch.forward_mode.is_extend(include_draft_extend_v2=True):
-            ret, can_run_graph = self.forward_extend(
-                forward_batch,
-                skip_attn_backend_init=skip_attn_backend_init,
-                pp_proxy_tensors=pp_proxy_tensors,
-            )
-        elif forward_batch.forward_mode.is_idle():
-            ret = self.forward_idle(forward_batch, pp_proxy_tensors=pp_proxy_tensors)
-        else:
-            raise ValueError(f"Invalid forward mode: {forward_batch.forward_mode}")
+            batch_invariant_context.__enter__()
 
-        if (
-            forward_batch.global_num_tokens_cpu is not None
-            and self.pp_group.is_last_rank
-        ):
-            forward_batch.post_forward_mlp_sync_batch(ret)
+        try:
+            if can_run_graph:
+                ret = self.graph_runner.replay(
+                    forward_batch,
+                    skip_attn_backend_init=skip_attn_backend_init,
+                    pp_proxy_tensors=pp_proxy_tensors,
+                )
+                return ModelRunnerOutput(
+                    logits_output=ret, can_run_graph=can_run_graph
+                )
+
+            # For MLP sync
+            if forward_batch.global_num_tokens_cpu is not None:
+                forward_batch.prepare_mlp_sync_batch(self)
+            else:
+                forward_batch.prepare_attn_tp_scatter_input(self)
+
+            # Normalize num_token_non_padded to be local to this attention TP rank if needed.
+            if (
+                forward_batch.num_token_non_padded is not None
+                and forward_batch.global_num_tokens_gpu is not None
+                and require_gathered_buffer(self.server_args)
+                and not is_nsa_enable_prefill_cp()
+            ):
+                forward_batch.adjust_num_token_non_padded_for_attn_tp(
+                    server_args=self.server_args,
+                )
+
+            if forward_batch.forward_mode.is_decode():
+                ret = self.forward_decode(
+                    forward_batch,
+                    skip_attn_backend_init=skip_attn_backend_init,
+                    pp_proxy_tensors=pp_proxy_tensors,
+                )
+            elif forward_batch.forward_mode.is_split_prefill():
+                ret = self.forward_split_prefill(
+                    forward_batch,
+                    reinit_attn_backend=reinit_attn_backend,
+                    forward_count=split_forward_count,
+                )
+            elif forward_batch.forward_mode.is_extend(include_draft_extend_v2=True):
+                ret, can_run_graph = self.forward_extend(
+                    forward_batch,
+                    skip_attn_backend_init=skip_attn_backend_init,
+                    pp_proxy_tensors=pp_proxy_tensors,
+                )
+            elif forward_batch.forward_mode.is_idle():
+                ret = self.forward_idle(
+                    forward_batch, pp_proxy_tensors=pp_proxy_tensors
+                )
+            else:
+                raise ValueError(
+                    f"Invalid forward mode: {forward_batch.forward_mode}"
+                )
+
+            if (
+                forward_batch.global_num_tokens_cpu is not None
+                and self.pp_group.is_last_rank
+            ):
+                forward_batch.post_forward_mlp_sync_batch(ret)
+        finally:
+            if batch_invariant_context is not None:
+                batch_invariant_context.__exit__(None, None, None)
 
         return ModelRunnerOutput(logits_output=ret, can_run_graph=can_run_graph)
 
@@ -2535,29 +2597,53 @@ class ModelRunner(ModelRunnerKVCacheMixin):
         Returns:
             A list of next_token_ids
         """
-        # For duplex models with multiple output streams.
-        if isinstance(logits_output, tuple):
-            return torch.stack(
-                [self.sample(values, forward_batch) for values in logits_output],
-                axis=-1,
-            )
-
-        self._preprocess_logits(logits_output, forward_batch.sampling_info)
-        # Sample the next tokens
-        next_token_ids = self.sampler(
-            logits_output,
-            forward_batch.sampling_info,
-            forward_batch.return_logprob,
-            forward_batch.top_logprobs_nums,
-            forward_batch.token_ids_logprobs,
-            # For prefill, we only use the position of the last token.
-            (
-                forward_batch.positions
-                if forward_batch.forward_mode.is_decode()
-                else forward_batch.seq_lens - 1
-            ),
+        # For verification modes, enable batch_invariant during sampling
+        # to maintain determinism in logprobs computation (log_softmax, softmax, etc.)
+        is_verification = forward_batch.forward_mode.is_target_verify()
+        should_enable_batch_invariant = (
+            is_verification and self.enable_llm42_mode > 0
         )
-        return next_token_ids
+
+        batch_inv_context = None
+        if should_enable_batch_invariant and not is_batch_invariant_mode_enabled():
+            batch_inv_context = set_batch_invariant_mode(
+                enabled=True, mode=self.enable_llm42_mode
+            )
+            batch_inv_context.__enter__()
+
+        try:
+            # For duplex models with multiple output streams.
+            if isinstance(logits_output, tuple):
+                return torch.stack(
+                    [self.sample(values, forward_batch) for values in logits_output],
+                    axis=-1,
+                )
+
+            self._preprocess_logits(logits_output, forward_batch.sampling_info)
+            # Sample the next tokens
+            # Position selection for deterministic seeded sampling:
+            # - Decode: use forward_batch.positions (single position per request)
+            # - Verification (TARGET_VERIFY): use forward_batch.positions (per-token positions)
+            # - Other extend modes: use seq_lens - 1 (last position only)
+            if (
+                forward_batch.forward_mode.is_decode()
+                or forward_batch.forward_mode.is_target_verify()
+            ):
+                positions = forward_batch.positions
+            else:
+                positions = forward_batch.seq_lens - 1
+            next_token_ids = self.sampler(
+                logits_output,
+                forward_batch.sampling_info,
+                forward_batch.return_logprob,
+                forward_batch.top_logprobs_nums,
+                forward_batch.token_ids_logprobs,
+                positions,
+            )
+            return next_token_ids
+        finally:
+            if batch_inv_context is not None:
+                batch_inv_context.__exit__(None, None, None)
 
     def compute_logprobs_only(
         self,

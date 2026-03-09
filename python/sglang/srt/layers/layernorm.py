@@ -14,11 +14,13 @@
 """Fused operators for normalization layers."""
 
 import logging
+import os
 from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.profiler import record_function
 
 from sglang.srt.batch_invariant_ops import (
     is_batch_invariant_mode_enabled,
@@ -115,38 +117,73 @@ class RMSNorm(MultiPlatformOp):
         if _use_aiter:
             self._forward_method = self.forward_aiter
 
+        # LLM-42 DVR: store deterministic inference configuration
+        self.enable_llm42 = int(os.getenv("SGLANG_ENABLE_LLM42", "0"))
+
+        self.triton_rmsnorm_mode = os.getenv("SGLANG_USE_TRITON_RMSNORM", "").lower()
+        if self.triton_rmsnorm_mode:
+            self._forward_method = self.forward_triton_invariant
+
     def forward_cuda(
         self,
         x: torch.Tensor,
         residual: Optional[torch.Tensor] = None,
         post_residual_addition: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        if x.numel() == 0:
-            return x
-        if self.variance_size_override is not None:
-            return self.forward_native(x, residual, post_residual_addition)
-        if is_batch_invariant_mode_enabled():
-            if (
-                residual is not None
-                or get_global_server_args().rl_on_policy_target == "fsdp"
-            ):
+        with record_function("rmsnorm"):
+            if x.numel() == 0:
+                return x
+
+            # LLM-42 dynamic batch-invariant: when enabled per-forward-pass,
+            # use batch-invariant RMSNorm for deterministic results
+            if self.enable_llm42 in (1, 2) and is_batch_invariant_mode_enabled():
                 return self.forward_native(x, residual, post_residual_addition)
+
+            if self.variance_size_override is not None:
+                return self.forward_native(x, residual, post_residual_addition)
+            if is_batch_invariant_mode_enabled():
+                if (
+                    residual is not None
+                    or get_global_server_args().rl_on_policy_target == "fsdp"
+                ):
+                    return self.forward_native(x, residual, post_residual_addition)
+                return rms_norm_batch_invariant(
+                    x,
+                    self.weight.data,
+                    self.variance_epsilon,
+                )
+            if residual is not None:
+                # TODO: Ideally we want to have (hidden_states+residual)+post_residual_addition.
+                # but right now we can only have hidden_states+(residual+post_residual_addition).
+                # (hidden_states+residual)+post_residual_addition != hidden_states+(residual+post_residual_addition),
+                # we probably need to add another parameter to fused_add_rmsnorm
+                if post_residual_addition is not None:
+                    residual = residual + post_residual_addition
+                fused_add_rmsnorm(x, residual, self.weight.data, self.variance_epsilon)
+                return x, residual
+            out = rmsnorm(x, self.weight.data, self.variance_epsilon)
+        return out
+
+    def forward_triton_invariant(
+        self,
+        x: torch.Tensor,
+        residual: Optional[torch.Tensor] = None,
+        post_residual_addition: Optional[torch.Tensor] = None,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        if residual is not None:
+            combined = x + residual
+            if post_residual_addition is not None:
+                combined = combined + post_residual_addition
             return rms_norm_batch_invariant(
-                x,
+                combined,
                 self.weight.data,
                 self.variance_epsilon,
-            )
-        if residual is not None:
-            # TODO: Ideally we want to have (hidden_states+residual)+post_residual_addition.
-            # but right now we can only have hidden_states+(residual+post_residual_addition).
-            # (hidden_states+residual)+post_residual_addition != hidden_states+(residual+post_residual_addition),
-            # we probably need to add another parameter to fused_add_rmsnorm
-            if post_residual_addition is not None:
-                residual = residual + post_residual_addition
-            fused_add_rmsnorm(x, residual, self.weight.data, self.variance_epsilon)
-            return x, residual
-        out = rmsnorm(x, self.weight.data, self.variance_epsilon)
-        return out
+            ), residual
+        return rms_norm_batch_invariant(
+            x,
+            self.weight.data,
+            self.variance_epsilon,
+        )
 
     def forward_npu(
         self,
@@ -217,44 +254,45 @@ class RMSNorm(MultiPlatformOp):
         residual: Optional[torch.Tensor] = None,
         post_residual_addition: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        if not x.is_contiguous():
-            x = x.contiguous()
-        orig_dtype = self.override_orig_dtype or x.dtype
-        x = x.to(torch.float32)
-        if residual is not None:
-            x = x + residual.to(torch.float32)
-            if post_residual_addition is not None:
-                x = x + post_residual_addition.to(torch.float32)
-            if self.fp32_residual:
-                residual = x.clone()
-            else:
-                residual = x.to(orig_dtype)
+        with record_function("rmsnorm"):
+            if not x.is_contiguous():
+                x = x.contiguous()
+            orig_dtype = self.override_orig_dtype or x.dtype
+            x = x.to(torch.float32)
+            if residual is not None:
+                x = x + residual.to(torch.float32)
+                if post_residual_addition is not None:
+                    x = x + post_residual_addition.to(torch.float32)
+                if self.fp32_residual:
+                    residual = x.clone()
+                else:
+                    residual = x.to(orig_dtype)
 
-        hidden_size = x.shape[-1]
-        if hidden_size != self.hidden_size:
-            raise ValueError(
-                "Expected hidden_size to be "
-                f"{self.hidden_size}, but found: {hidden_size}"
-            )
-
-        if self.variance_size_override is None:
-            x_var = x
-        else:
-            if hidden_size < self.variance_size_override:
+            hidden_size = x.shape[-1]
+            if hidden_size != self.hidden_size:
                 raise ValueError(
-                    "Expected hidden_size to be at least "
-                    f"{self.variance_size_override}, but found: {hidden_size}"
+                    "Expected hidden_size to be "
+                    f"{self.hidden_size}, but found: {hidden_size}"
                 )
 
-            x_var = x[..., : self.variance_size_override]
+            if self.variance_size_override is None:
+                x_var = x
+            else:
+                if hidden_size < self.variance_size_override:
+                    raise ValueError(
+                        "Expected hidden_size to be at least "
+                        f"{self.variance_size_override}, but found: {hidden_size}"
+                    )
 
-        variance = x_var.pow(2).mean(dim=-1, keepdim=True)
-        x = x * torch.rsqrt(variance + self.variance_epsilon)
+                x_var = x[..., : self.variance_size_override]
 
-        if self.cast_x_before_out_mul:
-            x = self.weight * x.to(orig_dtype)
-        else:
-            x = (x * self.weight).to(orig_dtype)
+            variance = x_var.pow(2).mean(dim=-1, keepdim=True)
+            x = x * torch.rsqrt(variance + self.variance_epsilon)
+
+            if self.cast_x_before_out_mul:
+                x = self.weight * x.to(orig_dtype)
+            else:
+                x = (x * self.weight).to(orig_dtype)
 
         if residual is None:
             return x
@@ -267,19 +305,20 @@ class RMSNorm(MultiPlatformOp):
         residual: Optional[torch.Tensor] = None,
         post_residual_addition: Optional[torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        if _is_cpu_amx_available:
-            if residual is not None:
-                if post_residual_addition is not None:
-                    residual = residual + post_residual_addition
-                torch.ops.sgl_kernel.fused_add_rmsnorm_cpu(
-                    x, residual, self.weight.data, self.variance_epsilon
+        with record_function("rmsnorm"):
+            if _is_cpu_amx_available:
+                if residual is not None:
+                    if post_residual_addition is not None:
+                        residual = residual + post_residual_addition
+                    torch.ops.sgl_kernel.fused_add_rmsnorm_cpu(
+                        x, residual, self.weight.data, self.variance_epsilon
+                    )
+                    return x, residual
+                return torch.ops.sgl_kernel.rmsnorm_cpu(
+                    x, self.weight.data, self.variance_epsilon
                 )
-                return x, residual
-            return torch.ops.sgl_kernel.rmsnorm_cpu(
-                x, self.weight.data, self.variance_epsilon
-            )
-        else:
-            return self.forward_native(x, residual, post_residual_addition)
+            else:
+                return self.forward_native(x, residual, post_residual_addition)
 
     def forward_xpu(
         self,
