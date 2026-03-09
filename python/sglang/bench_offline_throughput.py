@@ -55,6 +55,8 @@ class BenchArgs:
     seed: int = 1
     disable_ignore_eos: bool = False
     extra_request_body: Optional[str] = None
+    deterministic_ratio: float = 1.0
+    deterministic_seed: int = 42
     apply_chat_template: bool = False
     profile: bool = False
     skip_warmup: bool = False
@@ -73,7 +75,7 @@ class BenchArgs:
             "--dataset-name",
             type=str,
             default="sharegpt",
-            choices=["sharegpt", "random", "generated-shared-prefix"],
+            choices=["sharegpt", "random", "generated-shared-prefix", "arxiv"],
             help="Name of the dataset to benchmark on.",
         )
         parser.add_argument(
@@ -163,6 +165,20 @@ class BenchArgs:
             "additional generate params like sampling params.",
         )
         parser.add_argument(
+            "--deterministic-ratio",
+            type=float,
+            default=BenchArgs.deterministic_ratio,
+            help="Ratio of requests to send with is_deterministic=True (0.0 to 1.0). "
+            "Default is 1.0 (all requests are deterministic). Set to 0.1 for 10%% deterministic requests.",
+        )
+        parser.add_argument(
+            "--deterministic-seed",
+            type=int,
+            default=BenchArgs.deterministic_seed,
+            help="Seed for selecting which requests are deterministic. "
+            "Use the same seed across different configs to ensure the same requests are marked deterministic.",
+        )
+        parser.add_argument(
             "--apply-chat-template",
             action="store_true",
             help="Apply chat template",
@@ -216,6 +232,8 @@ def throughput_test_once(
     profile: bool,
     return_logprob: bool = False,
     logprob_start_len: int = -1,
+    deterministic_ratio: float = 1.0,
+    deterministic_seed: int = 42,
 ):
     measurement_results = {
         "backend": backend_name,
@@ -230,14 +248,26 @@ def throughput_test_once(
     }
 
     prompt = [r.prompt for r in reqs]
+
+    # Pre-compute which requests will be deterministic (exact count)
+    # Use deterministic_seed for reproducible selection
+    num_deterministic = int(len(reqs) * deterministic_ratio)
+    if num_deterministic > 0:
+        det_rng = random.Random(deterministic_seed)
+        deterministic_indices = set(det_rng.sample(range(len(reqs)), num_deterministic))
+    else:
+        deterministic_indices = set()
+    deterministic_flags = [i in deterministic_indices for i in range(len(reqs))]
+
     sampling_params = [
         {
             "temperature": 0,
             "max_new_tokens": r.output_len,
             "ignore_eos": ignore_eos,
             **extra_request_body,
+            "is_deterministic": is_det,
         }
-        for r in reqs
+        for r, is_det in zip(reqs, deterministic_flags)
     ]
 
     if profile:
@@ -245,7 +275,7 @@ def throughput_test_once(
             "SGLANG_TORCH_PROFILER_DIR" in os.environ
         ), "Please set SGLANG_TORCH_PROFILER_DIR."
         os.makedirs(os.environ["SGLANG_TORCH_PROFILER_DIR"], exist_ok=True)
-        backend.start_profile()
+        backend.start_profile(activities=["GPU"], with_stack=False)
 
     st = time.perf_counter()
     gen_out = backend.generate(
@@ -260,7 +290,7 @@ def throughput_test_once(
         dir = os.getenv("SGLANG_TORCH_PROFILER_DIR")
         known_files = set(os.listdir(dir))
         backend.stop_profile()
-        monitor_trace_file(known_files, dir)
+        #monitor_trace_file(known_files, dir)
 
     if backend_name == "runtime":
         gen_out = json.loads(gen_out)
@@ -377,6 +407,8 @@ def throughput_test(
             profile=False,
             return_logprob=bench_args.return_logprob,
             logprob_start_len=bench_args.logprob_start_len,
+            deterministic_ratio=bench_args.deterministic_ratio,
+            deterministic_seed=bench_args.deterministic_seed,
         )
         time.sleep(0.5)
 
@@ -390,6 +422,8 @@ def throughput_test(
         profile=bench_args.profile,
         return_logprob=bench_args.return_logprob,
         logprob_start_len=bench_args.logprob_start_len,
+        deterministic_ratio=bench_args.deterministic_ratio,
+        deterministic_seed=bench_args.deterministic_seed,
     )
     backend.shutdown()
 
