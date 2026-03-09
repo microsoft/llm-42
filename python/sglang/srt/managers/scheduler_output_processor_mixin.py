@@ -172,6 +172,14 @@ class SchedulerOutputProcessorMixin:
 
                     # req output_ids are set here
                     req.output_ids.append(next_token_id)
+
+                    # LLM-42: the first output token comes from prefill which runs in
+                    # isolation (batch_size=1), so it is deterministic by construction.
+                    # Mark it as verified so the DVR loop starts from a consistent state.
+                    if (req.is_deterministic and self.server_args.enable_llm42
+                            and len(req.output_ids) == 1):
+                        req.llm42_verified_tokens = 1
+
                     req.check_finished()
 
                     if req.finished():
@@ -459,6 +467,26 @@ class SchedulerOutputProcessorMixin:
             new_accepted_len = 1
             if batch.spec_algorithm.is_none():
                 req.output_ids.append(next_token_id)
+                # LLM-42: Append logprobs BEFORE verification so that verify_and_compare()
+                # can replace them with verified values on mismatch
+                if (self.server_args.enable_llm42 and req.is_deterministic
+                        and req.return_logprob and batch.return_logprob):
+                    req.output_token_logprobs_val.append(next_token_logprobs[i])
+                    req.output_token_logprobs_idx.append(next_token_id)
+                    if req.top_logprobs_num > 0:
+                        req.output_top_logprobs_val.append(
+                            logits_output.next_token_top_logprobs_val[i]
+                        )
+                        req.output_top_logprobs_idx.append(
+                            logits_output.next_token_top_logprobs_idx[i]
+                        )
+                    if req.token_ids_logprob is not None:
+                        req.output_token_ids_logprobs_val.append(
+                            logits_output.next_token_token_ids_logprobs_val[i]
+                        )
+                        req.output_token_ids_logprobs_idx.append(
+                            logits_output.next_token_token_ids_logprobs_idx[i]
+                        )
             elif batch.is_spec_v2:
                 # Only spec v2's output_ids are updated here.
                 req.output_ids.extend(next_token_id)
@@ -470,21 +498,25 @@ class SchedulerOutputProcessorMixin:
             req.check_finished(new_accepted_len)
 
             if req.finished():
-                self.maybe_collect_routed_experts(req)
+                # LLM-42: defer caching for deterministic requests until after verification
+                if not (self.server_args.enable_llm42 and req.is_deterministic):
+                    self.maybe_collect_routed_experts(req)
 
-                if self.server_args.disaggregation_decode_enable_offload_kvcache:
-                    # Asynchronously offload KV cache; release_kv_cache will be called after Device->Host transfer completes
-                    if not self.decode_offload_manager.offload_kv_cache(req):
+                    if self.server_args.disaggregation_decode_enable_offload_kvcache:
+                        # Asynchronously offload KV cache; release_kv_cache will be called after Device->Host transfer completes
+                        if not self.decode_offload_manager.offload_kv_cache(req):
+                            release_kv_cache(req, self.tree_cache)
+                    else:
                         release_kv_cache(req, self.tree_cache)
-                else:
-                    release_kv_cache(req, self.tree_cache)
 
-                req.time_stats.completion_time = time.perf_counter()
+                    req.time_stats.completion_time = time.perf_counter()
 
             self.maybe_collect_customized_info(i, req, logits_output)
 
-            if req.return_logprob and batch.spec_algorithm.is_none():
+            if (req.return_logprob and batch.spec_algorithm.is_none()
+                    and not (self.server_args.enable_llm42 and req.is_deterministic)):
                 # speculative worker handles logprob in speculative decoding
+                # LLM-42: logprobs for deterministic requests were appended earlier
                 req.output_token_logprobs_val.append(next_token_logprobs[i])
                 req.output_token_logprobs_idx.append(next_token_id)
                 if req.top_logprobs_num > 0:
@@ -525,6 +557,46 @@ class SchedulerOutputProcessorMixin:
                     )
                     self.abort_request(AbortReq(rid=req.rid))
                 req.grammar.finished = req.finished()
+
+        # LLM-42 DVR: run verification on requests that have accumulated enough
+        # unverified tokens (>= window_size) or have finished. On mismatch,
+        # output_ids is truncated and the corrected verifier token is appended.
+        if self.server_args.enable_llm42:
+            rollback_results = self.model_worker.check_and_verify_deterministic_requests(batch)
+
+            # Free KV cache slots for the rolled-back token positions
+            for req, tokens_rolled_back in rollback_results:
+                # The corrected token occupies the last position in output_ids;
+                # free KV slots for the discarded positions after it.
+                start_free_pos = len(req.origin_input_ids) + max(len(req.output_ids) - 1, 0)
+                end_free_pos = start_free_pos + tokens_rolled_back
+
+                kv_indices_to_free_raw = batch.req_to_token_pool.req_to_token[
+                    req.req_pool_idx, start_free_pos:end_free_pos
+                ]
+                if kv_indices_to_free_raw.numel() > 0:
+                    self.token_to_kv_pool_allocator.free(kv_indices_to_free_raw)
+
+            # Cache finished deterministic requests AFTER verification is complete.
+            # Verification may have rolled back a request (clearing finished_reason),
+            # so we must re-check the finished state before caching.
+            for req in batch.reqs:
+                if req.is_retracted or not req.is_deterministic:
+                    continue
+                # Skip requests already cached from a previous iteration
+                if req.time_stats.completion_time > 0:
+                    continue
+                # Re-check: rollback may have cleared finished_reason, and the
+                # accepted verifier token might itself be EOS or match a stop string.
+                req.check_finished()
+                if req.finished():
+                    self.maybe_collect_routed_experts(req)
+                    if self.server_args.disaggregation_decode_enable_offload_kvcache:
+                        if not self.decode_offload_manager.offload_kv_cache(req):
+                            release_kv_cache(req, self.tree_cache)
+                    else:
+                        release_kv_cache(req, self.tree_cache)
+                    req.time_stats.completion_time = time.perf_counter()
 
         self.stream_output(batch.reqs, batch.return_logprob)
         self.token_to_kv_pool_allocator.free_group_end()
@@ -911,6 +983,9 @@ class SchedulerOutputProcessorMixin:
         spec_verify_ct = []
         spec_accepted_tokens = []
         spec_acceptance_histogram = []
+        llm42_num_rollbacks = []
+        llm42_tokens_rolled_back = []
+        llm42_num_verification_windows = []
         retraction_counts = []
         output_hidden_states = None
         load = self.get_load()
@@ -955,17 +1030,41 @@ class SchedulerOutputProcessorMixin:
             if self.model_config.is_multimodal_gen and req.to_finish:
                 continue
 
+            needs_verification = req.sampling_params.is_deterministic and self.server_args.enable_llm42
+
             if req.finished():
                 if req.finished_output:
                     # With the overlap schedule, a request will try to output twice and hit this line twice
                     # because of the one additional delayed token. This "continue" prevented the dummy output.
                     continue
+
+                # LLM-42: wait until all tokens are verified before outputting finished request
+                if needs_verification and req.llm42_verified_tokens < len(req.output_ids):
+                    logger.debug(
+                        f"[Scheduler] Waiting for verification: rid={req.rid}, "
+                        f"llm42_verified_tokens={req.llm42_verified_tokens}, output_len={len(req.output_ids)}"
+                    )
+                    continue
+
                 req.finished_output = True
                 if req.finished_len is None:
                     req.finished_len = len(req.output_ids)
                 should_output = True
             else:
-                if req.stream:
+                if needs_verification:
+                    # LLM-42 streaming: gate output on llm42_verified_tokens
+                    # instead of output_ids length, so users only see verified tokens
+                    if req.llm42_verified_tokens > req.send_token_offset and req.stream:
+                        stream_interval = req.sampling_params.stream_interval or self.stream_interval
+                        should_output = (
+                            req.llm42_verified_tokens % stream_interval == 1
+                            if not self.model_config.is_multimodal_gen
+                            and stream_interval > 1
+                            else req.llm42_verified_tokens % stream_interval == 0
+                        )
+                    else:
+                        should_output = False
+                elif req.stream:
                     stream_interval = (
                         req.sampling_params.stream_interval or self.stream_interval
                     )
@@ -999,7 +1098,7 @@ class SchedulerOutputProcessorMixin:
                     req.finished_reason.to_json() if req.finished_reason else None
                 )
                 decoded_texts.append(req.decoded_text)
-                decode_ids, read_offset = req.init_incremental_detokenize()
+                decode_ids, read_offset = req.init_incremental_detokenize(needs_verification=needs_verification)
 
                 if self.model_config.is_multimodal_gen:
                     decode_ids_list.append(decode_ids)
@@ -1011,8 +1110,16 @@ class SchedulerOutputProcessorMixin:
 
                 req.send_decode_id_offset = len(decode_ids)
                 read_offsets.append(read_offset)
-                output_ids.append(output_ids_[send_token_offset:])
-                req.send_token_offset = len(output_ids_)
+
+                # LLM-42: only send verified tokens to the user; unverified
+                # tokens are speculative and may be rolled back.
+                if needs_verification and not req.finished():
+                    max_tokens_to_send = min(len(output_ids_), req.llm42_verified_tokens)
+                    output_ids.append(output_ids_[send_token_offset:max_tokens_to_send])
+                    req.send_token_offset = max_tokens_to_send
+                else:
+                    output_ids.append(output_ids_[send_token_offset:])
+                    req.send_token_offset = len(output_ids_)
                 skip_special_tokens.append(req.sampling_params.skip_special_tokens)
                 spaces_between_special_tokens.append(
                     req.sampling_params.spaces_between_special_tokens
@@ -1020,6 +1127,9 @@ class SchedulerOutputProcessorMixin:
                 no_stop_trim.append(req.sampling_params.no_stop_trim)
                 prompt_tokens.append(len(req.origin_input_ids))
                 completion_tokens.append(len(output_ids_))
+                if needs_verification:
+                    # Report verified count as completion_tokens (not total decoded)
+                    completion_tokens[-1] = req.llm42_verified_tokens
                 cached_tokens.append(req.cached_tokens)
 
                 # Collect detailed cache breakdown if available
@@ -1042,6 +1152,10 @@ class SchedulerOutputProcessorMixin:
                     spec_verify_ct.append(req.spec_verify_ct)
                     spec_accepted_tokens.append(req.spec_accepted_tokens)
                     spec_acceptance_histogram.append(req.spec_acceptance_histogram)
+
+                llm42_num_rollbacks.append(req.llm42_num_rollbacks)
+                llm42_tokens_rolled_back.append(req.llm42_tokens_rolled_back)
+                llm42_num_verification_windows.append(req.llm42_num_verification_windows)
 
                 if return_logprob:
                     if (
@@ -1144,6 +1258,9 @@ class SchedulerOutputProcessorMixin:
                     spec_verify_ct=spec_verify_ct,
                     spec_accepted_tokens=spec_accepted_tokens,
                     spec_acceptance_histogram=spec_acceptance_histogram,
+                    llm42_num_rollbacks=llm42_num_rollbacks,
+                    llm42_tokens_rolled_back=llm42_tokens_rolled_back,
+                    llm42_num_verification_windows=llm42_num_verification_windows,
                     queue_time=queue_times,
                     forward_entry_time=forward_entry_times,
                     prefill_launch_delay=prefill_launch_delays,
