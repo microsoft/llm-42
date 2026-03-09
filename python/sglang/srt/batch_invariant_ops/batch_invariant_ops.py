@@ -1,6 +1,7 @@
 # Adapted from https://github.com/thinking-machines-lab/batch_invariant_ops/blob/main/batch_invariant_ops/batch_invariant_ops.py
 
 import contextlib
+import logging
 from collections import namedtuple
 from collections.abc import Callable
 from typing import Any, Dict
@@ -9,8 +10,12 @@ import torch
 import triton
 import triton.language as tl
 
+from sgl_kernel import bf16_batch_invariant_mm, bf16_batch_invariant_fused_mm
 from sglang.srt.layers.deep_gemm_wrapper.configurer import ENABLE_JIT_DEEPGEMM
 from sglang.srt.utils.common import calc_diff, get_bool_env_var
+from torch.profiler import record_function
+
+logger = logging.getLogger(__name__)
 
 if ENABLE_JIT_DEEPGEMM:
     import deep_gemm
@@ -565,11 +570,33 @@ def mean_dim(
 
 
 def mm_batch_invariant(a, b):
-    return matmul_persistent(a, b)
+    with record_function("matmul"):
+        return matmul_persistent(a, b)
 
 
 def addmm_batch_invariant(bias, a, b):
-    return matmul_persistent(a, b, bias=bias)
+    with record_function("matmul"):
+        return matmul_persistent(a, b, bias=bias)
+
+
+def mm_bi_kernel(a, b):
+    with record_function("matmul"):
+        return bf16_batch_invariant_mm(a, b, out_dtype=a.dtype, bias=None)
+
+
+def addmm_bi_kernel(bias, a, b):
+    with record_function("matmul"):
+        return bf16_batch_invariant_mm(a, b, out_dtype=a.dtype, bias=bias)
+
+
+def mm_bi_fused_kernel(a, b, split_frac=0.25):
+    with record_function("matmul"):
+        return bf16_batch_invariant_fused_mm(a, b, a.dtype, split_frac=split_frac, bias=None)
+
+
+def addmm_bi_fused_kernel(bias, a, b, split_frac=0.25):
+    with record_function("matmul"):
+        return bf16_batch_invariant_fused_mm(a, b, a.dtype, split_frac=split_frac, bias=bias)
 
 
 def _log_softmax_batch_invariant(input, dim, _half_to_float):
@@ -932,6 +959,7 @@ def rms_norm_batch_invariant(
 _batch_invariant_MODE = False
 _batch_invariant_LIB = None
 _original_torch_bmm = None
+_mode = 0
 
 
 def is_batch_invariant_mode_enabled():
@@ -939,16 +967,45 @@ def is_batch_invariant_mode_enabled():
 
 
 def enable_batch_invariant_mode(
+    mode: int = 1,
     enable_bmm: bool = True,
+    _suppress_log: bool = False,
 ):
-    global _batch_invariant_MODE, _batch_invariant_LIB, _original_torch_bmm
-    if _batch_invariant_MODE:
+    global _batch_invariant_MODE, _batch_invariant_LIB, _original_torch_bmm, _mode
+
+    # Check if already in desired state (with valid library)
+    if _batch_invariant_MODE and _mode == mode and _batch_invariant_LIB is not None:
         return
+
+    # Clean up old library if it exists (can't reuse destroyed Library objects)
+    if _batch_invariant_LIB is not None:
+        _batch_invariant_LIB._destroy()
+        _batch_invariant_LIB = None
+    if _original_torch_bmm is not None:
+        torch.bmm = _original_torch_bmm
+        _original_torch_bmm = None
 
     _batch_invariant_MODE = True
     _batch_invariant_LIB = torch.library.Library("aten", "IMPL")
-    _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
-    _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
+    _mode = mode
+
+    if mode == 1:
+        _batch_invariant_LIB.impl("aten::mm", mm_bi_kernel, "CUDA")
+        _batch_invariant_LIB.impl("aten::addmm", addmm_bi_kernel, "CUDA")
+    elif mode == 2:
+        _batch_invariant_LIB.impl("aten::mm", mm_batch_invariant, "CUDA")
+        _batch_invariant_LIB.impl("aten::addmm", addmm_batch_invariant, "CUDA")
+    elif mode == 3:
+        # Mode 3: Use default CUDA matmul (non-batch-invariant) but still override log_softmax and mean
+        pass
+    elif mode != 0:
+        raise ValueError(
+            f"Unknown batch invariant mode: {mode}. "
+            "Use 0=disabled, 1=bi_kernel+vllm_rmsnorm, "
+            "2=batch_invariant+native_rmsnorm, "
+            "3=non-batch-invariant (default CUDA)"
+        )
+
     _batch_invariant_LIB.impl(
         "aten::_log_softmax", _log_softmax_batch_invariant, "CUDA"
     )
@@ -963,7 +1020,7 @@ def enable_batch_invariant_mode(
 
 
 def disable_batch_invariant_mode():
-    global _batch_invariant_MODE, _batch_invariant_LIB, _original_torch_bmm
+    global _batch_invariant_MODE, _batch_invariant_LIB, _original_torch_bmm, _mode
     if _batch_invariant_LIB is not None:
         _batch_invariant_LIB._destroy()
     if _original_torch_bmm is not None:
@@ -971,20 +1028,31 @@ def disable_batch_invariant_mode():
         _original_torch_bmm = None
     _batch_invariant_MODE = False
     _batch_invariant_LIB = None
+    _mode = 0
 
 
 @contextlib.contextmanager
-def set_batch_invariant_mode(enabled: bool = True):
-    global _batch_invariant_MODE, _batch_invariant_LIB
-    old_data = (_batch_invariant_MODE, _batch_invariant_LIB)
-    if enabled:
-        enable_batch_invariant_mode()
-    else:
-        disable_batch_invariant_mode()
+def set_batch_invariant_mode(enabled: bool = True, mode: int = 1):
+    global _batch_invariant_MODE, _batch_invariant_LIB, _mode
+    old_mode_value = _mode
+    old_was_enabled = _batch_invariant_MODE
+
+    needs_change = (enabled != old_was_enabled) or (enabled and mode != old_mode_value)
+
+    if needs_change:
+        if enabled:
+            enable_batch_invariant_mode(mode)
+        else:
+            disable_batch_invariant_mode()
+
     yield
-    if _batch_invariant_LIB is not None:
-        _batch_invariant_LIB._destroy()
-    _batch_invariant_MODE, _batch_invariant_LIB = old_data
+
+    # Only restore if we actually changed something
+    if needs_change:
+        if old_was_enabled and old_mode_value > 0:
+            enable_batch_invariant_mode(old_mode_value, _suppress_log=True)
+        elif not old_was_enabled:
+            disable_batch_invariant_mode()
 
 
 AttentionBlockSize = namedtuple("AttentionBlockSize", ["block_m", "block_n"])

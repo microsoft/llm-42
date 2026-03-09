@@ -204,8 +204,16 @@ class Sampler(nn.Module):
                 positions=positions,
             )
         else:
+            # Use pytorch backend if:
+            # 1. Forced (for verification batch)
+            # 2. Configured as default backend
+            # 3. sampling_seed is set (deterministic seeded sampling requires pytorch)
+            use_pytorch = (
+                getattr(sampling_info, 'force_pytorch_backend', False) or
+                sampling_info.sampling_seed is not None
+            )
             backend = get_global_server_args().sampling_backend
-            if backend == "flashinfer":
+            if not use_pytorch and backend == "flashinfer":
                 assert (
                     sampling_info.sampling_seed is None
                 ), "Sampling seed is not supported for flashinfer backend"
@@ -223,7 +231,7 @@ class Sampler(nn.Module):
                         filter_apply_order="joint",
                         check_nan=self.use_nan_detection,
                     )
-            elif backend == "pytorch":
+            elif use_pytorch or backend == "pytorch":
                 # A slower fallback implementation with torch native operations.
                 batch_next_token_ids = top_k_top_p_min_p_sampling_from_probs_torch(
                     probs,
