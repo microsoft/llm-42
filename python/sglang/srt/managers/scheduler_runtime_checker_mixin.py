@@ -150,14 +150,16 @@ class SchedulerRuntimeCheckerMixin:
     def _check_radix_cache_memory(self: Scheduler):
         _, _, available_size, evictable_size = self._get_token_info()
         protected_size = self.tree_cache.protected_size()
-        memory_leak = (available_size + evictable_size) != (
+        # Account for reserved KV slots (e.g., fixed-size verification pool)
+        reserved_slots = getattr(self, 'reserved_kv_slots', 0)
+        memory_leak = (available_size + evictable_size + reserved_slots) != (
             # self.max_total_num_tokens
             # if not self.enable_hierarchical_cache
             # else self.max_total_num_tokens - protected_size
             self.max_total_num_tokens
             - protected_size
         )
-        token_msg = f"{self.max_total_num_tokens=}, {available_size=}, {evictable_size=}, {protected_size=}\n"
+        token_msg = f"{self.max_total_num_tokens=}, {available_size=}, {evictable_size=}, {protected_size=}, {reserved_slots=}\n"
         return memory_leak, token_msg
 
     def _get_batch_uncached_size(self: Scheduler, batch: ScheduleBatch) -> int:
@@ -218,11 +220,15 @@ class SchedulerRuntimeCheckerMixin:
         else:
             req_total_size = self.req_to_token_pool.size
 
-        if len(self.req_to_token_pool.free_slots) != req_total_size:
+        # Account for reserved req_to_token_pool slots (e.g., for dummy requests in fixed-size verification)
+        reserved_req_slots = getattr(self, 'reserved_req_pool_slots', 0)
+        expected_free_slots = req_total_size - reserved_req_slots
+        if len(self.req_to_token_pool.free_slots) != expected_free_slots:
             msg = (
-                "req_to_token_pool memory leak detected!"
+                "req_to_token_pool memory leak detected! "
                 f"available_size={len(self.req_to_token_pool.free_slots)}, "
-                f"total_size={self.req_to_token_pool.size}\n"
+                f"total_size={self.req_to_token_pool.size}, "
+                f"reserved_slots={reserved_req_slots}\n"
             )
             raise_error_or_warn(
                 self,

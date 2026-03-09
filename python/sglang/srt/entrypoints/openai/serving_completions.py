@@ -150,6 +150,7 @@ class OpenAIServingCompletion(OpenAIServingBase):
             "logit_bias": request.logit_bias,
             "custom_params": request.custom_params,
             "sampling_seed": request.seed,
+            "is_deterministic": request.is_deterministic if not isinstance(request.is_deterministic, list) else request.is_deterministic[0],
         }
 
         # Handle response_format constraints

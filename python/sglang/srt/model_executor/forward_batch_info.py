@@ -84,6 +84,9 @@ class ForwardMode(IntEnum):
 
     # Used in speculative decoding: verify a batch in the target model.
     TARGET_VERIFY = auto()
+    # Used in LLM-42 DVR (§4.2): replay a window of tokens under fixed-shape
+    # reductions to verify consistency with the decode-phase output.
+    TARGET_LLM42_VERIFY = auto()
     # Used in speculative decoding: extend a batch in the draft model.
     DRAFT_EXTEND = auto()
 
@@ -109,6 +112,7 @@ class ForwardMode(IntEnum):
             or self == ForwardMode.DRAFT_EXTEND
             or (include_draft_extend_v2 and self == ForwardMode.DRAFT_EXTEND_V2)
             or self == ForwardMode.TARGET_VERIFY
+            or self == ForwardMode.TARGET_LLM42_VERIFY
             or self == ForwardMode.SPLIT_PREFILL
             or self == ForwardMode.DLLM_EXTEND
         )
@@ -138,6 +142,9 @@ class ForwardMode(IntEnum):
 
     def is_target_verify(self):
         return self == ForwardMode.TARGET_VERIFY
+
+    def is_target_llm42_verify(self):
+        return self == ForwardMode.TARGET_LLM42_VERIFY
 
     def is_draft_extend(self, include_v2: bool = False):
         return self == ForwardMode.DRAFT_EXTEND or (

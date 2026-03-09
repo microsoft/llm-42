@@ -779,6 +779,13 @@ class Req(ReqDllmMixin):
         self.retraction_count = 0
         self.retraction_mb_id = None
 
+        # LLM-42 DVR state (§4.2, arXiv:2601.17768)
+        self.is_deterministic: bool = sampling_params.is_deterministic
+        self.llm42_verified_tokens: int = 0
+        self.llm42_num_rollbacks: int = 0
+        self.llm42_tokens_rolled_back: int = 0
+        self.llm42_num_verification_windows: int = 0
+
         # For metrics
         self.metrics_collector = metrics_collector
         self.time_stats: TimeStats = TimeStats(disagg_mode=disagg_mode)
@@ -941,7 +948,7 @@ class Req(ReqDllmMixin):
         self.set_extend_input_len(len(self.fill_ids) - len(self.prefix_indices))
 
     # Based on https://github.com/vllm-project/vllm/blob/7a64d24aad69e4d2548aa0bf528d9fe63428ab01/vllm/transformers_utils/detokenizer.py#L194-L313
-    def init_incremental_detokenize(self):
+    def init_incremental_detokenize(self, needs_verification: bool = False):
         first_iter = self.surr_offset is None or self.read_offset is None
 
         output_ids = self.output_ids_through_stop
@@ -951,13 +958,26 @@ class Req(ReqDllmMixin):
             self.surr_offset = max(
                 self.read_offset - INIT_INCREMENTAL_DETOKENIZATION_OFFSET, 0
             )
-            self.surr_and_decode_ids = (
-                self.origin_input_ids_unpadded[self.surr_offset :] + output_ids
-            )
-            self.cur_decode_ids_len = len(output_ids)
+            if needs_verification:
+                # LLM-42 DVR: only expose verified tokens to detokenizer
+                self.surr_and_decode_ids = (
+                    self.origin_input_ids_unpadded[self.surr_offset :] + output_ids[:self.llm42_verified_tokens]
+                )
+                self.cur_decode_ids_len = self.llm42_verified_tokens
+            else:
+                self.surr_and_decode_ids = (
+                    self.origin_input_ids_unpadded[self.surr_offset :] + output_ids
+                )
+                self.cur_decode_ids_len = len(output_ids)
         else:
-            self.surr_and_decode_ids.extend(output_ids[self.cur_decode_ids_len :])
-            self.cur_decode_ids_len = len(output_ids)
+            if needs_verification:
+                self.surr_and_decode_ids.extend(
+                    output_ids[self.cur_decode_ids_len : self.llm42_verified_tokens]
+                )
+                self.cur_decode_ids_len = self.llm42_verified_tokens
+            else:
+                self.surr_and_decode_ids.extend(output_ids[self.cur_decode_ids_len :])
+                self.cur_decode_ids_len = len(output_ids)
 
         return self.surr_and_decode_ids, self.read_offset - self.surr_offset
 
@@ -1158,6 +1178,16 @@ class Req(ReqDllmMixin):
         prefix = f"Req Time Stats(rid={self.rid}{bootstrap_info}, input len={len(self.origin_input_ids)}, output len={len(self.output_ids)}, type={self.time_stats.disagg_mode_str()})"
         logger.info(f"{prefix}: {self.time_stats.convert_to_duration()}")
         self.has_log_time_stats = True
+
+    def log_det_rollback_stats(self):
+        """Log deterministic rollback stats for this request."""
+        if self.is_deterministic:
+            logger.info(
+                f"Det Rollback Stats(rid={self.rid}): "
+                f"rollbacks={self.llm42_num_rollbacks}, "
+                f"tokens_rolled_back={self.llm42_tokens_rolled_back}, "
+                f"verification_windows={self.llm42_num_verification_windows}"
+            )
 
     def set_extend_input_len(self, extend_input_len: int):
         # Setting extend_input_len and computing the relative logprob_start_len in an extend batch

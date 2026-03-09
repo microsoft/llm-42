@@ -393,8 +393,9 @@ class Envs:
     SGLANG_SYNC_TOKEN_IDS_ACROSS_TP = EnvBool(False)
     SGLANG_ENABLE_COLOCATED_BATCH_GEN = EnvBool(False)
 
-    # Deterministic inference
-    SGLANG_ENABLE_DETERMINISTIC_INFERENCE = EnvBool(False)
+    # Deterministic inference (see arXiv:2601.17768)
+    SGLANG_ENABLE_DETERMINISTIC_INFERENCE = EnvInt(0)
+    SGLANG_ENABLE_LLM42 = EnvInt(0)
     # Use 1-stage all-reduce kernel on AMD (deterministic, fixed accumulation order)
     # If not set: auto (enabled when --enable-deterministic-inference is on)
     # Set to 1: force enable (even without --enable-deterministic-inference)

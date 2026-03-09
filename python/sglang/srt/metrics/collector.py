@@ -875,6 +875,13 @@ class SchedulerMetricsCollector:
     def increment_transfer_failed_reqs(self) -> None:
         self.num_transfer_failed_reqs.labels(**self.labels).inc(1)
 
+    def increment_rollbacks(self, num_tokens: int = 0) -> None:
+        """Increment rollback counters for deterministic inference."""
+        if hasattr(self, 'num_rollbacks_total'):
+            self.num_rollbacks_total.labels(**self.labels).inc(1)
+            if num_tokens > 0:
+                self.tokens_rolled_back_total.labels(**self.labels).inc(num_tokens)
+
     def increment_prefill_retries(self, count: int) -> None:
         if count > 0:
             self.num_prefill_retries_total.labels(**self.labels).inc(count)

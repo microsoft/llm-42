@@ -181,7 +181,7 @@ from sglang.srt.mem_cache.radix_cache import RadixCache
 from sglang.srt.model_executor.forward_batch_info import ForwardMode, PPProxyTensors
 from sglang.srt.multiplex.multiplexing_mixin import SchedulerMultiplexMixin
 from sglang.srt.parser.reasoning_parser import ReasoningParser
-from sglang.srt.server_args import PortArgs, ServerArgs, get_global_server_args
+from sglang.srt.server_args import PortArgs, ServerArgs, get_global_server_args, set_global_server_args_for_scheduler
 from sglang.srt.speculative.spec_info import SpeculativeAlgorithm
 from sglang.srt.tracing.trace import (
     process_tracing_init,
@@ -280,6 +280,9 @@ class Scheduler(
         self.is_initializing = True
         self.init_soft_watchdog(server_args)
 
+        # Set global server args early so they're available during model loading and CUDA graph capture
+        set_global_server_args_for_scheduler(server_args)
+
         # Parse args
         self.server_args = server_args
         self.tp_rank = tp_rank
@@ -373,6 +376,29 @@ class Scheduler(
         # Init cache and memory pool
         self.init_cache_with_memory_pool()
 
+        # Track reserved KV cache slots (e.g., for fixed-size verification pool)
+        self.reserved_kv_slots = 0
+        # Track reserved req_to_token_pool slots (for dummy requests in fixed-size batches)
+        self.reserved_req_pool_slots = 0
+
+        # Initialize the fixed-size verification pool for grouped verification (§4.3).
+        # This pre-allocates KV cache slots and req_to_token entries for dummy requests
+        # so that every verification pass has identical batch shape (position-invariant).
+        # Must run after init_cache_with_memory_pool() since it allocates from the KV pool.
+        if self.server_args.enable_llm42:
+            from sglang.srt.llm42.llm42_worker import LLM42Worker
+            if isinstance(self.model_worker, LLM42Worker):
+                self.model_worker.init_fixed_pool(
+                    req_to_token_pool=self.req_to_token_pool,
+                    token_to_kv_pool_allocator=self.token_to_kv_pool_allocator,
+                    window_size=self.server_args.llm42_window_size,
+                    device=self.device,
+                )
+                # Track reserved slots for memory leak check
+                if self.model_worker.fixed_pool is not None:
+                    self.reserved_kv_slots = len(self.model_worker.fixed_pool.dummy_cache_locs)
+                    self.reserved_req_pool_slots = self.model_worker.fixed_pool.fixed_size
+
         # Init running status
         self.init_running_status()
 
@@ -411,6 +437,14 @@ class Scheduler(
 
         # Init the grammar backend for constrained generation
         self.grammar_manager = GrammarManager(self)
+
+        # Attach metrics collector to LLM42Worker for rollback tracking
+        if self.server_args.enable_llm42 and hasattr(self, 'metrics_collector'):
+            from sglang.srt.llm42.llm42_worker import (
+                LLM42Worker,
+            )
+            if isinstance(self.model_worker, LLM42Worker):
+                self.model_worker.metrics_collector = self.metrics_collector
 
         self.is_initializing = False
 
@@ -569,6 +603,28 @@ class Scheduler(
             self.model_worker = self.tp_worker
         else:
             self.model_worker = self.draft_worker
+
+        # Wrap the model worker with LLM-42 DVR verification (§4, arXiv:2601.17768).
+        # LLM42Worker intercepts decode batches, identifies deterministic requests
+        # that have accumulated enough unverified tokens, and runs a verification
+        # forward pass under fixed-shape reductions to detect mismatches.
+        if server_args.enable_llm42:
+            from sglang.srt.llm42.llm42_worker import (
+                LLM42Worker,
+            )
+
+            self.model_worker = LLM42Worker(
+                self.model_worker,
+                always_align=True,
+                fixed_requests_per_verify=server_args.llm42_verify_batch_size,
+                metrics_collector=getattr(self, 'metrics_collector', None),
+                skip_mismatch=server_args.llm42_skip_mismatch,
+            )
+            logger.info(
+                f"Deterministic verification worker enabled with llm42_window_size={server_args.llm42_window_size}, "
+                f"llm42_verify_batch_size={server_args.llm42_verify_batch_size}, "
+                f"llm42_skip_mismatch={server_args.llm42_skip_mismatch}"
+            )
 
         # Get token and memory info from the model worker
         (
@@ -1016,8 +1072,8 @@ class Scheduler(
         self.batch_record_ct = 0
 
     def init_deterministic_inference_config(self):
-        """Initialize deterministic inference configuration for different attention backends."""
-        if not self.server_args.enable_deterministic_inference:
+        """Set prefill truncation alignment for deterministic attention backends."""
+        if not (self.server_args.enable_deterministic_inference or self.server_args.enable_llm42):
             self.truncation_align_size = None
             return
 
@@ -2042,8 +2098,19 @@ class Scheduler(
             dllm_config=self.dllm_config,
         )
 
+        # LLM-42: isolate deterministic prefills to batch_size=1 (§4.1, O3).
+        # Prefill must use a consistent reduction schedule across runs. Since
+        # different batch sizes cause different reduction orders in GEMM/attention,
+        # we ensure each deterministic prefill runs alone. Decode can still be
+        # batched because verification handles consistency there.
+        enable_llm42_isolated_prefill = self.server_args.enable_llm42 > 0
+        has_deterministic_in_batch = False
+
         if self.chunked_req is not None:
             self.chunked_req.init_next_round_input()
+            # If the chunked request is deterministic, it occupies the entire batch
+            if enable_llm42_isolated_prefill and self.chunked_req.is_deterministic:
+                has_deterministic_in_batch = True
             self.chunked_req = adder.add_chunked_req(self.chunked_req)
 
         if self.enable_lora:
@@ -2051,6 +2118,15 @@ class Scheduler(
 
         # Get requests from the waiting queue to a new prefill batch
         for req in self.waiting_queue:
+            # A deterministic request already fills the prefill batch — stop adding
+            if enable_llm42_isolated_prefill and has_deterministic_in_batch:
+                break
+
+            # Non-deterministic requests are already in the batch; skip this
+            # deterministic request but keep iterating for more non-det ones
+            if enable_llm42_isolated_prefill and len(adder.can_run_list) > 0 and req.is_deterministic:
+                continue
+
             if self.enable_lora and req.lora_id not in running_loras:
                 if self.enable_lora_overlap_loading:
                     # For overlapping loading of LoRA weights with computation, we will load each adapter one at a time,
@@ -2098,6 +2174,10 @@ class Scheduler(
                 has_chunked_req=(self.chunked_req is not None),
                 truncation_align_size=self.truncation_align_size,
             )
+
+            # Track whether a deterministic request entered the batch
+            if enable_llm42_isolated_prefill and req in adder.can_run_list and req.is_deterministic:
+                has_deterministic_in_batch = True
 
             if self.enable_lora:
                 running_loras.add(req.lora_id)

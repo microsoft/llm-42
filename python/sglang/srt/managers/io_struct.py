@@ -123,6 +123,11 @@ class SpeculativeDecodingMetricsMixin:
     # Empty list [] when speculative decoding is disabled.
     spec_acceptance_histogram: List[List[int]]
 
+    # Deterministic verification stats (LLM-42 DVR)
+    llm42_num_rollbacks: List[int]
+    llm42_tokens_rolled_back: List[int]
+    llm42_num_verification_windows: List[int]
+
 
 @dataclass
 class APIServingTimingMixin:
