@@ -161,6 +161,7 @@ class ForwardMode(IntEnum):
             or self == ForwardMode.DRAFT_EXTEND
             or self == ForwardMode.MIXED
             or self == ForwardMode.SPLIT_PREFILL
+            or self == ForwardMode.TARGET_LLM42_VERIFY
             or (include_draft_extend_v2 and self == ForwardMode.DRAFT_EXTEND_V2)
         )
 
