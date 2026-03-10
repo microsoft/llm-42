@@ -401,7 +401,7 @@ class LLM42Info:
                 verify_batch.sampling_info.sampling_seed = torch.repeat_interleave(
                     verify_batch.sampling_info.sampling_seed, tokens_per_request, dim=0
                 )
-            if verify_batch.sampling_info.deterministic_indices is not None:
+            if hasattr(verify_batch.sampling_info, 'deterministic_indices') and verify_batch.sampling_info.deterministic_indices is not None:
                 verify_batch.sampling_info.deterministic_indices = torch.repeat_interleave(
                     verify_batch.sampling_info.deterministic_indices, tokens_per_request, dim=0
                 )
@@ -582,7 +582,7 @@ class LLM42Info:
                         verify_batch.sampling_info.sampling_seed, dummy_seeds
                     ], dim=0)
                 
-                if verify_batch.sampling_info.deterministic_indices is not None:
+                if hasattr(verify_batch.sampling_info, 'deterministic_indices') and verify_batch.sampling_info.deterministic_indices is not None:
                     if dummy_sampling_tuple is not None:
                         dummy_det_indices = dummy_sampling_tuple[5].to(verify_batch.sampling_info.deterministic_indices.dtype)
                     else:
