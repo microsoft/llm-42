@@ -4768,6 +4768,36 @@ class ServerArgs:
             help="Enable deterministic inference mode with batch invariant ops.",
         )
         parser.add_argument(
+            "--enable-llm42",
+            type=int,
+            default=ServerArgs.enable_llm42,
+            help="Enable LLM-42 DVR deterministic inference. "
+            "0=disabled, 1=bi_kernel+vllm_rmsnorm, "
+            "2=batch_invariant+native_rmsnorm, "
+            "3=non-batch-invariant (default CUDA in verification).",
+        )
+        parser.add_argument(
+            "--llm42-window-size",
+            type=int,
+            default=ServerArgs.llm42_window_size,
+            help="Number of tokens decoded before DVR verification (default: 64).",
+        )
+        parser.add_argument(
+            "--llm42-verify-batch-size",
+            type=int,
+            default=ServerArgs.llm42_verify_batch_size,
+            help="Number of requests per DVR verification batch (default: 8).",
+        )
+        parser.add_argument(
+            "--llm42-skip-mismatch",
+            type=float,
+            default=ServerArgs.llm42_skip_mismatch,
+            help="Mismatch rate percentage (0.0-100.0). "
+            "100.0 means normal behavior (natural mismatches cause rollback). "
+            "0.0 means force no mismatches (skip all, verification always assumes success). "
+            "Values in between (e.g., 5.0) inject mismatch to rollback ceil(5%% * window_size) tokens per window.",
+        )
+        parser.add_argument(
             "--rl-on-policy-target",
             type=str,
             default=ServerArgs.rl_on_policy_target,
