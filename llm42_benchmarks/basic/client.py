@@ -46,6 +46,13 @@ def run_once(base_url, request_rate, num_prompts, model, seed,
         gsp_system_prompt_len=2048, gsp_question_len=128, gsp_output_len=256,
         mooncake_slowdown_factor=1.0, mooncake_num_rounds=1,
         mooncake_workload="conversation",
+        lora_request_distribution="uniform", lora_zipf_alpha=1.5,
+        served_model_name=None,
+        return_routed_experts=False,
+        arrival_seed=None, order_seed=None, select_seed=None,
+        plot_throughput=False,
+        image_content=None, image_count=1, image_format="png",
+        image_resolution="1080p", random_image_count=1,
     )
     bench_serving.set_global_args(args)
     with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
