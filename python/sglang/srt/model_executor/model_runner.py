@@ -2599,7 +2599,10 @@ class ModelRunner(ModelRunnerKVCacheMixin):
         """
         # For verification modes, enable batch_invariant during sampling
         # to maintain determinism in logprobs computation (log_softmax, softmax, etc.)
-        is_verification = forward_batch.forward_mode.is_target_verify()
+        is_verification = (
+            forward_batch.forward_mode.is_target_verify()
+            or forward_batch.forward_mode.is_target_llm42_verify()
+        )
         should_enable_batch_invariant = (
             is_verification and self.enable_llm42_mode > 0
         )
@@ -2628,6 +2631,7 @@ class ModelRunner(ModelRunnerKVCacheMixin):
             if (
                 forward_batch.forward_mode.is_decode()
                 or forward_batch.forward_mode.is_target_verify()
+                or forward_batch.forward_mode.is_target_llm42_verify()
             ):
                 positions = forward_batch.positions
             else:
