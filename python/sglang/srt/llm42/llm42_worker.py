@@ -98,12 +98,15 @@ class FixedSizeVerificationPool:
         # CRITICAL FIX: Allocate actual row indices in req_to_token_pool for dummy requests
         # This is necessary because FlashAttention uses req_pool_indices to look up
         # the page_table from req_to_token_pool.req_to_token[req_pool_indices, :]
-        allocated_pool_indices = req_to_token_pool.alloc(fixed_size)
-        if allocated_pool_indices is None or len(allocated_pool_indices) < fixed_size:
+        # Note: ReqToTokenPool.alloc() expects list[Req] in the new API, so we
+        # allocate directly from free_slots for dummy padding requests.
+        if len(req_to_token_pool.free_slots) < fixed_size:
             raise RuntimeError(
                 f"Failed to allocate {fixed_size} req_to_token_pool slots for dummy requests. "
                 f"Consider reducing llm42_verify_batch_size or increasing pool size."
             )
+        allocated_pool_indices = req_to_token_pool.free_slots[:fixed_size]
+        req_to_token_pool.free_slots = req_to_token_pool.free_slots[fixed_size:]
         
         self.dummy_req_pool_indices = torch.tensor(
             allocated_pool_indices, dtype=torch.int64, device=device
@@ -199,7 +202,7 @@ class FixedSizeVerificationPool:
         
         # Also free the req_to_token_pool slots
         if hasattr(self, '_allocated_pool_indices') and self._allocated_pool_indices is not None:
-            self.req_to_token_pool.free(self._allocated_pool_indices)
+            self.req_to_token_pool.free_slots.extend(self._allocated_pool_indices)
             self._allocated_pool_indices = None
 
 
