@@ -335,21 +335,21 @@ class LLM42Worker:
 
     def forward_batch_generation(
         self,
-        batch: Union[ScheduleBatch, ModelWorkerBatch],
-        skip_sample: bool = False,
+        model_worker_batch=None,
+        **kwargs,
     ) -> GenerationBatchResult:
         """
         Forward pass - just delegates to target worker.
         Verification happens later in process_batch_result_decode.
         
         Args:
-            batch: Input ScheduleBatch or ModelWorkerBatch
+            model_worker_batch: Input ModelWorkerBatch
             
         Returns:
             GenerationBatchResult object
         """
 
-        return self.target_worker.forward_batch_generation(batch, skip_sample=skip_sample)
+        return self.target_worker.forward_batch_generation(model_worker_batch, **kwargs)
 
     def check_and_verify_deterministic_requests(
         self, 
