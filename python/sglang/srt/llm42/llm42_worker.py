@@ -25,7 +25,8 @@ from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 import torch
 
 from sglang.srt.llm42.llm42_info import LLM42Info
-from sglang.srt.model_executor.forward_batch_info import ForwardBatchOutput, ForwardMode
+from sglang.srt.managers.utils import GenerationBatchResult
+from sglang.srt.model_executor.forward_batch_info import ForwardMode
 
 if TYPE_CHECKING:
     from sglang.srt.managers.schedule_batch import Req, ScheduleBatch, ModelWorkerBatch
@@ -333,7 +334,7 @@ class LLM42Worker:
         self,
         batch: Union[ScheduleBatch, ModelWorkerBatch],
         skip_sample: bool = False,
-    ) -> ForwardBatchOutput:
+    ) -> GenerationBatchResult:
         """
         Forward pass - just delegates to target worker.
         Verification happens later in process_batch_result_decode.
@@ -342,7 +343,7 @@ class LLM42Worker:
             batch: Input ScheduleBatch or ModelWorkerBatch
             
         Returns:
-            ForwardBatchOutput object
+            GenerationBatchResult object
         """
 
         return self.target_worker.forward_batch_generation(batch, skip_sample=skip_sample)
