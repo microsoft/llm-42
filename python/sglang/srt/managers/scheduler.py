@@ -608,7 +608,7 @@ class Scheduler(
         # LLM42Worker intercepts decode batches, identifies deterministic requests
         # that have accumulated enough unverified tokens, and runs a verification
         # forward pass under fixed-shape reductions to detect mismatches.
-        if server_args.enable_llm42:
+        if self.server_args.enable_llm42:
             from sglang.srt.llm42.llm42_worker import (
                 LLM42Worker,
             )
@@ -616,14 +616,14 @@ class Scheduler(
             self.model_worker = LLM42Worker(
                 self.model_worker,
                 always_align=True,
-                fixed_requests_per_verify=server_args.llm42_verify_batch_size,
+                fixed_requests_per_verify=self.server_args.llm42_verify_batch_size,
                 metrics_collector=getattr(self, 'metrics_collector', None),
-                skip_mismatch=server_args.llm42_skip_mismatch,
+                skip_mismatch=self.server_args.llm42_skip_mismatch,
             )
             logger.info(
-                f"Deterministic verification worker enabled with llm42_window_size={server_args.llm42_window_size}, "
-                f"llm42_verify_batch_size={server_args.llm42_verify_batch_size}, "
-                f"llm42_skip_mismatch={server_args.llm42_skip_mismatch}"
+                f"Deterministic verification worker enabled with llm42_window_size={self.server_args.llm42_window_size}, "
+                f"llm42_verify_batch_size={self.server_args.llm42_verify_batch_size}, "
+                f"llm42_skip_mismatch={self.server_args.llm42_skip_mismatch}"
             )
 
         # Get token and memory info from the model worker
