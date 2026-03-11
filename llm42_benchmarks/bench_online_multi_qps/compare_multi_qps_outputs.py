@@ -64,6 +64,10 @@ def build_base_args(cli_args: argparse.Namespace) -> dict:
         "apply_chat_template": cli_args.apply_chat_template,
         "profile": False,
         "lora_name": None,
+        "lora_request_distribution": None,
+        "lora_zipf_alpha": 2.0,
+        "served_model_name": None,
+        "deterministic_seed": cli_args.seed,
         "prompt_suffix": cli_args.prompt_suffix,
         "pd_separated": False,
         "flush_cache": cli_args.flush_cache,
@@ -81,6 +85,18 @@ def build_base_args(cli_args: argparse.Namespace) -> dict:
         "mooncake_slowdown_factor": 1.0,
         "mooncake_num_rounds": 1,
         "mooncake_workload": "conversation",
+        # new upstream fields
+        "return_routed_experts": False,
+        "max_concurrency": None,
+        "plot_throughput": False,
+        "select_seed": cli_args.seed,
+        "order_seed": cli_args.seed,
+        "arrival_seed": cli_args.seed,
+        "image_content": "random",
+        "image_count": 1,
+        "image_format": "png",
+        "image_resolution": "1080p",
+        "random_image_count": False,
     }
     
     return base_dict
