@@ -26,6 +26,10 @@ class SamplingBatchInfo:
     top_ks: torch.Tensor
     min_ps: torch.Tensor
 
+    # Whether any requests use deterministic (zero temperature) sampling
+    is_any_deterministic: bool
+    deterministic_indices: torch.Tensor
+
     # Whether all requests use greedy sampling
     is_all_greedy: bool
 
@@ -60,6 +64,9 @@ class SamplingBatchInfo:
     # Used for deterministic sampling
     sampling_seed: Optional[torch.Tensor] = None
 
+    # Force pytorch backend for sampling (used for verification batch)
+    force_pytorch_backend: bool = False
+
     # Device
     device: str = "cuda"
 
@@ -69,13 +76,21 @@ class SamplingBatchInfo:
     @classmethod
     def from_schedule_batch(cls, batch: ScheduleBatch, vocab_size: int):
         global_server_args = get_global_server_args()
-        enable_deterministic = global_server_args.enable_deterministic_inference
+        enable_deterministic = global_server_args.enable_deterministic_inference or (getattr(global_server_args, "enable_llm42", 0) or 0) > 0
 
         reqs = batch.reqs
         device = batch.device
         temperatures = torch.tensor(
             [r.sampling_params.temperature for r in reqs],
             dtype=torch.float,
+            device=device,
+        ).view(-1, 1)
+        is_any_deterministic = any(
+            r.sampling_params.is_deterministic for r in reqs
+        )
+        deterministic_indices = torch.tensor(
+            [r.sampling_params.is_deterministic for r in reqs],
+            dtype=torch.int64,
             device=device,
         ).view(-1, 1)
         top_ps = torch.tensor(
@@ -164,6 +179,8 @@ class SamplingBatchInfo:
 
         ret = cls(
             temperatures=temperatures,
+            is_any_deterministic=is_any_deterministic,
+            deterministic_indices=deterministic_indices,
             top_ps=top_ps,
             top_ks=top_ks,
             min_ps=min_ps,
@@ -259,10 +276,14 @@ class SamplingBatchInfo:
             "top_ks",
             "min_ps",
             "sampling_seed",
+            "deterministic_indices",
         ]:
             value = getattr(self, item, None)
             if value is not None:
                 setattr(self, item, value[keep_indices_device])
+
+        if self.deterministic_indices is not None:
+            self.is_any_deterministic = torch.any(self.deterministic_indices.cpu() > 0).item()
 
         if self.logit_bias is not None:
             self.logit_bias = self.logit_bias[keep_indices_device]
@@ -365,12 +386,14 @@ class SamplingBatchInfo:
             "top_ks",
             "min_ps",
             "sampling_seed",
+            "deterministic_indices",
         ]:
             self_val = getattr(self, item, None)
             other_val = getattr(other, item, None)
             if self_val is not None and other_val is not None:
                 setattr(self, item, torch.cat([self_val, other_val]))
 
+        self.is_any_deterministic = self.is_any_deterministic or other.is_any_deterministic
         self.is_all_greedy &= other.is_all_greedy
         self.need_top_p_sampling |= other.need_top_p_sampling
         self.need_top_k_sampling |= other.need_top_k_sampling

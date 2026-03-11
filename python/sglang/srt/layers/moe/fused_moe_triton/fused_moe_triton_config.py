@@ -52,9 +52,12 @@ def get_moe_configs(
     kernel on a given batch size bs, the closest batch size in the grid should
     be picked and the associated configuration chosen to invoke the kernel.
     """
-    if get_global_server_args().enable_deterministic_inference:
-        logger.warning(
-            "Deterministic inference is enabled, using default MoE kernel config."
+    server_args = get_global_server_args()
+    enable_llm42 = getattr(server_args, "enable_llm42", 0) or 0
+    if server_args.enable_deterministic_inference or (enable_llm42 > 0 and enable_llm42 != 3):
+        logger.debug(
+            "Deterministic inference enabled, using default MoE kernel config "
+            "for batch invariance."
         )
         return None
     # Supported Triton versions, should be sorted from the newest to the oldest
@@ -145,7 +148,9 @@ def get_default_config(
     is_marlin: bool,
     block_shape: Optional[List[int]] = None,
 ) -> Dict[str, int]:
-    if get_global_server_args().enable_deterministic_inference:
+    server_args = get_global_server_args()
+    enable_llm42 = getattr(server_args, "enable_llm42", 0) or 0
+    if server_args.enable_deterministic_inference or (enable_llm42 > 0 and enable_llm42 != 3):
         config = {
             "BLOCK_SIZE_M": 64,
             "BLOCK_SIZE_N": 64,

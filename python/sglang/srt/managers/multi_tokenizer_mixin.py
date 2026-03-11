@@ -125,6 +125,15 @@ def _handle_output_by_index(output, i):
         new_output = BatchTokenIDOutput(
             rids=[output.rids[i]],
             spec_verify_ct=_extract_field_by_index(output, "spec_verify_ct", i),
+            llm42_num_rollbacks=_extract_field_by_index(
+                output, "llm42_num_rollbacks", i
+            ),
+            llm42_tokens_rolled_back=_extract_field_by_index(
+                output, "llm42_tokens_rolled_back", i
+            ),
+            llm42_num_verification_windows=_extract_field_by_index(
+                output, "llm42_num_verification_windows", i
+            ),
             spec_accepted_tokens=_extract_field_by_index(
                 output, "spec_accepted_tokens", i
             ),
@@ -222,6 +231,15 @@ def _handle_output_by_index(output, i):
         new_output = BatchStrOutput(
             rids=[output.rids[i]],
             spec_verify_ct=_extract_field_by_index(output, "spec_verify_ct", i),
+            llm42_num_rollbacks=_extract_field_by_index(
+                output, "llm42_num_rollbacks", i
+            ),
+            llm42_tokens_rolled_back=_extract_field_by_index(
+                output, "llm42_tokens_rolled_back", i
+            ),
+            llm42_num_verification_windows=_extract_field_by_index(
+                output, "llm42_num_verification_windows", i
+            ),
             spec_accepted_tokens=_extract_field_by_index(
                 output, "spec_accepted_tokens", i
             ),
