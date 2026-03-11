@@ -2481,11 +2481,14 @@ class ModelRunner(ModelRunnerKVCacheMixin):
         should_enable_batch_invariant = False
 
         # During verification modes, batch-invariant mode must be enabled for deterministic results
-        is_verification_mode = forward_batch.forward_mode.is_target_verify()
+        is_verification_mode = (
+            forward_batch.forward_mode.is_target_verify()
+            or forward_batch.forward_mode.is_target_llm42_verify()
+        )
 
         # enable_llm42: Dynamic control based on forward mode
         # Global default is DISABLED. We enable only when needed:
-        # - TARGET_VERIFY: always enabled (via is_verification_mode), except mode 3
+        # - TARGET_VERIFY / TARGET_LLM42_VERIFY: always enabled, except mode 3
         # - EXTEND (prefill): enabled for deterministic prefill
         # - DECODE: batch_invariant disabled (fast path)
         if self.enable_llm42_mode:
