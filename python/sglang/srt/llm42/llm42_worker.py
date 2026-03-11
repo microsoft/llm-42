@@ -593,12 +593,7 @@ class LLM42Worker:
                     req.llm42_num_rollbacks += 1
                     req.llm42_tokens_rolled_back += info[1]
                     if self.metrics_collector:
-                        self.metrics_collector.num_rollbacks_total.labels(
-                            **self.metrics_collector.labels
-                        ).inc()
-                        self.metrics_collector.tokens_rolled_back_total.labels(
-                            **self.metrics_collector.labels
-                        ).inc(info[1])
+                        self.metrics_collector.increment_rollbacks(info[1])
                     rollback_results.append((req, info[1]))
                 req.llm42_verified_tokens = len(req.output_ids)
 
