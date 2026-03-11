@@ -603,7 +603,8 @@ class LLM42Worker:
                 req.llm42_verified_tokens = len(req.output_ids)
 
             if rollback_results:
-                self._update_batch_state(original_batch)
+                rolled_back_reqs = {req for req, _ in rollback_results}
+                self._update_batch_state(original_batch, rolled_back_reqs)
 
             # 7. Release verification-batch tensor references
             self._cleanup_verify_batch(verify_batch)
@@ -645,42 +646,52 @@ class LLM42Worker:
         verify_batch.req_to_token_pool = None
         verify_batch.token_to_kv_pool_allocator = None
 
-    def _update_batch_state(self, batch: Union[ScheduleBatch, ModelWorkerBatch]):
+    def _update_batch_state(self, batch: Union[ScheduleBatch, ModelWorkerBatch],
+                           rolled_back_reqs: set = None):
         """Sync ``batch.output_ids`` and ``batch.seq_lens`` with the current
         ``req.output_ids`` after a rollback, so that ``prepare_for_decode()``
         picks up the correct state.
+
+        Only updates entries for requests in *rolled_back_reqs*.  Non-rolled-back
+        requests keep their current ``batch.seq_lens`` / ``batch.output_ids``
+        values so that the next ``prepare_for_decode`` increments from the
+        correct position.
         """
         if not hasattr(batch, 'output_ids') or batch.output_ids is None:
             return
         
-        updated_output_ids = []
-        updated_seq_lens = []
+        # Start from the current batch tensors; only overwrite rolled-back entries
+        current_output_ids = batch.output_ids.tolist()
+        current_seq_lens = batch.seq_lens.tolist()
         
-        for req in batch.reqs:
+        for i, req in enumerate(batch.reqs):
+            if rolled_back_reqs and req not in rolled_back_reqs:
+                continue  # keep existing batch values for non-rolled-back requests
+            
             # Get last generated token or fallback to last input token
             if req.output_ids:
-                updated_output_ids.append(req.output_ids[-1])
+                current_output_ids[i] = req.output_ids[-1]
             else:
-                updated_output_ids.append(req.origin_input_ids[-1] if req.origin_input_ids else 0)
+                current_output_ids[i] = req.origin_input_ids[-1] if req.origin_input_ids else 0
             
             # seq_lens should be length BEFORE current token (prepare_for_decode increments by 1)
             current_total_len = len(req.origin_input_ids) + len(req.output_ids)
-            updated_seq_lens.append(current_total_len - 1)
+            current_seq_lens[i] = current_total_len - 1
         
         # Update batch tensors
         batch.output_ids = torch.tensor(
-            updated_output_ids, 
+            current_output_ids, 
             dtype=torch.int64, 
             device=batch.device
         )
         batch.seq_lens = torch.tensor(
-            updated_seq_lens,
+            current_seq_lens,
             dtype=torch.int32,
             device=batch.device
         )
-        batch.seq_lens_cpu = torch.tensor(updated_seq_lens, dtype=torch.int32)
+        batch.seq_lens_cpu = torch.tensor(current_seq_lens, dtype=torch.int32)
         batch.orig_seq_lens = batch.seq_lens.clone()
-        batch.seq_lens_sum = sum(updated_seq_lens)
+        batch.seq_lens_sum = sum(current_seq_lens)
 
     def __getattr__(self, name):
         """Delegate unknown attributes to ``target_worker`` (transparent proxy)."""

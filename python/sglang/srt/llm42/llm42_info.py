@@ -464,11 +464,19 @@ class LLM42Info:
             if start_idx < end_idx:
                 output_cache_locs = verify_batch.req_to_token_pool.req_to_token[req.req_pool_idx, start_idx:end_idx]
 
-                # Check for invalid 0 values which indicate unallocated positions
+                # Check for invalid 0 values which indicate unallocated positions.
+                # This mirrors the old fork's diagnostic — log error but do NOT
+                # replace, because replacing out_cache_loc without also updating
+                # the page_table (built from req_to_token in init_forward_metadata)
+                # causes attention to read stale KV from slot 0 while the model
+                # writes fresh KV to the replacement slot → garbage output.
                 output_list = output_cache_locs.tolist()
                 for j, loc in enumerate(output_list):
                     if loc == 0:
-                        logger.error(f"[LLM42_VERIFY] Found invalid slot 0 at position {start_idx + j} in req_to_token!")
+                        logger.error(
+                            f"[LLM42_VERIFY] Found invalid slot 0 at position {start_idx + j} "
+                            f"in req_to_token! (req {req.rid})"
+                        )
                 
                 out_cache_locs.extend(output_list)
             

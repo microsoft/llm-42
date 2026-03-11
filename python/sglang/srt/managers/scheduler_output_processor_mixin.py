@@ -575,7 +575,25 @@ class SchedulerOutputProcessorMixin:
                     req.req_pool_idx, start_free_pos:end_free_pos
                 ]
                 if kv_indices_to_free_raw.numel() > 0:
-                    self.token_to_kv_pool_allocator.free(kv_indices_to_free_raw)
+                    # Filter out slot 0 (reserved padding slot) to prevent
+                    # corrupting the allocator if any stale 0 entries exist.
+                    valid_mask = kv_indices_to_free_raw != 0
+                    kv_indices_to_free = kv_indices_to_free_raw[valid_mask]
+                    if kv_indices_to_free.numel() > 0:
+                        self.token_to_kv_pool_allocator.free(kv_indices_to_free)
+                    # NOTE: Do NOT zero out freed req_to_token entries.
+                    # The old fork leaves stale entries as-is: they are beyond
+                    # seq_lens (invisible to attention), overwritten by future
+                    # decode steps, and excluded from cache_finished_req's
+                    # free range.  Zeroing creates slot-0 entries that cascade
+                    # into page_table / out_cache_loc mismatches.
+
+                # Sync new fork's KV lifecycle counters with rolled-back state.
+                # These were incremented in prepare_for_decode(); rollback must
+                # decrement them so cache_finished_req frees the correct range.
+                req.kv_committed_len -= tokens_rolled_back
+                req.kv_allocated_len -= tokens_rolled_back
+                req.decode_batch_idx -= tokens_rolled_back
 
             # Cache finished deterministic requests AFTER verification is complete.
             # Verification may have rolled back a request (clearing finished_reason),

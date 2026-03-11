@@ -814,6 +814,13 @@ class FlashAttentionBackend(AttentionBackend):
             and not is_swa_layer
         )
 
+        # For TARGET_LLM42_VERIFY, force num_splits=1 to ensure deterministic
+        # attention output (no non-deterministic split reduction).
+        num_splits = (
+            1 if forward_batch.forward_mode.is_target_llm42_verify()
+            else self.num_splits
+        )
+
         flash_attn_varlen_func_base = flash_attn_varlen_func_fa3
         flash_attn_with_kvcache_base = flash_attn_with_kvcache_fa3
 
@@ -894,7 +901,7 @@ class FlashAttentionBackend(AttentionBackend):
                 k_descale=k_descale,
                 v_descale=v_descale,
                 return_softmax_lse=use_cascade_attn,
-                num_splits=self.num_splits,
+                num_splits=num_splits,
                 **kwargs,
             )
 
@@ -921,7 +928,7 @@ class FlashAttentionBackend(AttentionBackend):
                     k_descale=k_descale,
                     v_descale=v_descale,
                     return_softmax_lse=True,
-                    num_splits=self.num_splits,
+                    num_splits=num_splits,
                     **kwargs,
                 )
                 o, _ = merge_state_v2_wrapper(
@@ -1036,7 +1043,7 @@ class FlashAttentionBackend(AttentionBackend):
                     k_descale=k_descale,
                     v_descale=v_descale,
                     return_softmax_lse=use_cascade_attn,
-                    num_splits=self.num_splits,
+                    num_splits=num_splits,
                 )
                 if use_cascade_attn:
                     o, softmax_lse, *rest = result
@@ -1058,7 +1065,7 @@ class FlashAttentionBackend(AttentionBackend):
                             k_descale=k_descale,
                             v_descale=v_descale,
                             return_softmax_lse=True,
-                            num_splits=self.num_splits,
+                            num_splits=num_splits,
                         )
                     )
                     o, _ = merge_state_v2_wrapper(

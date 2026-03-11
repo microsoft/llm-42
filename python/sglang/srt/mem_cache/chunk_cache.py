@@ -68,7 +68,15 @@ class ChunkCache(BasePrefixCache):
         kv_indices = self.req_to_token_pool.req_to_token[
             req.req_pool_idx, :kv_committed_len
         ]
-        self.token_to_kv_pool_allocator.free(kv_indices)
+        # Filter out slot 0 (reserved padded slot) — these entries were
+        # already freed during rollback and zeroed out to prevent double-free.
+        valid_mask = kv_indices != 0
+        if valid_mask.all():
+            self.token_to_kv_pool_allocator.free(kv_indices)
+        else:
+            valid_indices = kv_indices[valid_mask]
+            if valid_indices.numel() > 0:
+                self.token_to_kv_pool_allocator.free(valid_indices)
 
     def cache_unfinished_req(self, req: Req, chunked=False):
         kv_indices = self.req_to_token_pool.req_to_token[

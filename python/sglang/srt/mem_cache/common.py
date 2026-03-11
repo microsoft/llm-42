@@ -496,7 +496,10 @@ def release_kv_cache(req: Req, tree_cache: BasePrefixCache, is_insert: bool = Tr
         indices_to_free = tree_cache.req_to_token_pool.req_to_token[req.req_pool_idx][
             start_p:end_p
         ]
-        tree_cache.token_to_kv_pool_allocator.free(indices_to_free)
+        # Filter out slot 0 (zeroed entries from LLM-42 rollback) to avoid double-free
+        valid_indices = indices_to_free[indices_to_free != 0]
+        if valid_indices.numel() > 0:
+            tree_cache.token_to_kv_pool_allocator.free(valid_indices)
     # If the prefix cache doesn't manage mamba states, we must free them here.
     if isinstance(tree_cache.req_to_token_pool, HybridReqToTokenPool) and (
         not tree_cache.supports_mamba()
