@@ -2480,28 +2480,14 @@ class ModelRunner(ModelRunnerKVCacheMixin):
 
         should_enable_batch_invariant = False
 
-        # During verification modes, batch-invariant mode must be enabled for deterministic results
-        is_verification_mode = (
-            forward_batch.forward_mode.is_target_verify()
-            or forward_batch.forward_mode.is_target_llm42_verify()
-        )
-
         # enable_llm42: Dynamic control based on forward mode
-        # Global default is DISABLED. We enable only when needed:
-        # - TARGET_VERIFY / TARGET_LLM42_VERIFY: always enabled, except mode 3
-        # - EXTEND (prefill): enabled for deterministic prefill
-        # - DECODE: batch_invariant disabled (fast path)
+        # Mode 3: batch-invariant only during verification
+        # Modes 1-2: batch-invariant for everything except decode (fast path)
         if self.enable_llm42_mode:
             if self.enable_llm42_mode == 3:
-                should_enable_batch_invariant = is_verification_mode
+                should_enable_batch_invariant = forward_batch.forward_mode.is_target_llm42_verify()
             else:
-                if is_verification_mode:
-                    should_enable_batch_invariant = True
-                else:
-                    is_decode_mode = forward_batch.forward_mode.is_decode()
-                    if not is_decode_mode:
-                        # EXTEND and other non-decode modes: enable for deterministic prefill
-                        should_enable_batch_invariant = True
+                should_enable_batch_invariant = not forward_batch.forward_mode.is_decode()
 
         batch_invariant_context = None
         if self.enable_llm42_mode and should_enable_batch_invariant:
@@ -2600,14 +2586,11 @@ class ModelRunner(ModelRunnerKVCacheMixin):
         Returns:
             A list of next_token_ids
         """
-        # For verification modes, enable batch_invariant during sampling
+        # For verification, enable batch_invariant during sampling
         # to maintain determinism in logprobs computation (log_softmax, softmax, etc.)
-        is_verification = (
-            forward_batch.forward_mode.is_target_verify()
-            or forward_batch.forward_mode.is_target_llm42_verify()
-        )
         should_enable_batch_invariant = (
-            is_verification and self.enable_llm42_mode > 0
+            forward_batch.forward_mode.is_target_llm42_verify()
+            and self.enable_llm42_mode > 0
         )
 
         batch_inv_context = None
@@ -2633,7 +2616,6 @@ class ModelRunner(ModelRunnerKVCacheMixin):
             # - Other extend modes: use seq_lens - 1 (last position only)
             if (
                 forward_batch.forward_mode.is_decode()
-                or forward_batch.forward_mode.is_target_verify()
                 or forward_batch.forward_mode.is_target_llm42_verify()
             ):
                 positions = forward_batch.positions
