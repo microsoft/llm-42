@@ -1530,6 +1530,11 @@ class TokenizerManager(TokenizerCommunicatorMixin, TokenizerManagerMultiItemMixi
                         "cached_tokens": recv_obj.cached_tokens[i],
                     }
                 )
+                # Add LLM-42 deterministic verification stats
+                if hasattr(recv_obj, "llm42_num_rollbacks") and recv_obj.llm42_num_rollbacks:
+                    meta_info["llm42_num_rollbacks"] = recv_obj.llm42_num_rollbacks[i]
+                    meta_info["llm42_tokens_rolled_back"] = recv_obj.llm42_tokens_rolled_back[i]
+                    meta_info["llm42_num_verification_windows"] = recv_obj.llm42_num_verification_windows[i]
                 # Add detailed cache breakdown if available
                 if (
                     hasattr(recv_obj, "cached_tokens_details")
