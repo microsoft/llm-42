@@ -136,9 +136,25 @@ class TritonAttnBackend(AttentionBackend):
             )
 
         if self.split_tile_size is not None:
-            self.max_kv_splits = (
+            # Compute the theoretical max splits for the full context length.
+            # For deterministic mode, cap this to avoid enormous buffer allocations.
+            # The actual num_kv_splits per-request is computed dynamically in
+            # get_num_kv_splits and clamped to max_kv_splits.
+            theoretical_max = (
                 self.max_context_len + self.split_tile_size - 1
             ) // self.split_tile_size
+            if self.enable_deterministic:
+                # Cap to a reasonable value. Users can override via env var.
+                # Default 64 covers seq_len up to 64*256=16384 without any
+                # approximation; longer sequences are clamped but still correct
+                # (the last splits cover more tokens each).
+                default_cap = 64
+                cap = get_int_env_var(
+                    "SGLANG_TRITON_DET_MAX_KV_SPLITS", default_cap
+                )
+                self.max_kv_splits = min(theoretical_max, cap)
+            else:
+                self.max_kv_splits = theoretical_max
 
         # Check arguments
         assert not (
@@ -214,6 +230,10 @@ class TritonAttnBackend(AttentionBackend):
             num_kv_splits[:] = (
                 expanded_seq_lens + self.split_tile_size - 1
             ) // self.split_tile_size
+            # Clamp to max_kv_splits to stay within allocated buffer bounds.
+            # For sequences longer than max_kv_splits * split_tile_size, each
+            # split simply covers more tokens — still deterministic.
+            num_kv_splits.clamp_(max=self.max_kv_splits)
             return
 
         if num_seq < 256:
