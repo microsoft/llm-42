@@ -176,13 +176,25 @@ class FlashInferAttnBackend(AttentionBackend):
         # When deterministic inference is enabled, tensor cores should be used for decode
         # Also set split tile sizes for prefill and decode from environment variables, and disable kv split for cuda graph
         # More information can be found here: https://github.com/flashinfer-ai/flashinfer/pull/1675
+
+        # Store deterministic inference configuration
+        self.deterministic_inference_flag = model_runner.server_args.enable_deterministic_inference
+
+        # Static deterministic mode
         self.enable_deterministic = (
-            model_runner.server_args.enable_deterministic_inference
+            self.deterministic_inference_flag > 0
         )
+
+        # Separate flag for llm42 mode (dynamic batch-invariant control)
+        self.enable_llm42_mode = getattr(model_runner.server_args, 'enable_llm42', 0) or 0
+        # Store original (non-deterministic) settings
+        self.original_decode_use_tensor_cores = self.decode_use_tensor_cores
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
+        self.verification_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
-        if self.enable_deterministic:
+
+        if self.enable_deterministic or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -191,7 +203,14 @@ class FlashInferAttnBackend(AttentionBackend):
                 "SGLANG_FLASHINFER_DECODE_SPLIT_TILE_SIZE", 2048
             )
             self.disable_cuda_graph_kv_split = True
-            envs.SGLANG_FLASHINFER_WORKSPACE_SIZE.set(2048 * 1024 * 1024)
+            envs.SGLANG_FLASHINFER_WORKSPACE_SIZE.set(8192 * 1024 * 1024)
+
+        if self.enable_llm42_mode > 0 and self.enable_llm42_mode == 3:
+            # Mode 3: use deterministic attention settings for verification only
+            self.verification_split_tile_size = get_int_env_var(
+                "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
+            )
+            envs.SGLANG_FLASHINFER_WORKSPACE_SIZE.set(8192 * 1024 * 1024)
 
         # Allocate buffers
         global global_workspace_buffer
@@ -259,6 +278,7 @@ class FlashInferAttnBackend(AttentionBackend):
         # Using two wrappers is unnecessary in the current PR, but are prepared for future PRs
         self.prefill_wrappers_paged = []
         self.prefill_wrappers_verify = []
+        self.llm42_verification_wrappers = []
         self.decode_wrappers = []
         for _ in range(self.num_wrappers):
             if not skip_prefill:
@@ -274,6 +294,13 @@ class FlashInferAttnBackend(AttentionBackend):
                         self.workspace_buffer,
                         "NHD",
                         backend=self.prefill_backend,
+                    )
+                )
+                self.llm42_verification_wrappers.append(
+                    BatchPrefillWithPagedKVCacheWrapper(
+                        self.workspace_buffer,
+                        "NHD",
+                        backend="fa3",
                     )
                 )
             self.decode_wrappers.append(
@@ -431,7 +458,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 decode_wrappers=self.decode_wrappers,
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=forward_batch.spec_info,
-                fixed_split_size=self.decode_split_tile_size,
+                fixed_split_size=(self.decode_split_tile_size if self.enable_deterministic else None),
                 disable_split_kv=False,
             )
             self.forward_metadata = DecodeMetadata(self.decode_wrappers)
@@ -465,6 +492,28 @@ class FlashInferAttnBackend(AttentionBackend):
             self.forward_metadata = PrefillMetadata(
                 self.prefill_wrappers_verify, False, False
             )
+        elif forward_batch.forward_mode.is_target_llm42_verify():
+            # TARGET_LLM42_VERIFY: deterministic verification of output tokens
+            # Input tokens already in KV cache, we re-run output tokens for verification
+            extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
+            llm42_verify_split_size = self.verification_split_tile_size if self.verification_split_tile_size is not None else 4096
+
+            self.indices_updater_prefill.update(
+                forward_batch.req_pool_indices,
+                forward_batch.seq_lens,
+                forward_batch.seq_lens_cpu,
+                forward_batch.seq_lens_sum,
+                prefix_lens=forward_batch.extend_prefix_lens,
+                prefill_wrappers=self.llm42_verification_wrappers,
+                use_ragged=False,
+                encoder_lens=forward_batch.encoder_lens,
+                spec_info=None,
+                fixed_split_size=None,
+                disable_split_kv=False,
+            )
+            self.forward_metadata = PrefillMetadata(
+                self.llm42_verification_wrappers, False, extend_no_prefix,
+            )
         else:
             prefix_lens = forward_batch.extend_prefix_lens
 
@@ -479,7 +528,12 @@ class FlashInferAttnBackend(AttentionBackend):
                 use_ragged = False
                 extend_no_prefix = False
             else:
-                use_ragged = not self.enable_deterministic
+                enable_deterministic_current = self.enable_deterministic
+                if (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
+                    from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
+                    enable_deterministic_current = is_batch_invariant_mode_enabled()
+                current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
+                use_ragged = not enable_deterministic_current
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
 
             # Process multi-item scoring in attention backend instead of ForwardBatch
@@ -498,7 +552,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 use_ragged=use_ragged,
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=None,
-                fixed_split_size=self.prefill_split_tile_size,
+                fixed_split_size=current_prefill_split_tile_size,
                 multi_item_params=multi_item_params,
             )
             self.forward_metadata = PrefillMetadata(
@@ -618,6 +672,8 @@ class FlashInferAttnBackend(AttentionBackend):
             )
             self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
             self.forward_metadata = PrefillMetadata(prefill_wrappers, False, False)
+        elif forward_mode.is_target_llm42_verify():
+            raise ValueError("CUDA graph capture not supported for TARGET_LLM42_VERIFY mode")
         elif forward_mode.is_draft_extend():
             prefill_wrappers = []
             for i in range(self.num_wrappers):
@@ -715,6 +771,8 @@ class FlashInferAttnBackend(AttentionBackend):
                 encoder_lens=encoder_lens[:bs] if encoder_lens is not None else None,
                 spec_info=spec_info,
             )
+        elif forward_mode.is_target_llm42_verify():
+            raise ValueError("CUDA graph replay not supported for TARGET_LLM42_VERIFY mode")
         elif forward_mode.is_draft_extend():
             self.indices_updater_prefill.update(
                 req_pool_indices[:bs],
@@ -1213,6 +1271,7 @@ class FlashInferIndicesUpdaterPrefill:
         encoder_lens: Optional[torch.Tensor],
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
     ):
         # Keep the signature for type checking. It will be assigned during runtime.
         raise NotImplementedError()
@@ -1229,6 +1288,7 @@ class FlashInferIndicesUpdaterPrefill:
         encoder_lens: Optional[torch.Tensor],
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
         multi_item_params: Optional[MultiItemScoringParams] = None,
     ):
         if use_ragged:
@@ -1254,6 +1314,7 @@ class FlashInferIndicesUpdaterPrefill:
             use_ragged,
             spec_info,
             fixed_split_size=fixed_split_size,
+            disable_split_kv=disable_split_kv,
             multi_item_params=multi_item_params,
         )
 
@@ -1269,6 +1330,7 @@ class FlashInferIndicesUpdaterPrefill:
         encoder_lens: Optional[torch.Tensor],
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
         multi_item_params: Optional[MultiItemScoringParams] = None,
     ):
         for wrapper_id in range(2):
@@ -1303,6 +1365,7 @@ class FlashInferIndicesUpdaterPrefill:
                 use_ragged,
                 spec_info,
                 use_sliding_window_kv_pool=use_sliding_window_kv_pool,
+                disable_split_kv=disable_split_kv,
                 multi_item_params=multi_item_params,
             )
 
@@ -1318,6 +1381,7 @@ class FlashInferIndicesUpdaterPrefill:
         encoder_lens: Optional[torch.Tensor],
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
         multi_item_params: Optional[MultiItemScoringParams] = None,
     ):
         for wrapper_id in range(2):
@@ -1345,6 +1409,7 @@ class FlashInferIndicesUpdaterPrefill:
                 self.qo_indptr[wrapper_id],
                 use_ragged,
                 spec_info,
+                disable_split_kv=disable_split_kv,
                 multi_item_params=multi_item_params,
             )
 
@@ -1364,6 +1429,7 @@ class FlashInferIndicesUpdaterPrefill:
         spec_info: Optional[SpecInput],
         use_sliding_window_kv_pool: bool = False,
         fixed_split_size: Optional[int] = None,
+        disable_split_kv: Optional[bool] = None,
         multi_item_params: Optional[MultiItemScoringParams] = None,
     ):
         bs = len(seq_lens)
@@ -1450,6 +1516,9 @@ class FlashInferIndicesUpdaterPrefill:
             custom_mask=use_custom_mask,
             non_blocking=True,
             fixed_split_size=fixed_split_size,
+            disable_split_kv=(
+                disable_split_kv if disable_split_kv is not None else False
+            ),
             prefix_len_ptr=prefix_len_ptr,
             token_pos_in_items_ptr=token_pos_in_items_ptr,
             token_pos_in_items_len=token_pos_in_items_len,
