@@ -12,6 +12,9 @@ HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
+LLM42_WINDOW_SIZE="${LLM42_WINDOW_SIZE:-64}"
+ENABLE_LLM42="${ENABLE_LLM42:-3}"
+LLM42_VERIFY_BATCH_SIZE="${LLM42_VERIFY_BATCH_SIZE:-8}"
 LOG_DIR="${LOG_DIR:-./server_logs_${ATTENTION_BACKEND}_TP${TP_SIZE}}"
 
 # Determine Python command
@@ -35,6 +38,9 @@ echo "Host: $HOST"
 echo "Base Port: $BASE_PORT"
 echo "TP Size per server: $TP_SIZE"
 echo "Attention Backend: $ATTENTION_BACKEND"
+echo "LLM42 Window Size: $LLM42_WINDOW_SIZE"
+echo "Enable LLM42: $ENABLE_LLM42"
+echo "LLM42 Verify Batch Size: $LLM42_VERIFY_BATCH_SIZE"
 echo "Log Directory: $LOG_DIR"
 echo "=============================================="
 echo ""
@@ -79,9 +85,9 @@ for ((i=0; i<NUM_GPUS; i++)); do
         --enable-metrics \
         --random-seed 42 \
         --chunked-prefill-size -1 \
-        --llm42-window-size 64 \
-        --enable-llm42 3 \
-        --llm42-verify-batch-size 8 \
+        --llm42-window-size "$LLM42_WINDOW_SIZE" \
+        --enable-llm42 "$ENABLE_LLM42" \
+        --llm42-verify-batch-size "$LLM42_VERIFY_BATCH_SIZE" \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!
