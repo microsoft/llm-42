@@ -657,10 +657,22 @@ async def async_request_sglang_generate(
                         else:
                             data = json.loads(chunk)
 
-                            # Accumulate output token IDs regardless of text content
-                            # (early tokens may not produce printable text yet)
+                            # Collect output token IDs.
+                            # When server stream_output is off (default), each
+                            # chunk carries the full cumulative token list, so
+                            # we replace to avoid duplicates. When stream_output
+                            # is on, chunks carry only new (delta) tokens, so
+                            # we extend.
                             if "output_ids" in data:
-                                output.output_ids.extend(data["output_ids"])
+                                ids = data["output_ids"]
+                                meta = data.get("meta_info", {})
+                                comp_tokens = meta.get("completion_tokens")
+                                if comp_tokens is not None and len(ids) == comp_tokens:
+                                    # Cumulative mode: replace
+                                    output.output_ids = list(ids)
+                                else:
+                                    # Delta mode: extend
+                                    output.output_ids.extend(ids)
 
                             # NOTE: Some completion API might have a last
                             # usage summary response without a token so we
