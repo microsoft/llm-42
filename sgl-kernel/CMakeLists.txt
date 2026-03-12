@@ -42,6 +42,36 @@ endif()
 find_package(Torch REQUIRED)
 clear_cuda_arches(CMAKE_FLAG)
 
+# ========================= GPU Auto-Detection ========================= #
+# Detect GPU family at build time to compile only for the target architecture.
+# Override with: -DSGL_KERNEL_GPU_FAMILY=hopper|blackwell|ampere|all
+if(NOT DEFINED SGL_KERNEL_GPU_FAMILY)
+    execute_process(
+        COMMAND nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+        OUTPUT_VARIABLE _GPU_CAPS
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE _GPU_DETECT_RESULT
+    )
+    if(_GPU_DETECT_RESULT EQUAL 0 AND _GPU_CAPS)
+        # Take the first GPU's compute capability major version
+        string(REGEX MATCH "([0-9]+)\\." _GPU_MAJOR_MATCH "${_GPU_CAPS}")
+        string(REGEX REPLACE "\\." "" _GPU_MAJOR "${_GPU_MAJOR_MATCH}")
+        if(_GPU_MAJOR STREQUAL "10" OR _GPU_MAJOR STREQUAL "12")
+            set(SGL_KERNEL_GPU_FAMILY "blackwell" CACHE STRING "Detected GPU family")
+        elseif(_GPU_MAJOR STREQUAL "9")
+            set(SGL_KERNEL_GPU_FAMILY "hopper" CACHE STRING "Detected GPU family")
+        elseif(_GPU_MAJOR STREQUAL "8")
+            set(SGL_KERNEL_GPU_FAMILY "ampere" CACHE STRING "Detected GPU family")
+        else()
+            set(SGL_KERNEL_GPU_FAMILY "all" CACHE STRING "Unknown GPU, build all archs")
+        endif()
+    else()
+        set(SGL_KERNEL_GPU_FAMILY "all" CACHE STRING "No GPU detected, build all archs")
+    endif()
+endif()
+message(STATUS ">>> SGL_KERNEL_GPU_FAMILY=${SGL_KERNEL_GPU_FAMILY}")
+# ====================================================================== #
+
 # Third Party repos
 # cutlass
 FetchContent_Declare(
@@ -115,15 +145,8 @@ if(CCACHE_FOUND AND ENABLE_CCACHE AND DEFINED ENV{CCACHE_DIR})
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "ccache")
 endif()
 
-# Configure gencode below SM90
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-    set(DEFAULT_ENABLE_BELOW_SM90 OFF)
-    message(STATUS "For aarch64, disable gencode below SM90 by default")
-else()
-    set(DEFAULT_ENABLE_BELOW_SM90 ON)
-endif()
-
-option(ENABLE_BELOW_SM90 "Enable gencode below SM90" ${DEFAULT_ENABLE_BELOW_SM90})
+# =================== Architecture-aware gencode selection =================== #
+# Instead of compiling for all architectures, only compile for the detected GPU.
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
@@ -136,7 +159,6 @@ set(SGL_KERNEL_CUDA_FLAGS
     "-O3"
     "-Xcompiler"
     "-fPIC"
-    "-gencode=arch=compute_90,code=sm_90"
     "-std=c++17"
     "-DFLASHINFER_ENABLE_F16"
     "-DCUTE_USE_PACKED_TUPLE=1"
@@ -148,11 +170,6 @@ set(SGL_KERNEL_CUDA_FLAGS
     "--expt-relaxed-constexpr"
     "--expt-extended-lambda"
 
-    # The following flag leads to the CMAKE_BUILD_PARALLEL_LEVEL breaking,
-    # it triggers OOM with low memory host. Extract the threads number to
-    # option named SGL_KERNEL_COMPILE_THREADS, default value 32.
-    # "--threads=32"
-
     # Supress warnings
     "-Xcompiler=-Wno-clang-format-violations"
     "-Xcompiler=-Wno-conversion"
@@ -160,17 +177,12 @@ set(SGL_KERNEL_CUDA_FLAGS
     "-Xcompiler=-Wno-terminate"
     "-Xcompiler=-Wfatal-errors"
     "-Xcompiler=-ftemplate-backtrace-limit=1"
-    "-Xcudafe=--diag_suppress=177"   # variable was declared but never referenced
-    "-Xcudafe=--diag_suppress=2361"  # invalid narrowing conversion from "char" to "signed char"
-
-    # uncomment to debug
-    # "--ptxas-options=-v"
-    # "--ptxas-options=--verbose,--register-usage-level=10,--warn-on-local-memory-usage"
+    "-Xcudafe=--diag_suppress=177"
+    "-Xcudafe=--diag_suppress=2361"
 )
 
-set(SGL_KERNEL_COMPILE_THREADS 32 CACHE STRING "Set compilation threads, default 32")
+set(SGL_KERNEL_COMPILE_THREADS 4 CACHE STRING "Set compilation threads, default 4")
 
-# When SGL_KERNEL_COMPILE_THREADS value is less than 1, set it to 1
 if (NOT SGL_KERNEL_COMPILE_THREADS MATCHES "^[0-9]+$")
     message(FATAL_ERROR "SGL_KERNEL_COMPILE_THREADS must be an integer, but was set to '${SGL_KERNEL_COMPILE_THREADS}'.")
 elseif (SGL_KERNEL_COMPILE_THREADS LESS 1)
@@ -190,9 +202,7 @@ option(SGL_KERNEL_ENABLE_SM90A            "Enable SM90A"            OFF)
 option(SGL_KERNEL_ENABLE_SM100A           "Enable SM100A"           OFF)
 
 if (SGL_KERNEL_ENABLE_BF16)
-    list(APPEND SGL_KERNEL_CUDA_FLAGS
-        "-DFLASHINFER_ENABLE_BF16"
-    )
+    list(APPEND SGL_KERNEL_CUDA_FLAGS "-DFLASHINFER_ENABLE_BF16")
 endif()
 
 if (SGL_KERNEL_ENABLE_FP8)
@@ -203,25 +213,15 @@ if (SGL_KERNEL_ENABLE_FP8)
     )
 endif()
 
-if (ENABLE_BELOW_SM90)
+# --- Gencode flags based on detected GPU family ---
+if(SGL_KERNEL_GPU_FAMILY STREQUAL "blackwell")
+    message(STATUS ">>> Building for Blackwell (sm_100a/sm_120a) + sm_90a (FA3)")
+    set(ENABLE_BELOW_SM90 OFF)
     list(APPEND SGL_KERNEL_CUDA_FLAGS
-        "-gencode=arch=compute_80,code=sm_80"
-        "-gencode=arch=compute_89,code=sm_89"
-    )
-    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
-        list(APPEND SGL_KERNEL_CUDA_FLAGS
-            "-gencode=arch=compute_87,code=sm_87"
-        )
-    endif()
-
-endif()
-
-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_SM100A)
-    list(APPEND SGL_KERNEL_CUDA_FLAGS
+        "-gencode=arch=compute_90a,code=sm_90a"
         "-gencode=arch=compute_100a,code=sm_100a"
         "-gencode=arch=compute_120a,code=sm_120a"
     )
-    # refer sm_121, sm_110 and sm_101 description  https://github.com/pytorch/pytorch/pull/156176
     if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "13.0")
         list(APPEND SGL_KERNEL_CUDA_FLAGS
             "-gencode=arch=compute_103a,code=sm_103a"
@@ -240,20 +240,82 @@ if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_SM100A)
             )
         endif()
     endif()
-endif()
-
-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.4")
     set(SGL_KERNEL_ENABLE_FA3 ON)
+    list(APPEND SGL_KERNEL_CUDA_FLAGS "-DENABLE_NVFP4=1")
+
+elseif(SGL_KERNEL_GPU_FAMILY STREQUAL "hopper")
+    message(STATUS ">>> Building for Hopper (sm_90/sm_90a)")
+    set(ENABLE_BELOW_SM90 OFF)
     list(APPEND SGL_KERNEL_CUDA_FLAGS
+        "-gencode=arch=compute_90,code=sm_90"
         "-gencode=arch=compute_90a,code=sm_90a"
     )
+    if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.4")
+        set(SGL_KERNEL_ENABLE_FA3 ON)
+    endif()
+
+elseif(SGL_KERNEL_GPU_FAMILY STREQUAL "ampere")
+    message(STATUS ">>> Building for Ampere (sm_80/sm_89/sm_90)")
+    set(ENABLE_BELOW_SM90 ON)
+    list(APPEND SGL_KERNEL_CUDA_FLAGS
+        "-gencode=arch=compute_80,code=sm_80"
+        "-gencode=arch=compute_89,code=sm_89"
+        "-gencode=arch=compute_90,code=sm_90"
+    )
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+        list(APPEND SGL_KERNEL_CUDA_FLAGS "-gencode=arch=compute_87,code=sm_87")
+    endif()
+    if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.4")
+        set(SGL_KERNEL_ENABLE_FA3 ON)
+        list(APPEND SGL_KERNEL_CUDA_FLAGS "-gencode=arch=compute_90a,code=sm_90a")
+    endif()
+
+else()
+    # GPU_FAMILY == "all" - original behavior
+    message(STATUS ">>> Building for ALL architectures")
+    set(ENABLE_BELOW_SM90 ON)
+    list(APPEND SGL_KERNEL_CUDA_FLAGS "-gencode=arch=compute_90,code=sm_90")
+    list(APPEND SGL_KERNEL_CUDA_FLAGS
+        "-gencode=arch=compute_80,code=sm_80"
+        "-gencode=arch=compute_89,code=sm_89"
+    )
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+        list(APPEND SGL_KERNEL_CUDA_FLAGS "-gencode=arch=compute_87,code=sm_87")
+    endif()
+    if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_SM100A)
+        list(APPEND SGL_KERNEL_CUDA_FLAGS
+            "-gencode=arch=compute_100a,code=sm_100a"
+            "-gencode=arch=compute_120a,code=sm_120a"
+        )
+        if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "13.0")
+            list(APPEND SGL_KERNEL_CUDA_FLAGS
+                "-gencode=arch=compute_103a,code=sm_103a"
+                "--compress-mode=size"
+            )
+            if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+                list(APPEND SGL_KERNEL_CUDA_FLAGS
+                    "-gencode=arch=compute_110a,code=sm_110a"
+                    "-gencode=arch=compute_121a,code=sm_121a"
+                )
+            endif()
+        else()
+            if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+                list(APPEND SGL_KERNEL_CUDA_FLAGS "-gencode=arch=compute_101a,code=sm_101a")
+            endif()
+        endif()
+    endif()
+    if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.4")
+        set(SGL_KERNEL_ENABLE_FA3 ON)
+        list(APPEND SGL_KERNEL_CUDA_FLAGS "-gencode=arch=compute_90a,code=sm_90a")
+    endif()
+    if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_FP4)
+        list(APPEND SGL_KERNEL_CUDA_FLAGS "-DENABLE_NVFP4=1")
+    endif()
 endif()
 
-if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "12.8" OR SGL_KERNEL_ENABLE_FP4)
-    list(APPEND SGL_KERNEL_CUDA_FLAGS
-        "-DENABLE_NVFP4=1"
-    )
-endif()
+message(STATUS ">>> SGL_KERNEL_CUDA_FLAGS=${SGL_KERNEL_CUDA_FLAGS}")
+message(STATUS ">>> ENABLE_BELOW_SM90=${ENABLE_BELOW_SM90}")
+message(STATUS ">>> SGL_KERNEL_ENABLE_FA3=${SGL_KERNEL_ENABLE_FA3}")
 
 # All source files
 # NOTE: Please sort the filenames alphabetically
@@ -354,6 +416,8 @@ set(INCLUDES
 
 # =========================== Common SM90 Build ============================= #
 # Build SM90 library with fast math optimization (same namespace, different directory)
+# Skip on Blackwell - only the sm100 build is needed there.
+if(NOT SGL_KERNEL_GPU_FAMILY STREQUAL "blackwell")
 Python_add_library(common_ops_sm90_build MODULE USE_SABI ${SKBUILD_SABI_VERSION} WITH_SOABI ${SOURCES})
 
 target_compile_options(common_ops_sm90_build PRIVATE
@@ -365,9 +429,12 @@ set_target_properties(common_ops_sm90_build PROPERTIES
     OUTPUT_NAME "common_ops"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm90"
 )
+endif() # NOT blackwell
 
 # =========================== Common SM100+ Build ============================= #
 # Build SM100+ library with precise math (same namespace, different directory)
+# Skip on Hopper/Ampere - only the sm90 build is needed there.
+if(NOT SGL_KERNEL_GPU_FAMILY STREQUAL "hopper" AND NOT SGL_KERNEL_GPU_FAMILY STREQUAL "ampere")
 Python_add_library(common_ops_sm100_build MODULE USE_SABI ${SKBUILD_SABI_VERSION} WITH_SOABI ${SOURCES})
 
 target_compile_options(common_ops_sm100_build PRIVATE
@@ -379,6 +446,7 @@ set_target_properties(common_ops_sm100_build PROPERTIES
     OUTPUT_NAME "common_ops"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/sm100"
 )
+endif() # NOT hopper/ampere
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 execute_process(
@@ -405,26 +473,25 @@ add_subdirectory(
     ${CMAKE_CURRENT_BINARY_DIR}/mscclpp-build
 )
 
+if(NOT SGL_KERNEL_GPU_FAMILY STREQUAL "blackwell")
 target_link_libraries(common_ops_sm90_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
-target_link_libraries(common_ops_sm100_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
-
-# sparse flash attention
 target_compile_definitions(common_ops_sm90_build PRIVATE
     FLASHATTENTION_DISABLE_BACKWARD
     FLASHATTENTION_DISABLE_DROPOUT
     FLASHATTENTION_DISABLE_UNEVEN_K
 )
+install(TARGETS common_ops_sm90_build LIBRARY DESTINATION sgl_kernel/sm90)
+endif() # NOT blackwell
+
+if(NOT SGL_KERNEL_GPU_FAMILY STREQUAL "hopper" AND NOT SGL_KERNEL_GPU_FAMILY STREQUAL "ampere")
+target_link_libraries(common_ops_sm100_build PRIVATE ${TORCH_LIBRARIES} c10 cuda cublas cublasLt mscclpp_static)
 target_compile_definitions(common_ops_sm100_build PRIVATE
     FLASHATTENTION_DISABLE_BACKWARD
     FLASHATTENTION_DISABLE_DROPOUT
     FLASHATTENTION_DISABLE_UNEVEN_K
 )
-
-# Install to different subdirectories
-# CMake will find the built libraries in their respective LIBRARY_OUTPUT_DIRECTORY locations
-# and install them to the specified destinations
-install(TARGETS common_ops_sm90_build LIBRARY DESTINATION sgl_kernel/sm90)
 install(TARGETS common_ops_sm100_build LIBRARY DESTINATION sgl_kernel/sm100)
+endif() # NOT hopper/ampere
 
 # ============================ Optional Install: FA3 ============================= #
 # set flash-attention sources file
