@@ -2726,6 +2726,13 @@ class ServerArgs:
             # TODO remove this environment variable as a whole
             os.environ["SGLANG_ENABLE_DETERMINISTIC_INFERENCE"] = "1"
 
+        if self.enable_deterministic_inference and self.enable_llm42:
+            raise ValueError(
+                "--enable-deterministic-inference and --enable-llm42 are mutually exclusive. "
+                "Use --enable-deterministic-inference for global batch-invariant mode, "
+                "or --enable-llm42 for DVR (Decode-Verify-Rollback) deterministic inference."
+            )
+
         if self.enable_deterministic_inference or self.enable_llm42:
             # Check sampling backend
             self.sampling_backend = "pytorch"
@@ -4764,8 +4771,9 @@ class ServerArgs:
         )
         parser.add_argument(
             "--enable-deterministic-inference",
-            action="store_true",
-            help="Enable deterministic inference mode with batch invariant ops.",
+            type=int,
+            default=0,
+            help="Enable deterministic inference globally (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
         )
         parser.add_argument(
             "--enable-llm42",
