@@ -226,6 +226,19 @@ torch::Tensor fp8_blockwise_scaled_mm(
     const torch::Tensor& scales_a,
     const torch::Tensor& scales_b,
     const torch::Dtype& out_dtype);
+torch::Tensor bf16_batch_invariant_mm(
+    const torch::Tensor& mat_a,
+    const torch::Tensor& mat_b,
+    const torch::Dtype& out_dtype,
+    const c10::optional<torch::Tensor>& bias,
+    const c10::optional<torch::Tensor>& out_tensor);
+torch::Tensor bf16_batch_invariant_fused_mm(
+    const torch::Tensor& mat_a,
+    const torch::Tensor& mat_b,
+    const torch::Dtype& out_dtype,
+    const double split_frac,
+    const c10::optional<torch::Tensor>& bias,
+    const c10::optional<torch::Tensor>& out_tensor);
 void scaled_fp4_quant(
     torch::Tensor& output, torch::Tensor const& input, torch::Tensor& output_scale, torch::Tensor const& input_scale);
 void sgl_per_token_group_quant_8bit(
