@@ -208,38 +208,40 @@ class SchedulerMetricsMixin:
             token_usage_msg = f"token usage: {token_usage:.2f}, "
 
         self.stats.new_token_ratio = prefill_stats.new_token_ratio
-        iter_msg = f" [{self.forward_ct + 1}]" if LOG_FORWARD_ITERS else ""
 
-        msg = (
-            f"Prefill batch{iter_msg}, "
-            f"#new-seq: {prefill_stats.num_new_seqs}, "
-            f"#new-token: {prefill_stats.log_input_tokens}, "
-            f"#cached-token: {prefill_stats.log_hit_tokens}, "
-            f"{token_usage_msg}"
-            f"#running-req: {prefill_stats.running_bs}, "
-            f"#queue-req: {len(self.waiting_queue)}, "
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            iter_msg = f" [{self.forward_ct + 1}]" if LOG_FORWARD_ITERS else ""
 
-        if self.disaggregation_mode == DisaggregationMode.PREFILL:
-            msg += f"#prealloc-req: {len(self.disagg_prefill_bootstrap_queue.queue)}, "
-            msg += f"#inflight-req: {len(self.disagg_prefill_inflight_queue)}, "
-            msg += f"input throughput (token/s): {self.last_input_throughput:.2f}, "
-        else:
-            msg += f"input throughput (token/s): {self.last_input_throughput:.2f}, "
+            msg = (
+                f"Prefill batch{iter_msg}, "
+                f"#new-seq: {prefill_stats.num_new_seqs}, "
+                f"#new-token: {prefill_stats.log_input_tokens}, "
+                f"#cached-token: {prefill_stats.log_hit_tokens}, "
+                f"{token_usage_msg}"
+                f"#running-req: {prefill_stats.running_bs}, "
+                f"#queue-req: {len(self.waiting_queue)}, "
+            )
 
-        if self.server_args.language_only:
-            msg += f"waiting-image-req: {len(self.mm_receiver.waiting_list)}, "
-        graph_backend = defaultdict(
-            lambda: "cuda graph",
-            {
-                "cpu": "cpu graph",
-                "npu": "npu graph",
-            },
-        )
+            if self.disaggregation_mode == DisaggregationMode.PREFILL:
+                msg += f"#prealloc-req: {len(self.disagg_prefill_bootstrap_queue.queue)}, "
+                msg += f"#inflight-req: {len(self.disagg_prefill_inflight_queue)}, "
+                msg += f"input throughput (token/s): {self.last_input_throughput:.2f}, "
+            else:
+                msg += f"input throughput (token/s): {self.last_input_throughput:.2f}, "
 
-        msg += f"{graph_backend[self.device]}: {can_run_cuda_graph}"
+            if self.server_args.language_only:
+                msg += f"waiting-image-req: {len(self.mm_receiver.waiting_list)}, "
+            graph_backend = defaultdict(
+                lambda: "cuda graph",
+                {
+                    "cpu": "cpu graph",
+                    "npu": "npu graph",
+                },
+            )
 
-        logger.info(msg)
+            msg += f"{graph_backend[self.device]}: {can_run_cuda_graph}"
+
+            logger.debug(msg)
 
         if self.enable_metrics:
             self.metrics_collector.increment_realtime_tokens(
@@ -363,7 +365,6 @@ class SchedulerMetricsMixin:
             )
 
         iter_msg = f" [{self.forward_ct}]" if LOG_FORWARD_ITERS else ""
-        msg = f"Decode batch{iter_msg}, #running-req: {num_running_reqs}, {token_usage_msg}"
 
         if self.spec_algorithm.is_none():
             spec_accept_length = 0
@@ -387,32 +388,37 @@ class SchedulerMetricsMixin:
             self.spec_total_num_accepted_tokens += self.spec_num_accepted_tokens
             self.spec_total_num_forward_ct += self.spec_num_forward_ct
             self.spec_num_accepted_tokens = self.spec_num_forward_ct = 0
-            msg += f"accept len: {spec_accept_length:.2f}, accept rate: {spec_accept_rate:.2f}, "
         cache_hit_rate = 0.0
 
-        if self.disaggregation_mode == DisaggregationMode.DECODE:
-            msg += f"pre-allocated usage: {self.disagg_decode_prealloc_queue.num_tokens_pre_allocated / self.max_total_num_tokens:.2f}, "
-            msg += f"#prealloc-req: {len(self.disagg_decode_prealloc_queue.queue)}, "
-            msg += f"#transfer-req: {len(self.disagg_decode_transfer_queue.queue)}, "
-            msg += f"#retracted-req: {len(self.disagg_decode_prealloc_queue.retracted_queue)}, "
+        if logger.isEnabledFor(logging.DEBUG):
+            msg = f"Decode batch{iter_msg}, #running-req: {num_running_reqs}, {token_usage_msg}"
 
-        if self.server_args.language_only:
-            msg += f"waiting-image-req: {len(self.mm_receiver.waiting_list)}, "
+            if not self.spec_algorithm.is_none():
+                msg += f"accept len: {spec_accept_length:.2f}, accept rate: {spec_accept_rate:.2f}, "
 
-        graph_backend = defaultdict(
-            lambda: "cuda graph",
-            {
-                "cpu": "cpu graph",
-                "npu": "npu graph",
-            },
-        )
-        msg += (
-            f"{graph_backend[self.device]}: {can_run_cuda_graph}, "
-            f"gen throughput (token/s): {self.last_gen_throughput:.2f}, "
-            f"#queue-req: {len(self.waiting_queue)}"
-        )
+            if self.disaggregation_mode == DisaggregationMode.DECODE:
+                msg += f"pre-allocated usage: {self.disagg_decode_prealloc_queue.num_tokens_pre_allocated / self.max_total_num_tokens:.2f}, "
+                msg += f"#prealloc-req: {len(self.disagg_decode_prealloc_queue.queue)}, "
+                msg += f"#transfer-req: {len(self.disagg_decode_transfer_queue.queue)}, "
+                msg += f"#retracted-req: {len(self.disagg_decode_prealloc_queue.retracted_queue)}, "
 
-        logger.info(msg)
+            if self.server_args.language_only:
+                msg += f"waiting-image-req: {len(self.mm_receiver.waiting_list)}, "
+
+            graph_backend = defaultdict(
+                lambda: "cuda graph",
+                {
+                    "cpu": "cpu graph",
+                    "npu": "npu graph",
+                },
+            )
+            msg += (
+                f"{graph_backend[self.device]}: {can_run_cuda_graph}, "
+                f"gen throughput (token/s): {self.last_gen_throughput:.2f}, "
+                f"#queue-req: {len(self.waiting_queue)}"
+            )
+
+            logger.debug(msg)
         if self.enable_metrics:
             # Basics
             self.stats.num_running_reqs = num_running_reqs
