@@ -540,9 +540,17 @@ class LLM42Worker:
 
             # 2. Allocate temporary KV cache for padding positions
             if llm42_info.total_padding_cache_slots > 0:
-                llm42_info.allocate_padding_kv_cache(
+                alloc_ok = llm42_info.allocate_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
+                if not alloc_ok:
+                    logger.error(
+                        "FATAL: Padding KV cache allocation failed during LLM-42 verification. "
+                        "This breaks the fixed-batch-shape invariant required for deterministic inference. "
+                        "The server will shut down to prevent silent non-determinism."
+                    )
+                    import os, signal
+                    os.kill(os.getpid(), signal.SIGTERM)
 
             # 3. Build the verification ScheduleBatch
             if num_dummies > 0:
