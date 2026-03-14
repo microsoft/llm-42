@@ -12,8 +12,9 @@ HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
-LLM42_WINDOW_SIZE="${LLM42_WINDOW_SIZE:-64}"
+ENABLE_SGLANG_DETERMINISM="${ENABLE_SGLANG_DETERMINISM:-0}"
 ENABLE_LLM42="${ENABLE_LLM42:-3}"
+LLM42_WINDOW_SIZE="${LLM42_WINDOW_SIZE:-64}"
 LLM42_VERIFY_BATCH_SIZE="${LLM42_VERIFY_BATCH_SIZE:-8}"
 LOG_DIR="${LOG_DIR:-./server_logs_${ATTENTION_BACKEND}_TP${TP_SIZE}}"
 
@@ -84,9 +85,10 @@ for ((i=0; i<NUM_GPUS; i++)); do
         --disable-overlap-schedule \
         --enable-metrics \
         --random-seed 42 \
+        --enable-deterministic-inference $ENABLE_SGLANG_DETERMINISM \
         --chunked-prefill-size -1 \
-        --llm42-window-size "$LLM42_WINDOW_SIZE" \
         --enable-llm42 "$ENABLE_LLM42" \
+        --llm42-window-size "$LLM42_WINDOW_SIZE" \
         --llm42-verify-batch-size "$LLM42_VERIFY_BATCH_SIZE" \
         > "$LOG_FILE" 2>&1 &
     
