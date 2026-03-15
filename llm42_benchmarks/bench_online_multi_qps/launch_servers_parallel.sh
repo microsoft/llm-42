@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 NUM_GPUS="${NUM_GPUS:-4}"
-MODEL_PATH="${SGLANG_TEST_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
+MODEL_PATH="${MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 TP_SIZE="${SGLANG_TP_SIZE:-1}"

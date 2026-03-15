@@ -68,7 +68,7 @@ build_sgl_kernel() {
     # Build wheel (similar to make build)
     print_status "Building sgl-kernel wheel..."
     rm -rf dist/* || true
-    CMAKE_POLICY_VERSION_MINIMUM=3.5 MAX_JOBS=96 CMAKE_BUILD_PARALLEL_LEVEL=96 \
+    CMAKE_POLICY_VERSION_MINIMUM=3.5 MAX_JOBS=32 CMAKE_BUILD_PARALLEL_LEVEL=32 \
         uv build --wheel -Cbuild-dir=build . --verbose --color=always --no-build-isolation
     
     # Install the built wheel

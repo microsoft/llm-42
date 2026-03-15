@@ -405,6 +405,12 @@ def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argpars
     num_text_match = sum(1 for p in prompt_results if p["text_match"])
     num_overall_match = sum(1 for p in prompt_results if p["overall_match"])
     num_mismatch = sum(1 for p in prompt_results if not p["overall_match"])
+    # Non-zero mismatches: mismatch where all configs produced non-zero output
+    num_mismatch_non_zero = sum(
+        1 for p in prompt_results
+        if not p["overall_match"]
+        and all(g["output_len"] > 0 for g in p["token_groups"])
+    )
     total = len(prompt_results)
     
     # Write summary log
@@ -455,6 +461,7 @@ def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argpars
         f.write(f"Tokens Matched: {num_tokens_match} ({100*num_tokens_match/total:.2f}%)\n")
         f.write(f"Overall Matched (text OR tokens): {num_overall_match} ({100*num_overall_match/total:.2f}%)\n")
         f.write(f"Mismatched: {num_mismatch} ({100*num_mismatch/total:.2f}%)\n")
+        f.write(f"Mismatched (non-zero): {num_mismatch_non_zero} ({100*num_mismatch_non_zero/total:.2f}%)\n")
     
     # Write detailed JSON
     detailed_path = output_dir / "comparison_detailed.json"
@@ -470,6 +477,7 @@ def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argpars
                 "tokens_matched": num_tokens_match,
                 "overall_matched": num_overall_match,
                 "mismatched": num_mismatch,
+                "mismatched_non_zero": num_mismatch_non_zero,
                 "text_match_rate": num_text_match / total if total > 0 else 0,
                 "tokens_match_rate": num_tokens_match / total if total > 0 else 0,
                 "overall_match_rate": num_overall_match / total if total > 0 else 0,
@@ -493,6 +501,7 @@ def compare_all_configs(results: List[dict], output_dir: Path, cli_args: argpars
     print(f"  Tokens Matched: {num_tokens_match} ({100*num_tokens_match/total:.2f}%)")
     print(f"  Overall Matched (text OR tokens): {num_overall_match} ({100*num_overall_match/total:.2f}%)")
     print(f"  Mismatched: {num_mismatch} ({100*num_mismatch/total:.2f}%)")
+    print(f"  Mismatched (non-zero): {num_mismatch_non_zero} ({100*num_mismatch_non_zero/total:.2f}%)")
     print(f"\nResults saved to: {output_dir}")
 
 
