@@ -207,10 +207,11 @@ class SchedulerRuntimeCheckerMixin:
             log_msg = f"[Mem Check (BUSY)] {available_size=}, {evictable_size=}, {protected_size=}, {uncached_size=}"
             logger.info(log_msg)
 
-        total_tokens = available_size + evictable_size + protected_size + uncached_size
+        reserved_slots = getattr(self, 'reserved_kv_slots', 0)
+        total_tokens = available_size + evictable_size + protected_size + uncached_size + reserved_slots
         assert (
             total_tokens == self.max_total_num_tokens
-        ), f"Mem Leak Detected! {total_tokens=} vs {self.max_total_num_tokens=}"
+        ), f"Mem Leak Detected! {total_tokens=} vs {self.max_total_num_tokens=}, {reserved_slots=}"
 
     def _check_req_pool(self: Scheduler):
         if self.disaggregation_mode == DisaggregationMode.DECODE:
@@ -248,9 +249,8 @@ class SchedulerRuntimeCheckerMixin:
             memory_leak, token_msg = self._check_radix_cache_memory()
 
         if memory_leak:
-            # In LLM-42 verification mode, the fixed-size pool's temporary
-            # padding allocations can cause minor accounting discrepancies.
-            # Downgrade to warning instead of crashing the server.
+            # In LLM-42 verification mode, downgrade to warning as a safety net
+            # in case of transient accounting discrepancies.
             is_llm42 = getattr(self, 'server_args', None) and getattr(self.server_args, 'enable_llm42', 0)
             strict = envs.SGLANG_ENABLE_STRICT_MEM_CHECK_DURING_IDLE.get() and not is_llm42
             msg = "token_to_kv_pool_allocator memory leak detected! " f"{token_msg}"

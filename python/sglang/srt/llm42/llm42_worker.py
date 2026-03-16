@@ -134,9 +134,36 @@ class FixedSizeVerificationPool:
         self.dummy_prefix_lens = torch.zeros(fixed_size, dtype=torch.int64, device=device)
         self.dummy_output_lens = torch.full((fixed_size,), window_size, dtype=torch.int64, device=device)
         
+        # Pre-allocate KV cache slots for padding tokens of real requests.
+        # Worst case: every real request has 1 unverified token and needs
+        # (window_size - 1) padding slots → fixed_size * (window_size - 1).
+        max_padding_slots = fixed_size * (window_size - 1)
+        if max_padding_slots > 0:
+            padding_slots_to_alloc = max_padding_slots
+            if page_size > 1:
+                padding_slots_to_alloc = (
+                    (max_padding_slots + page_size - 1) // page_size
+                ) * page_size
+            self.padding_cache_pool = token_to_kv_pool_allocator.alloc(padding_slots_to_alloc)
+            if self.padding_cache_pool is None or len(self.padding_cache_pool) == 0:
+                raise RuntimeError(
+                    f"Failed to allocate {padding_slots_to_alloc} KV cache slots for padding pool. "
+                    f"Consider reducing llm42_verify_batch_size or increasing KV cache size."
+                )
+            # Trim to exact amount needed (discard page-alignment surplus)
+            if len(self.padding_cache_pool) > max_padding_slots:
+                self._padding_cache_pool_allocated = self.padding_cache_pool
+                self.padding_cache_pool = self.padding_cache_pool[:max_padding_slots]
+            else:
+                self._padding_cache_pool_allocated = self.padding_cache_pool
+        else:
+            self.padding_cache_pool = None
+            self._padding_cache_pool_allocated = None
+        
         logger.info(
             f"FixedSizeVerificationPool initialized: fixed_size={fixed_size}, "
             f"window_size={window_size}, dummy_cache_slots={len(self.dummy_cache_locs)}, "
+            f"padding_cache_slots={max_padding_slots}, "
             f"dummy_pool_indices={allocated_pool_indices}"
         )
     
@@ -167,6 +194,29 @@ class FixedSizeVerificationPool:
             self.dummy_req_pool_indices[:num_dummies],
         )
     
+    def get_padding_cache_locs(self, num_slots: int) -> Optional[torch.Tensor]:
+        """
+        Get a slice of pre-allocated padding KV cache slots.
+        
+        Args:
+            num_slots: Number of padding cache slots needed
+            
+        Returns:
+            Tensor of cache locations, or None if no slots needed or pool unavailable
+        """
+        if num_slots <= 0:
+            return None
+        if self.padding_cache_pool is None:
+            raise RuntimeError(
+                f"Padding cache pool not allocated but {num_slots} slots requested"
+            )
+        if num_slots > len(self.padding_cache_pool):
+            raise RuntimeError(
+                f"Requested {num_slots} padding slots but pool only has "
+                f"{len(self.padding_cache_pool)}"
+            )
+        return self.padding_cache_pool[:num_slots]
+
     def get_dummy_sampling_tensors(self, num_dummies: int):
         """
         Get pre-allocated dummy sampling tensors.
@@ -199,6 +249,12 @@ class FixedSizeVerificationPool:
         if self.dummy_cache_locs is not None and len(self.dummy_cache_locs) > 0:
             token_to_kv_pool_allocator.free(self.dummy_cache_locs)
             self.dummy_cache_locs = None
+        
+        # Free pre-allocated padding cache pool
+        if self._padding_cache_pool_allocated is not None and len(self._padding_cache_pool_allocated) > 0:
+            token_to_kv_pool_allocator.free(self._padding_cache_pool_allocated)
+            self._padding_cache_pool_allocated = None
+            self.padding_cache_pool = None
         
         # Also free the req_to_token_pool slots
         if hasattr(self, '_allocated_pool_indices') and self._allocated_pool_indices is not None:
@@ -538,19 +594,26 @@ class LLM42Worker:
             if num_dummies > 0:
                 llm42_info.append_dummy_entries(num_dummies, self.fixed_pool.window_size)
 
-            # 2. Allocate temporary KV cache for padding positions
+            # 2. Assign pre-allocated padding KV cache slots (or allocate on the fly
+            #    for the variable-size path which has no fixed_pool)
             if llm42_info.total_padding_cache_slots > 0:
-                alloc_ok = llm42_info.allocate_padding_kv_cache(
-                    original_batch.token_to_kv_pool_allocator
-                )
-                if not alloc_ok:
-                    logger.error(
-                        "FATAL: Padding KV cache allocation failed during LLM-42 verification. "
-                        "This breaks the fixed-batch-shape invariant required for deterministic inference. "
-                        "The server will shut down to prevent silent non-determinism."
+                if self.fixed_pool is not None:
+                    padding_locs = self.fixed_pool.get_padding_cache_locs(
+                        llm42_info.total_padding_cache_slots
                     )
-                    import os, signal
-                    os.kill(os.getpid(), signal.SIGTERM)
+                    llm42_info.set_padding_cache_locs(padding_locs)
+                else:
+                    alloc_ok = llm42_info.allocate_padding_kv_cache(
+                        original_batch.token_to_kv_pool_allocator
+                    )
+                    if not alloc_ok:
+                        logger.error(
+                            "FATAL: Padding KV cache allocation failed during LLM-42 verification. "
+                            "This breaks the fixed-batch-shape invariant required for deterministic inference. "
+                            "The server will shut down to prevent silent non-determinism."
+                        )
+                        import os, signal
+                        os.kill(os.getpid(), signal.SIGTERM)
 
             # 3. Build the verification ScheduleBatch
             if num_dummies > 0:
@@ -612,8 +675,9 @@ class LLM42Worker:
             # 7. Release verification-batch tensor references
             self._cleanup_verify_batch(verify_batch)
 
-            # 8. Free temporary KV cache for padding
-            if llm42_info.total_padding_cache_slots > 0:
+            # 8. Free temporary KV cache for padding (only for variable-size path;
+            #    fixed_pool padding is pre-allocated and reused)
+            if llm42_info.total_padding_cache_slots > 0 and self.fixed_pool is None:
                 llm42_info.free_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
@@ -621,7 +685,7 @@ class LLM42Worker:
             return rollback_results
 
         except Exception as e:
-            if 'llm42_info' in locals() and llm42_info.total_padding_cache_slots > 0:
+            if 'llm42_info' in locals() and llm42_info.total_padding_cache_slots > 0 and self.fixed_pool is None:
                 try:
                     llm42_info.free_padding_kv_cache(
                         original_batch.token_to_kv_pool_allocator

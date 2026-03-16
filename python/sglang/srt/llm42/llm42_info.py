@@ -174,9 +174,29 @@ class LLM42Info:
             padding_counts=padding_counts,
         )
 
+    def set_padding_cache_locs(self, padding_locs: torch.Tensor):
+        """
+        Assign pre-allocated padding KV cache slots.
+        
+        Used when padding cache is managed externally (e.g., by
+        FixedSizeVerificationPool) instead of allocated per-pass.
+        
+        Args:
+            padding_locs: Pre-allocated cache location tensor (at least
+                ``total_padding_cache_slots`` elements).
+        """
+        self.padding_cache_locs = padding_locs[:self.total_padding_cache_slots]
+        # No allocated tensor to free — the pool owns it
+        self.padding_cache_locs_allocated = None
+
     def allocate_padding_kv_cache(self, token_to_kv_pool_allocator) -> bool:
         """
         Allocate temporary KV cache slots for padding tokens.
+        
+        This is the fallback path used when no pre-allocated padding pool is
+        available (variable-size verification).  When a
+        ``FixedSizeVerificationPool`` is in use, call :meth:`set_padding_cache_locs`
+        instead.
         
         Args:
             token_to_kv_pool_allocator: The KV cache allocator
