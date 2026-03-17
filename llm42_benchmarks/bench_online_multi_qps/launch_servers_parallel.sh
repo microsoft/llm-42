@@ -16,7 +16,8 @@ ENABLE_SGLANG_DETERMINISM="${ENABLE_SGLANG_DETERMINISM:-0}"
 ENABLE_LLM42="${ENABLE_LLM42:-3}"
 LLM42_WINDOW_SIZE="${LLM42_WINDOW_SIZE:-64}"
 LLM42_VERIFY_BATCH_SIZE="${LLM42_VERIFY_BATCH_SIZE:-8}"
-LOG_DIR="${LOG_DIR:-./server_logs_${ATTENTION_BACKEND}_TP${TP_SIZE}}"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+LOG_DIR="${LOG_DIR:-./server_logs/TP_${TP_SIZE}_${TIMESTAMP}}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -90,6 +91,7 @@ for ((i=0; i<NUM_GPUS; i++)); do
         --enable-llm42 "$ENABLE_LLM42" \
         --llm42-window-size "$LLM42_WINDOW_SIZE" \
         --llm42-verify-batch-size "$LLM42_VERIFY_BATCH_SIZE" \
+        --timeout-keep-alive 6000 \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!
@@ -121,8 +123,8 @@ for ((i=0; i<NUM_GPUS; i++)); do
         URLS="$URLS,http://127.0.0.1:$PORT"
     fi
 done
-echo "  ./run_compare_mismatches_multi_qps.sh"
-echo "  (or with custom QPS: QPS_VALUES=\"1,3,6,10\" ./run_compare_mismatches_multi_qps.sh)"
+echo "  ./run_compare_multi_qps.sh"
+echo "  (or with custom QPS: QPS_VALUES=\"1,3,6,10\" ./run_compare_multi_qps.sh)"
 echo ""
 echo "Press Ctrl+C to stop all servers..."
 echo "=============================================="

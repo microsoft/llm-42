@@ -10,26 +10,35 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # Common settings
 export NUM_PROMPTS=${NUM_PROMPTS:-4096}
 
+# Create a timestamped run directory so each invocation is isolated
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+RUN_DIR="${ROOT}/runs/${TIMESTAMP}"
+export RESULTS_ROOT="${RUN_DIR}/results"
+mkdir -p "$RESULTS_ROOT"
+
+LLM42_RATIOS="${LLM42_RATIOS:-0.02 0.05 0.1 0.2 0.5 1.0}"
+
 echo "=============================================="
 echo "Running Offline Throughput for Multiple Datasets"
 echo "=============================================="
 echo "NUM_PROMPTS: $NUM_PROMPTS"
+echo "Run Dir: $RUN_DIR"
 echo ""
 echo "Configurations:"
 echo "  - Non-Det, Global-Det: det_ratio=1.0"
-echo "  - LLM42: det_ratios=0.02, 0.05, 0.1, 0.2, 0.5, 1.0"
+echo "  - LLM42: det_ratios=${LLM42_RATIOS}"
 echo ""
 
 # Dataset configurations
 declare -a DATASET_CONFIGS=(
     "sharegpt"
-    "random_in512_out256"
-    "random_in1024_out256"
-    "random_in1024_out512"
-    "random_in2048_out256"
-    "random_in2048_out512"
-    "random_in4096_out512"
-    "arxiv"
+    #"random_in512_out256"
+    #"random_in1024_out256"
+    #"random_in1024_out512"
+    #"random_in2048_out256"
+    #"random_in2048_out512"
+    #"random_in4096_out512"
+    #"arxiv"
 )
 
 # Run each dataset configuration
@@ -115,29 +124,29 @@ echo "=============================================="
 echo "All dataset configurations completed!"
 echo "=============================================="
 echo ""
-echo "Results saved in: ${ROOT}/results/"
+echo "Results saved in: ${RESULTS_ROOT}/"
 for config in "${DATASET_CONFIGS[@]}"; do
-    echo "  - ${ROOT}/results/${config}/"
+    echo "  - ${RESULTS_ROOT}/${config}/"
 done
 echo ""
 
-# Create plots directory
-PLOTS_DIR="${ROOT}/plots"
+# Create plots directory inside the run directory
+PLOTS_DIR="${RUN_DIR}/plots"
 mkdir -p "$PLOTS_DIR"
 
 echo "Generating throughput comparison plots..."
 python "${ROOT}/plot_throughput_comparison.py" \
-    --results-dirs "${ROOT}"/results/* \
+    --results-dirs "${RESULTS_ROOT}"/* \
     --output "${PLOTS_DIR}/throughput_comparison"
 
-# Create tables directory
-TABLES_DIR="${ROOT}/tables"
+# Create tables directory inside the run directory
+TABLES_DIR="${RUN_DIR}/tables"
 mkdir -p "$TABLES_DIR"
 
 echo ""
 echo "Generating LaTeX tables..."
 python "${ROOT}/generate_latex_tables.py" \
-    --results-dirs "${ROOT}"/results/* \
+    --results-dirs "${RESULTS_ROOT}"/* \
     --output-dir "$TABLES_DIR"
 
 echo ""
@@ -150,6 +159,8 @@ echo "Generated in ${TABLES_DIR}/:"
 echo "  - rollback_ws_32_bs_16.tex"
 echo "  - rollback_ws_64_bs_8.tex"
 echo ""
+echo "Run directory: ${RUN_DIR}"
+echo ""
 echo "To regenerate:"
-echo "  python plot_throughput_comparison.py --results-dirs results/* --output plots/throughput_comparison"
-echo "  python generate_latex_tables.py --results-dirs results/* --output-dir tables"
+echo "  python plot_throughput_comparison.py --results-dirs ${RESULTS_ROOT}/* --output ${PLOTS_DIR}/throughput_comparison"
+echo "  python generate_latex_tables.py --results-dirs ${RESULTS_ROOT}/* --output-dir ${TABLES_DIR}"
