@@ -28,14 +28,14 @@ QPS_VALUES=${QPS_VALUES:-"8,11,16,21,12,18,25,30,32,36,40,42,6,9,10,14,20,28,34,
 MODEL=${MODEL:-Qwen/Qwen3-30B-A3B}
 TOKENIZER=${TOKENIZER:-}
 DATASET_PATH=${DATASET_PATH:-}
-NUM_PROMPTS_LIST=${NUM_PROMPTS_LIST:-"60000"}  # Comma-separated list of num_prompts values
+NUM_PROMPTS_LIST=${NUM_PROMPTS:-"60000"}  # Comma-separated list of num_prompts values
 SEED=${SEED:-42}
 SEQ_CONCURRENCY=${SEQ_CONCURRENCY:-1}
 SHAREGPT_CONTEXT_LEN=${SHAREGPT_CONTEXT_LEN:-16384}
 EXTRA_REQUEST_BODY=${EXTRA_REQUEST_BODY:-'{"temperature":0}'}
 BACKEND=${BACKEND:-sglang}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BASE_OUTPUT_DIR=${BASE_OUTPUT_DIR:-"${ROOT}/no_stream_temp0_di3_s43_bs17_fa3_${TIMESTAMP}"}
+BASE_OUTPUT_DIR=${BASE_OUTPUT_DIR:-"${ROOT}/runs/seed_${SEED}_attn_${BACKEND}_${TIMESTAMP}"}
 
 # Convert comma-separated strings to arrays
 IFS=',' read -ra URLS_ARRAY <<< "$BASE_URLS"
@@ -269,5 +269,19 @@ echo "=============================================="
 echo "All runs completed!"
 echo "=============================================="
 echo "Results saved to: $BASE_OUTPUT_DIR"
+
+# Run cross-batch comparison for each NUM_PROMPTS value
+echo ""
+echo "=============================================="
+echo "Running cross-batch comparisons..."
+echo "=============================================="
+for NUM_PROMPTS in "${NUM_PROMPTS_ARRAY[@]}"; do
+    OUTPUT_DIR="${BASE_OUTPUT_DIR}/reqs_${NUM_PROMPTS}"
+    if [ -d "$OUTPUT_DIR" ]; then
+        echo ""
+        echo "Cross-batch comparison for NUM_PROMPTS=$NUM_PROMPTS ..."
+        python "${ROOT}/compare_across_batches.py" "$OUTPUT_DIR" || true
+    fi
+done
 
 exit $OVERALL_RESULT

@@ -99,8 +99,6 @@ def main():
         )
         total = sum(len(t) for t in tokens)
         pct = (stats["tokens_rolled_back"] / total * 100) if total else 0
-        print(f"[Run {i}] {len(tokens)} responses, {total} tokens, "
-              f"{stats['rollbacks']} rollbacks ({pct:.2f}% rolled back)")
         # Log each generated output with token length
         for idx, text in enumerate(texts):
             tok_len = len(tokens[idx]) if idx < len(tokens) else 0
@@ -124,6 +122,9 @@ def main():
         print("FAIL: non-deterministic outputs detected")
     else:
         print(f"PASS: all {args.num_runs} runs identical")
+
+    print(f"[Run {i}] {len(tokens)} responses, {total} tokens, "
+            f"{stats['rollbacks']} rollbacks ({pct:.2f}% rolled back)")
 
     return 1 if any_mismatch else 0
 
