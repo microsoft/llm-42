@@ -38,6 +38,21 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Debug flags to skip attention computation and return zeros instead.
+# Useful for isolating non-determinism sources outside of attention.
+_SKIP_DECODE_ATTN = os.environ.get("SGLANG_SKIP_DECODE_ATTN", "0") == "1"
+_SKIP_EXTEND_ATTN = os.environ.get("SGLANG_SKIP_EXTEND_ATTN", "0") == "1"
+_SKIP_VERIFY_ATTN = os.environ.get("SGLANG_SKIP_VERIFY_ATTN", "0") == "1"
+
+if _SKIP_DECODE_ATTN or _SKIP_EXTEND_ATTN or _SKIP_VERIFY_ATTN:
+    logger.warning(
+        "Attention skip flags active: DECODE=%s EXTEND=%s VERIFY=%s. "
+        "Attention will be bypassed for flagged modes (debug only).",
+        _SKIP_DECODE_ATTN,
+        _SKIP_EXTEND_ATTN,
+        _SKIP_VERIFY_ATTN,
+    )
+
 if envs.SGLANG_ENABLE_TORCH_COMPILE.get():
     torch._logging.set_logs(dynamo=logging.ERROR)
     torch._dynamo.config.suppress_errors = True
@@ -300,7 +315,7 @@ class FlashInferAttnBackend(AttentionBackend):
                     BatchPrefillWithPagedKVCacheWrapper(
                         self.workspace_buffer,
                         "NHD",
-                        backend="fa3",
+                        backend=self.prefill_backend,
                     )
                 )
             self.decode_wrappers.append(
@@ -458,7 +473,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 decode_wrappers=self.decode_wrappers,
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=forward_batch.spec_info,
-                fixed_split_size=(self.decode_split_tile_size if self.enable_deterministic else None),
+                fixed_split_size=(self.decode_split_tile_size if self.enable_deterministic or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3) else None),
                 disable_split_kv=False,
             )
             self.forward_metadata = DecodeMetadata(self.decode_wrappers)
@@ -496,23 +511,30 @@ class FlashInferAttnBackend(AttentionBackend):
             # TARGET_LLM42_VERIFY: deterministic verification of output tokens
             # Input tokens already in KV cache, we re-run output tokens for verification
             extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
-            llm42_verify_split_size = self.verification_split_tile_size if self.verification_split_tile_size is not None else 4096
+            # Use prefill_split_tile_size (same as global deterministic extend)
+            # for modes 1/2; fall back to verification_split_tile_size for mode 3.
+            llm42_verify_split_size = (
+                self.prefill_split_tile_size
+                if self.prefill_split_tile_size is not None
+                else (self.verification_split_tile_size if self.verification_split_tile_size is not None else 4096)
+            )
 
+            # Use the same paged wrappers as global deterministic extend
+            # to ensure identical flashinfer kernel behavior.
             self.indices_updater_prefill.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
                 forward_batch.seq_lens_cpu,
                 forward_batch.seq_lens_sum,
                 prefix_lens=forward_batch.extend_prefix_lens,
-                prefill_wrappers=self.llm42_verification_wrappers,
+                prefill_wrappers=self.prefill_wrappers_paged,
                 use_ragged=False,
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=None,
-                fixed_split_size=None,
-                disable_split_kv=False,
+                fixed_split_size=llm42_verify_split_size,
             )
             self.forward_metadata = PrefillMetadata(
-                self.llm42_verification_wrappers, False, extend_no_prefix,
+                self.prefill_wrappers_paged, False, extend_no_prefix,
             )
         else:
             prefix_lens = forward_batch.extend_prefix_lens
@@ -812,6 +834,16 @@ class FlashInferAttnBackend(AttentionBackend):
         forward_batch: ForwardBatch,
         save_kv_cache=True,
     ):
+        # Debug: skip attention for verify or extend modes
+        is_verify = (
+            forward_batch.forward_mode.is_target_verify()
+            or forward_batch.forward_mode.is_target_llm42_verify()
+        )
+        if (is_verify and _SKIP_VERIFY_ATTN) or (
+            not is_verify and _SKIP_EXTEND_ATTN
+        ):
+            return q.contiguous().view(-1, layer.tp_q_head_num * layer.head_dim)
+
         prefill_wrapper_paged = self.forward_metadata.prefill_wrappers[
             self._get_wrapper_idx(layer)
         ]
@@ -837,12 +869,6 @@ class FlashInferAttnBackend(AttentionBackend):
                 forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
                 causal=not layer.is_cross_attention,
                 sm_scale=layer.scaling,
-                # Disable sliding window attention for multi-item scoring:
-                # - Sliding window could cut across item boundaries, breaking semantic coherence
-                # - Multi-item sequences need full attention to properly handle delimiter tokens
-                # - Specialized multi-item parameters (prefix_len_ptr, token_pos_in_items_ptr)
-                #   provide more precise attention control than simple sliding windows
-                # - Item-aware masking takes precedence over window-based masking
                 window_left=(
                     layer.sliding_window_size
                     if not (
@@ -852,7 +878,6 @@ class FlashInferAttnBackend(AttentionBackend):
                     else -1
                 ),
                 logits_soft_cap=logits_soft_cap,
-                # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
                 k_scale=layer.k_scale_float,
                 v_scale=layer.v_scale_float,
             )
@@ -926,6 +951,10 @@ class FlashInferAttnBackend(AttentionBackend):
         forward_batch: ForwardBatch,
         save_kv_cache=True,
     ):
+        # Debug: skip attention for decode mode
+        if _SKIP_DECODE_ATTN:
+            return q.contiguous().view(-1, layer.tp_q_head_num * layer.head_dim)
+
         decode_wrapper = self.forward_metadata.decode_wrappers[
             self._get_wrapper_idx(layer)
         ]
