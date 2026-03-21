@@ -1703,12 +1703,9 @@ class ServerArgs:
             and not is_h20_device
             and self.moe_a2a_backend == "none"
         ):
-            self.enable_flashinfer_allreduce_fusion = True
-
-        # Allow environment variable override to disable allreduce fusion
-        import os
-        if os.environ.get("SGLANG_DISABLE_ALLREDUCE_FUSION", "0") == "1":
-            self.enable_flashinfer_allreduce_fusion = False
+            import os
+            if os.environ.get("SGLANG_ENABLE_ALLREDUCE_FUSION", "0") == "1":
+                self.enable_flashinfer_allreduce_fusion = True
 
     def _handle_mamba_radix_cache(
         self,
