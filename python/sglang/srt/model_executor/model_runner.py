@@ -587,8 +587,14 @@ class ModelRunner(ModelRunnerKVCacheMixin):
         if server_args.enable_deterministic_inference:
             from sglang.srt.batch_invariant_ops import enable_batch_invariant_mode
 
-            # Enables batch_invariant GLOBALLY and keeps it enabled always
-            enable_batch_invariant_mode(server_args.enable_deterministic_inference)
+            # Enables batch_invariant GLOBALLY and keeps it enabled always.
+            # Mode 3 uses the same kernels as mode 2 (triton batch-invariant
+            # matmul) but forces triton attention backend (handled in server_args).
+            bi_mode = (
+                2 if server_args.enable_deterministic_inference == 3
+                else server_args.enable_deterministic_inference
+            )
+            enable_batch_invariant_mode(bi_mode)
         elif server_args.enable_llm42:
             # For enable_llm42, batch_invariant stays DISABLED by default globally.
             # It is dynamically enabled only when needed (prefill/verification).

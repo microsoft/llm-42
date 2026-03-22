@@ -634,7 +634,7 @@ class ServerArgs:
     # Deterministic inference (see arXiv:2601.17768)
     #   enable_deterministic_inference: globally replace all kernels with batch-invariant versions
     #     Mode values: 0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm,
-    #                  3=use standard (non-batch-invariant) kernels in verification pass
+    #                  3=batch_invariant+native_rmsnorm+triton_attention (forces triton backend)
     #   enable_llm42: LLM-42 DVR — decode with fast kernels, verify with fixed-shape reductions
     enable_llm42: int = 0
     llm42_window_size: int = 64             # tokens decoded before verification
@@ -2758,7 +2758,19 @@ class ServerArgs:
                     pass
 
             # Check attention backend
-            if self.attention_backend is None:
+            if self.enable_deterministic_inference == 3:
+                # Mode 3: force triton attention backend
+                if self.attention_backend is not None and self.attention_backend != "triton":
+                    logger.warning(
+                        f"enable_deterministic_inference=3 forces triton attention backend. "
+                        f"Overriding user-specified '{self.attention_backend}'."
+                    )
+                self.attention_backend = "triton"
+                logger.info(
+                    "Deterministic inference mode 3: using triton attention backend "
+                    "with batch-invariant kernels."
+                )
+            elif self.attention_backend is None:
                 # User didn't specify attention backend, fallback based on GPU architecture
                 if is_sm100_supported() or is_sm120_supported():
                     # Blackwell and newer architectures
@@ -4775,7 +4787,8 @@ class ServerArgs:
             "--enable-deterministic-inference",
             type=int,
             default=0,
-            help="Enable deterministic inference globally (0=disabled, 1=bi_kernel+vllm_rmsnorm, 2=batch_invariant+native_rmsnorm).",
+            help="Enable deterministic inference globally (0=disabled, 1=bi_kernel+vllm_rmsnorm, "
+            "2=batch_invariant+native_rmsnorm, 3=batch_invariant+native_rmsnorm+triton_attention).",
         )
         parser.add_argument(
             "--enable-llm42",
