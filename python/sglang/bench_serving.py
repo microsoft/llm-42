@@ -1614,6 +1614,11 @@ def sample_openai_requests(
             tools_tokens = len(tokenizer.encode(tools_str))
             prompt_len += tools_tokens
 
+        # Compute prompt hash for deterministic request selection
+        prompt_hash = _compute_prompt_hash(
+            json.dumps(messages, sort_keys=True), index=len(filtered_dataset)
+        )
+
         # Pass messages list directly - bench_serving handles List[Dict] prompts
         filtered_dataset.append(
             DatasetRow(
@@ -1621,6 +1626,7 @@ def sample_openai_requests(
                 prompt_len=prompt_len,
                 output_len=output_len,
                 extra_request_body=extra_body,  # Store per-request parameters
+                prompt_hash=prompt_hash,
             )
         )
 
@@ -2674,6 +2680,7 @@ async def benchmark(
     num_requests = len(input_requests) if args.dataset_name != "mooncake" else len(input_requests) * mooncake_num_rounds
     num_deterministic = int(num_requests * deterministic_ratio)
     deterministic_hashes = set()
+    deterministic_indices = set()
     if num_deterministic > 0:
         # Collect all prompt hashes and select deterministic ones based on hash
         all_hashes = []
@@ -2708,6 +2715,7 @@ async def benchmark(
         lora_probs = None
 
     pbar = None if disable_tqdm else tqdm(total=pbar_total)
+    request_idx = 0
     async for request in request_generator:
         if lora_names is not None and len(lora_names) != 0:
             if lora_request_distribution == "uniform":
@@ -2728,8 +2736,10 @@ async def benchmark(
         # Per-request parameters take precedence over global ones
         merged_extra_body = {**extra_request_body, **request.extra_request_body}
 
-        # Apply deterministic flag based on prompt_hash
+        # Apply deterministic flag based on prompt_hash or index fallback
         if hasattr(request, 'prompt_hash') and request.prompt_hash in deterministic_hashes:
+            merged_extra_body["is_deterministic"] = True
+        elif request_idx in deterministic_indices:
             merged_extra_body["is_deterministic"] = True
 
         request_func_input = RequestFuncInput(
@@ -2750,6 +2760,7 @@ async def benchmark(
                 limited_request_func(request_func_input=request_func_input, pbar=pbar)
             )
         )
+        request_idx += 1
     outputs: List[RequestFuncOutput] = await asyncio.gather(*tasks)
     if is_multi_turn:
         outputs = [x for output in outputs for x in output]

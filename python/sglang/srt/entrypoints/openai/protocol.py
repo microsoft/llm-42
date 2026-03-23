@@ -747,6 +747,7 @@ class ChatCompletionRequest(BaseModel):
             "custom_params": self.custom_params,
             "sampling_seed": self.seed,
             "spaces_between_special_tokens": spaces_between_special_tokens,
+            "is_deterministic": self.is_deterministic if not isinstance(self.is_deterministic, list) else self.is_deterministic[0],
         }
 
         if self.response_format and self.response_format.type == "json_schema":
