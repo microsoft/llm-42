@@ -362,6 +362,10 @@ class LLM42Info:
                 # Input: [last_verified, actual_unverified[:-1]]
                 input_ids.extend([last_verified_token] + list(actual_unverified[:-1]))
             
+            if req.req_pool_idx is None:
+                logger.warning(f"Skipping req {req.rid} in verification: req_pool_idx is None (likely retracted)")
+                continue
+
             req_pool_indices.append(req.req_pool_idx)
             output_lens.append(padded_len)
             prefix_lens_list.append(len(req.origin_input_ids) + req.llm42_verified_tokens - 1)

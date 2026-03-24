@@ -440,6 +440,13 @@ class LLM42Worker:
         for req in batch.reqs:
             if not req.is_deterministic:
                 continue
+
+            # Skip requests that were retracted between the forward pass and
+            # result processing (overlap scheduler race: retract_decode sets
+            # req_pool_idx=None on the shared Req object while the previous
+            # batch copy still references it).
+            if req.req_pool_idx is None or req.is_retracted:
+                continue
             
             # Calculate unverified tokens
             output_len = len(req.output_ids)
