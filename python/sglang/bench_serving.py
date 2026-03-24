@@ -2704,6 +2704,19 @@ async def benchmark(
     else:
         deterministic_indices = set()
 
+    # Front-load deterministic requests to avoid tail stragglers that inflate
+    # total benchmark duration via head-of-line blocking.
+    # When det_ratio <= 50%, place all det requests in the first 75% of the trace.
+    if deterministic_ratio > 0 and deterministic_ratio <= 0.5 and deterministic_hashes:
+        det_requests = [r for r in input_requests if hasattr(r, "prompt_hash") and r.prompt_hash in deterministic_hashes]
+        non_det_requests = [r for r in input_requests if not (hasattr(r, "prompt_hash") and r.prompt_hash in deterministic_hashes)]
+        # Place det requests within the first 75% of the trace
+        cutoff = int(len(input_requests) * 0.75)
+        first_non_det = non_det_requests[:cutoff - len(det_requests)]
+        remaining_non_det = non_det_requests[cutoff - len(det_requests):]
+        input_requests = first_non_det + det_requests + remaining_non_det
+        print(f"Front-loaded {len(det_requests)} deterministic requests into first 75% of trace (positions {len(first_non_det)}-{len(first_non_det)+len(det_requests)-1})")
+
     # Prepare LoRA request distribution parameters
     if lora_request_distribution == "distinct":
         lora_idx = 0
