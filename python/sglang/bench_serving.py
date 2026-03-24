@@ -2704,18 +2704,35 @@ async def benchmark(
     else:
         deterministic_indices = set()
 
-    # Front-load deterministic requests to avoid tail stragglers that inflate
-    # total benchmark duration via head-of-line blocking.
-    # When det_ratio <= 50%, place all det requests in the first 75% of the trace.
+    # Spread deterministic requests uniformly within the first 75% of the trace
+    # to avoid tail stragglers that inflate total benchmark duration.
     if deterministic_ratio > 0 and deterministic_ratio <= 0.5 and deterministic_hashes:
         det_requests = [r for r in input_requests if hasattr(r, "prompt_hash") and r.prompt_hash in deterministic_hashes]
         non_det_requests = [r for r in input_requests if not (hasattr(r, "prompt_hash") and r.prompt_hash in deterministic_hashes)]
-        # Place det requests within the first 75% of the trace
         cutoff = int(len(input_requests) * 0.75)
-        first_non_det = non_det_requests[:cutoff - len(det_requests)]
-        remaining_non_det = non_det_requests[cutoff - len(det_requests):]
-        input_requests = first_non_det + det_requests + remaining_non_det
-        print(f"Front-loaded {len(det_requests)} deterministic requests into first 75% of trace (positions {len(first_non_det)}-{len(first_non_det)+len(det_requests)-1})")
+        # Distribute det requests uniformly across positions 0..cutoff-1
+        result = []
+        if len(det_requests) > 0:
+            # Calculate evenly-spaced insertion points within the first 75%
+            spacing = cutoff / len(det_requests)
+            det_idx = 0
+            non_det_idx = 0
+            for i in range(cutoff):
+                if det_idx < len(det_requests) and i >= int(det_idx * spacing):
+                    result.append(det_requests[det_idx])
+                    det_idx += 1
+                else:
+                    if non_det_idx < len(non_det_requests):
+                        result.append(non_det_requests[non_det_idx])
+                        non_det_idx += 1
+            # Append any remaining non-det requests for the first 75%
+            while len(result) < cutoff and non_det_idx < len(non_det_requests):
+                result.append(non_det_requests[non_det_idx])
+                non_det_idx += 1
+            # Append the last 25% (all non-det)
+            result.extend(non_det_requests[non_det_idx:])
+            input_requests = result
+        print(f"Spread {len(det_requests)} deterministic requests uniformly within first 75% of trace ({cutoff} positions)")
 
     # Prepare LoRA request distribution parameters
     if lora_request_distribution == "distinct":
