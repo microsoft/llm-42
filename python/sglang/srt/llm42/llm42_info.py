@@ -134,6 +134,16 @@ class LLM42Info:
             if actual_len == 0:
                 continue
             
+            # In fixed-batch mode, truncate to window_size to preserve the
+            # fixed-shape invariant.  Remaining tokens will be verified in
+            # the next round.  On rollback the extra tokens are discarded
+            # together with the mismatched ones; on success the caller must
+            # only advance llm42_verified_tokens by actual_len (not the
+            # full unverified count) so the extra tokens get re-verified.
+            if force_include_all and window_size is not None and actual_len > window_size:
+                unverified_output_ids = unverified_output_ids[:window_size]
+                actual_len = window_size
+            
             output_lens.append(actual_len)
             
             # Determine if padding is needed

@@ -135,8 +135,9 @@ class FixedSizeVerificationPool:
         self.dummy_output_lens = torch.full((fixed_size,), window_size, dtype=torch.int64, device=device)
         
         # Pre-allocate KV cache slots for padding tokens of real requests.
-        # Worst case: every real request has 1 unverified token and needs
-        # (window_size - 1) padding slots → fixed_size * (window_size - 1).
+        # Each request needs (padded_len - 1) cache slots. With truncation in
+        # from_requests, padded_len is at most window_size, so the worst case
+        # is fixed_size * (window_size - 1).
         max_padding_slots = fixed_size * (window_size - 1)
         if max_padding_slots > 0:
             padding_slots_to_alloc = max_padding_slots
@@ -677,7 +678,7 @@ class LLM42Worker:
 
             # 6. Collect rollback results and update per-request stats
             rollback_results = []
-            for req, info in zip(reqs, rollback_info):
+            for req_idx, (req, info) in enumerate(zip(reqs, rollback_info)):
                 req.llm42_num_verification_windows += 1
                 if info is not None and info[1] > 0:
                     req.llm42_num_rollbacks += 1
@@ -685,7 +686,15 @@ class LLM42Worker:
                     if self.metrics_collector:
                         self.metrics_collector.increment_rollbacks(info[1])
                     rollback_results.append((req, info[1]))
-                req.llm42_verified_tokens = len(req.output_ids)
+                    # After rollback, output_ids has been truncated — mark
+                    # everything remaining as verified.
+                    req.llm42_verified_tokens = len(req.output_ids)
+                else:
+                    # No rollback.  Advance by the number of tokens that were
+                    # actually verified (may be < total unverified if truncated
+                    # to window_size in fixed-batch mode).
+                    tokens_verified = llm42_info.output_lens[req_idx] if req_idx < len(llm42_info.output_lens) else 0
+                    req.llm42_verified_tokens += tokens_verified
 
             if rollback_results:
                 rolled_back_reqs = {req for req, _ in rollback_results}
