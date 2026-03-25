@@ -2944,6 +2944,33 @@ async def benchmark(
     resp = requests.get(base_url + "/get_server_info", headers=get_auth_headers())
     server_info = resp.json() if resp.status_code == 200 else None
 
+    # Query LLM42 verification stats if available
+    try:
+        llm42_resp = requests.get(base_url + "/llm42_stats", headers=get_auth_headers(), timeout=5)
+        if llm42_resp.status_code == 200:
+            llm42_data = llm42_resp.json()
+            for dp_key, st in llm42_data.items():
+                if st:
+                    decode = st.get("decode_steps", 0)
+                    verify = st.get("verify_forward_passes", 0)
+                    vreqs = st.get("verify_total_reqs", 0)
+                    vtoks = st.get("verify_total_tokens", 0)
+                    total_fwd = decode + verify
+                    pct = verify / total_fwd * 100 if total_fwd > 0 else 0
+                    print()
+                    print('=' * 50)
+                    print(f" LLM42 Verification Stats ({dp_key}) ")
+                    print(f"{'':=^50}")
+                    print(f"  Decode forward passes:       {decode}")
+                    print(f"  Verify forward passes:       {verify}")
+                    print(f"  Total forward passes:        {total_fwd}")
+                    print(f"  Verify % of total:           {pct:.1f}%")
+                    print(f"  Verify total reqs processed: {vreqs}")
+                    print(f"  Verify total tokens checked: {vtoks}")
+                    print(f"{'':=^50}")
+    except Exception as e:
+        pass  # Server may not support /llm42_stats
+
     if (
         metrics.median_ttft_ms is not None
         and metrics.mean_itl_ms is not None
@@ -2962,6 +2989,7 @@ async def benchmark(
             "random_range_ratio": args.random_range_ratio,
             # Information
             "server_info": server_info,
+            "llm42_stats": llm42_data if 'llm42_data' in dir() else None,
             # Results
             "duration": benchmark_duration,
             "completed": metrics.completed,

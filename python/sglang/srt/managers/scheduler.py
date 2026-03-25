@@ -2756,10 +2756,24 @@ class Scheduler(
         # This field is not serializable.
         ret.pop("model_config", None)
 
+        # LLM42 instrumentation: include verification stats
+        if hasattr(self.model_worker, 'stats'):
+            ret['llm42_stats'] = dict(self.model_worker.stats)
+
         return GetInternalStateReqOutput(internal_state=ret)
 
     def set_internal_state(self, recv_req: SetInternalStateReq):
         server_args_dict = recv_req.server_args
+
+        # Handle LLM42 stats reset
+        if server_args_dict.get("reset_llm42_stats"):
+            if hasattr(self.model_worker, "stats"):
+                for k in self.model_worker.stats:
+                    self.model_worker.stats[k] = 0
+            return SetInternalStateReqOutput(
+                updated=True,
+                server_args=vars(get_global_server_args()),
+            )
         args_allow_update = set(
             [
                 "pp_max_micro_batch_size",

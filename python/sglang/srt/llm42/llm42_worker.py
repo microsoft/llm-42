@@ -327,6 +327,14 @@ class LLM42Worker:
         # (they may be None here, in which case init_fixed_pool() will be called later)
         self.fixed_pool: Optional[FixedSizeVerificationPool] = None
         self._window_size = window_size
+
+        # Instrumentation: count decode steps vs verification forward passes
+        self.stats = {
+            "decode_steps": 0,
+            "verify_forward_passes": 0,
+            "verify_total_reqs": 0,
+            "verify_total_tokens": 0,
+        }
         if req_to_token_pool is not None and token_to_kv_pool_allocator is not None:
             self._init_fixed_pool(
                 req_to_token_pool, 
@@ -405,6 +413,7 @@ class LLM42Worker:
             GenerationBatchResult object
         """
 
+        self.stats["decode_steps"] += 1
         return self.target_worker.forward_batch_generation(model_worker_batch, **kwargs)
 
     def check_and_verify_deterministic_requests(
@@ -644,6 +653,9 @@ class LLM42Worker:
             # 4. Run verification forward pass
             verify_model_worker_batch = verify_batch.get_model_worker_batch()
             verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
+            self.stats["verify_forward_passes"] += 1
+            self.stats["verify_total_reqs"] += len(reqs)
+            self.stats["verify_total_tokens"] += sum(getattr(llm42_info, "output_lens", []))
             verified_token_ids = verify_output.next_token_ids
             verified_logprobs = verify_output.logits_output.next_token_logprobs
 

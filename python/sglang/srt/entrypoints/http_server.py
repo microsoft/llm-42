@@ -599,6 +599,26 @@ async def server_info():
         "version": __version__,
     }
 
+@app.get("/llm42_stats")
+async def llm42_stats():
+    """Return LLM42 verification statistics."""
+    internal_states = await _global_state.tokenizer_manager.get_internal_state()
+    stats = {}
+    for i, state in enumerate(internal_states):
+        llm42_s = state.get("llm42_stats")
+        if llm42_s:
+            stats[f"dp_{i}"] = llm42_s
+    return stats
+
+@app.post("/reset_llm42_stats")
+async def reset_llm42_stats():
+    """Reset LLM42 verification statistics."""
+    obj = SetInternalStateReq(server_args={"reset_llm42_stats": True})
+    await _global_state.tokenizer_manager.set_internal_state(obj)
+    return {"status": "ok"}
+
+
+
 
 @app.get("/get_load")
 async def get_load():
