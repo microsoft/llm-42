@@ -63,7 +63,7 @@ dependencies = [
   "torchaudio==2.8.0",
   "torchvision",
   "tqdm",
-  "transformers==4.56.1",
+  "transformers==5.0.0rc3",
   "uvicorn",
   "uvloop==0.21.0",
   "xgrammar==0.1.24",
