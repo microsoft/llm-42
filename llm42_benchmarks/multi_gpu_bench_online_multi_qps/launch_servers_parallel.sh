@@ -9,11 +9,18 @@ set -e
 NUM_GPUS="${NUM_GPUS:-4}"
 TP_SIZE="${SGLANG_TP_SIZE:-4}"
 NUM_SERVERS=$((NUM_GPUS / TP_SIZE))  # Calculate servers based on available GPUs and TP size
-MODEL_PATH="${SGLANG_TEST_MODEL:-Qwen/Qwen3-30B-A3B-Instruct-2507}"
+MODEL_PATH="${MODEL:-Qwen/Qwen3-30B-A3B-Instruct-2507}"
 HOST="${SGLANG_HOST:-0.0.0.0}"
 BASE_PORT="${SGLANG_BASE_PORT:-30005}"
 ATTENTION_BACKEND="${SGLANG_ATTENTION_BACKEND:-fa3}"
-LOG_DIR="${LOG_DIR:-./server_logs_moe_tp${TP_SIZE}}"
+ENABLE_SGLANG_DETERMINISM="${ENABLE_SGLANG_DETERMINISM:-0}"
+ENABLE_LLM42="${ENABLE_LLM42:-3}"
+LLM42_WINDOW_SIZE="${LLM42_WINDOW_SIZE:-64}"
+LLM42_VERIFY_BATCH_SIZE="${LLM42_VERIFY_BATCH_SIZE:-8}"
+ENABLE_SYMM_MEM="${ENABLE_SYMM_MEM:-0}"
+MEM_FRACTION_STATIC="${MEM_FRACTION_STATIC:-0.8}"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+LOG_DIR="${LOG_DIR:-./server_logs/TP_${TP_SIZE}_${TIMESTAMP}}"
 
 # Determine Python command
 if command -v python &> /dev/null; then
@@ -38,6 +45,12 @@ echo "Num GPUs: $NUM_GPUS"
 echo "TP Size: $TP_SIZE"
 echo "Num Servers: $NUM_SERVERS (= $NUM_GPUS / $TP_SIZE)"
 echo "Attention Backend: $ATTENTION_BACKEND"
+echo "Enable SGLang Determinism: $ENABLE_SGLANG_DETERMINISM"
+echo "Enable LLM42: $ENABLE_LLM42"
+echo "LLM42 Window Size: $LLM42_WINDOW_SIZE"
+echo "LLM42 Verify Batch Size: $LLM42_VERIFY_BATCH_SIZE"
+echo "Enable Symm Mem: $ENABLE_SYMM_MEM"
+echo "Mem Fraction Static: $MEM_FRACTION_STATIC"
 echo "Log Directory: $LOG_DIR"
 echo "=============================================="
 echo ""
@@ -87,9 +100,12 @@ for ((i=0; i<NUM_SERVERS; i++)); do
         --enable-metrics \
         --random-seed 42 \
         --chunked-prefill-size -1 \
-        --llm42-window-size 64 \
-        --enable-llm42 3 \
-        --llm42-verify-batch-size 8 \
+        --enable-deterministic-inference "$ENABLE_SGLANG_DETERMINISM" \
+        --llm42-window-size "$LLM42_WINDOW_SIZE" \
+        --enable-llm42 "$ENABLE_LLM42" \
+        --llm42-verify-batch-size "$LLM42_VERIFY_BATCH_SIZE" \
+        $( [[ "$ENABLE_SYMM_MEM" == "1" ]] && echo "--enable-symm-mem" ) \
+        --mem-fraction-static "$MEM_FRACTION_STATIC" \
         > "$LOG_FILE" 2>&1 &
     
     SERVER_PID=$!

@@ -97,6 +97,18 @@ build_sgl_kernel() {
     echo ""
 }
 
+# Function to install sglang Python dependencies (including PyTorch)
+# This must run BEFORE building sgl-kernel to ensure the kernel is compiled
+# against the same PyTorch version that will be used at runtime.
+install_sglang_deps() {
+    print_status "Installing sglang Python dependencies (including PyTorch)..."
+    cd "$SCRIPT_DIR"
+    pip install -e "python[all]" --no-build-isolation 2>&1 | tail -5
+    print_status "Verifying PyTorch version after dependency install..."
+    python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')" || true
+    echo ""
+}
+
 # Function to build sglang
 build_sglang() {
     print_status "Building sglang..."
@@ -165,6 +177,13 @@ main() {
         esac
     done
     
+    # Install sglang deps first to pin PyTorch version BEFORE compiling sgl-kernel.
+    # This prevents ABI mismatches where sgl-kernel is compiled against one PyTorch
+    # version but a different version is installed later by `pip install sglang[all]`.
+    if [ "$BUILD_KERNEL" = true ] && [ "$BUILD_SGLANG" = true ]; then
+        install_sglang_deps
+    fi
+
     # Build components
     if [ "$BUILD_KERNEL" = true ]; then
         build_sgl_kernel

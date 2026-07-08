@@ -1,0 +1,35 @@
+diff --git a/python/sglang/srt/layers/attention/triton_backend.py b/python/sglang/srt/layers/attention/triton_backend.py
+index 481a4cdbc..cd530755f 100644
+--- a/python/sglang/srt/layers/attention/triton_backend.py
++++ b/python/sglang/srt/layers/attention/triton_backend.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ 
++import os
+ from dataclasses import dataclass
+ from typing import TYPE_CHECKING, List, Optional
+ 
+@@ -219,8 +220,11 @@ class TritonAttnBackend(AttentionBackend):
+             num_kv_splits.fill_(self.max_kv_splits)
+             return
+ 
+-        # deterministic
+-        if self.split_tile_size is not None and self.enable_deterministic:
++        # HACK: Set SGLANG_FORCE_NONDET_DECODE=1 to bypass deterministic kv_splits
++        if self.enable_deterministic and os.environ.get("SGLANG_FORCE_NONDET_DECODE", "0") == "1":
++            # Fall through to adaptive GPU-aware splitting below
++            pass
++        elif self.split_tile_size is not None and self.enable_deterministic:
+             # expand seq_lens to match num_token
+             if num_group > 1:
+                 expanded_seq_lens = seq_lens.repeat_interleave(num_group)
+@@ -853,7 +857,8 @@ class TritonAttnBackend(AttentionBackend):
+             causal = False
+ 
+         # Deterministic mode: use unified 1-stage kernel
+-        if self.enable_deterministic:
++        # HACK: Set SGLANG_FORCE_2STAGE_EXTEND=1 to bypass and use 2-stage kernel
++        if self.enable_deterministic and os.environ.get("SGLANG_FORCE_2STAGE_EXTEND", "0") != "1":
+             return self._forward_extend_unified(
+                 q, o, layer, forward_batch, causal, logits_soft_cap, sinks
+             )

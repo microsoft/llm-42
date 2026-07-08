@@ -23,41 +23,43 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
    * From flash-attention
    */
   m.def(
-      "fwd("
-        "Tensor q,"
-        "Tensor k,"
-        "Tensor v,"
-        "Tensor(k_new!)? k_new = None,"
-        "Tensor(v_new!)? v_new = None,"
-        "Tensor? q_v = None,"
-        "Tensor(out!)? out = None,"
-        "Tensor? cu_seqlens_q = None,"
-        "Tensor? cu_seqlens_k = None,"
-        "Tensor? cu_seqlens_k_new = None,"
-        "Tensor? seqused_q = None,"
-        "Tensor? seqused_k = None,"
-        "int? max_seqlen_q = None,"
-        "int? max_seqlen_k = None,"
-        "Tensor? page_table = None,"
-        "Tensor? kv_batch_idx = None,"
-        "Tensor? leftpad_k = None,"
-        "Tensor? rotary_cos = None,"
-        "Tensor? rotary_sin = None,"
-        "Tensor? seqlens_rotary = None,"
-        "Tensor? q_descale = None,"
-        "Tensor? k_descale = None,"
-        "Tensor? v_descale = None,"
-        "float? softmax_scale = None,"
-        "bool is_causal = False,"
-        "int window_size_left = -1,"
-        "int window_size_right = -1,"
-        "int attention_chunk = 0,"
-        "float softcap = 0.0,"
-        "bool is_rotary_interleaved = False,"
-        "Tensor? scheduler_metadata = None,"
-        "int num_splits = 0,"
-        "bool? pack_gqa = None,"
-        "int sm_margin = 0) -> (Tensor(out!), Tensor, Tensor, Tensor)");
+      "fwd(Tensor   q,"                 // (b, s_q, h, d) or (total_q, h, d) if there is cu_seqlens_q
+      "    Tensor   k,"                 // (b_k, s_k, h_k, d) or (total_k, h_k, d) or paged
+      "    Tensor   v,"                 // (b_k, s_k, h_k, dv) or (total_k, h_k, dv) or paged
+      "    Tensor?  k_new,"             // (b, s_k_new, h_k, d) or (total_k_new, h_k, d)
+      "    Tensor?  v_new,"             // (b, s_k_new, h_k, dv) or (total_k_new, h_k, dv)
+      "    Tensor?  q_v,"               // (b, s_q, h, dv) or (total_q_new, h, dv)
+      "    Tensor?  out,"               // (b, s_q, h, dv) or (total_q, h, dv)
+      "    Tensor?  cu_seqlens_q,"      // b+1
+      "    Tensor?  cu_seqlens_k,"      // b+1
+      "    Tensor?  cu_seqlens_k_new,"  // b+1
+      "    Tensor?  seqused_q,"         // b
+      "    Tensor?  seqused_k,"         // b
+      "    int?     max_seqlen_q,"
+      "    int?     max_seqlen_k,"    // TODO: check if needed
+      "    Tensor?  page_table,"      // (b_k, max_num_pages_per_seq)
+      "    Tensor?  kv_batch_idx,"    // b
+      "    Tensor?  leftpad_k,"       // b
+      "    Tensor?  rotary_cos,"      // seqlen_ro x (rotary_dim / 2)
+      "    Tensor?  rotary_sin,"      // seqlen_ro x (rotary_dim / 2)
+      "    Tensor?  seqlens_rotary,"  // b
+      "    Tensor?  q_descale,"       // (b, h_k)
+      "    Tensor?  k_descale,"       // (b, h_k)
+      "    Tensor?  v_descale,"       // (b, h_k)
+      "    float?   softmax_scale,"   // now optional
+      "    bool     is_causal,"
+      "    int      window_size_left,"
+      "    int      window_size_right,"
+      "    int      attention_chunk,"  // NEW
+      "    float    softcap,"          // promoted to double in C++; schema float is fine
+      "    bool     is_rotary_interleaved,"
+      "    Tensor?  scheduler_metadata,"  // (b + 1)
+      "    int      num_splits,"
+      "    bool?    pack_gqa,"
+      "    int      sm_margin,"
+      "    Tensor?  sinks"
+      ") -> (Tensor, Tensor, Tensor, Tensor)");  // NEW return type: tuple of 4 tensors
+
   m.impl("fwd", torch::kCUDA, make_pytorch_shim(&mha_fwd));
 }
 

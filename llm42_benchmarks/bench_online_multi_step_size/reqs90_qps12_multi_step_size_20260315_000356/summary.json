@@ -1,0 +1,116 @@
+{
+  "step_sizes": [
+    32,
+    64,
+    128,
+    256
+  ],
+  "qps": 12.0,
+  "base_urls": [
+    "http://127.0.0.1:30005",
+    "http://127.0.0.1:30006",
+    "http://127.0.0.1:30007",
+    "http://127.0.0.1:30008"
+  ],
+  "num_prompts": 90,
+  "seed": 42,
+  "step_size_rollback_stats": [
+    {
+      "step_size": 32,
+      "total_rollbacks": 92,
+      "total_tokens_rolled_back": 1424,
+      "avg_rollbacks_per_request": 1.0222222222222221,
+      "max_rollbacks_per_request": 7,
+      "avg_tokens_rolled_back_per_request": 15.822222222222223,
+      "max_tokens_rolled_back_per_request": 130,
+      "requests_with_rollbacks": 44
+    },
+    {
+      "step_size": 64,
+      "total_rollbacks": 85,
+      "total_tokens_rolled_back": 2700,
+      "avg_rollbacks_per_request": 0.9444444444444444,
+      "max_rollbacks_per_request": 4,
+      "avg_tokens_rolled_back_per_request": 30.0,
+      "max_tokens_rolled_back_per_request": 207,
+      "requests_with_rollbacks": 46
+    },
+    {
+      "step_size": 128,
+      "total_rollbacks": 109,
+      "total_tokens_rolled_back": 7762,
+      "avg_rollbacks_per_request": 1.211111111111111,
+      "max_rollbacks_per_request": 9,
+      "avg_tokens_rolled_back_per_request": 86.24444444444444,
+      "max_tokens_rolled_back_per_request": 816,
+      "requests_with_rollbacks": 46
+    },
+    {
+      "step_size": 256,
+      "total_rollbacks": 98,
+      "total_tokens_rolled_back": 13130,
+      "avg_rollbacks_per_request": 1.0888888888888888,
+      "max_rollbacks_per_request": 7,
+      "avg_tokens_rolled_back_per_request": 145.88888888888889,
+      "max_tokens_rolled_back_per_request": 1096,
+      "requests_with_rollbacks": 44
+    }
+  ],
+  "pairwise_comparisons": [
+    {
+      "step_size_1": 32,
+      "step_size_2": 64,
+      "mismatch_fraction": 0.0,
+      "zero_mismatch_fraction": 1.0,
+      "num_delta_gt_64": 0,
+      "num_delta_gt_128": 0,
+      "comparison_file": "/workspace/llm42_benchmarks/bench_online_multi_step_size/reqs90_qps12_multi_step_size_20260315_000356/compare_step_32_vs_64.jsonl"
+    },
+    {
+      "step_size_1": 32,
+      "step_size_2": 128,
+      "mismatch_fraction": 0.5444444444444445,
+      "zero_mismatch_fraction": 0.45555555555555555,
+      "num_delta_gt_64": 42,
+      "num_delta_gt_128": 33,
+      "comparison_file": "/workspace/llm42_benchmarks/bench_online_multi_step_size/reqs90_qps12_multi_step_size_20260315_000356/compare_step_32_vs_128.jsonl"
+    },
+    {
+      "step_size_1": 32,
+      "step_size_2": 256,
+      "mismatch_fraction": 0.5444444444444445,
+      "zero_mismatch_fraction": 0.45555555555555555,
+      "num_delta_gt_64": 42,
+      "num_delta_gt_128": 33,
+      "comparison_file": "/workspace/llm42_benchmarks/bench_online_multi_step_size/reqs90_qps12_multi_step_size_20260315_000356/compare_step_32_vs_256.jsonl"
+    },
+    {
+      "step_size_1": 64,
+      "step_size_2": 128,
+      "mismatch_fraction": 0.5444444444444445,
+      "zero_mismatch_fraction": 0.45555555555555555,
+      "num_delta_gt_64": 42,
+      "num_delta_gt_128": 33,
+      "comparison_file": "/workspace/llm42_benchmarks/bench_online_multi_step_size/reqs90_qps12_multi_step_size_20260315_000356/compare_step_64_vs_128.jsonl"
+    },
+    {
+      "step_size_1": 64,
+      "step_size_2": 256,
+      "mismatch_fraction": 0.5444444444444445,
+      "zero_mismatch_fraction": 0.45555555555555555,
+      "num_delta_gt_64": 42,
+      "num_delta_gt_128": 33,
+      "comparison_file": "/workspace/llm42_benchmarks/bench_online_multi_step_size/reqs90_qps12_multi_step_size_20260315_000356/compare_step_64_vs_256.jsonl"
+    },
+    {
+      "step_size_1": 128,
+      "step_size_2": 256,
+      "mismatch_fraction": 0.0,
+      "zero_mismatch_fraction": 1.0,
+      "num_delta_gt_64": 0,
+      "num_delta_gt_128": 0,
+      "comparison_file": "/workspace/llm42_benchmarks/bench_online_multi_step_size/reqs90_qps12_multi_step_size_20260315_000356/compare_step_128_vs_256.jsonl"
+    }
+  ],
+  "heatmap_plot": "/workspace/llm42_benchmarks/bench_online_multi_step_size/reqs90_qps12_multi_step_size_20260315_000356/mismatch_heatmap.pdf"
+}

@@ -64,6 +64,10 @@ def build_base_args(cli_args: argparse.Namespace) -> dict:
         "apply_chat_template": cli_args.apply_chat_template,
         "profile": False,
         "lora_name": None,
+        "lora_request_distribution": None,
+        "lora_zipf_alpha": 2.0,
+        "served_model_name": None,
+        "deterministic_seed": cli_args.seed,
         "prompt_suffix": cli_args.prompt_suffix,
         "pd_separated": False,
         "flush_cache": cli_args.flush_cache,
@@ -81,6 +85,18 @@ def build_base_args(cli_args: argparse.Namespace) -> dict:
         "mooncake_slowdown_factor": 1.0,
         "mooncake_num_rounds": 1,
         "mooncake_workload": "conversation",
+        # new upstream fields
+        "return_routed_experts": False,
+        "max_concurrency": None,
+        "plot_throughput": False,
+        "select_seed": cli_args.seed,
+        "order_seed": cli_args.seed,
+        "arrival_seed": cli_args.seed,
+        "image_content": "random",
+        "image_count": 1,
+        "image_format": "png",
+        "image_resolution": "1080p",
+        "random_image_count": False,
     }
     
     return base_dict
@@ -342,6 +358,14 @@ def main():
             num_delta_gt_128 = np.sum(delta_array > 128)
             mismatch_matrix[i, j] = mismatch_frac
             mismatch_matrix[j, i] = mismatch_frac
+
+            # Non-zero mismatches: both outputs are non-zero length but differ
+            non_zero_mismatches = sum(
+                1 for m in mismatches
+                if m[f"output_len_qps_{qps_i}"] > 0
+                and m[f"output_len_qps_{qps_j}"] > 0
+                and m["delta"] > 0
+            )
             
             # Save pairwise comparison (full details)
             pair_file = cli_args.output_dir / f"compare_qps_{qps_i}_vs_{qps_j}.jsonl"
@@ -371,6 +395,7 @@ def main():
                 "qps_1": qps_i,
                 "qps_2": qps_j,
                 "num_mismatches": num_mismatches,
+                "non_zero_mismatches": non_zero_mismatches,
                 "mismatch_fraction": float(mismatch_frac),
                 "zero_mismatch_fraction": float(np.mean(delta_array == 0)),
                 "num_delta_gt_64": int(num_delta_gt_64),
@@ -378,7 +403,8 @@ def main():
                 "comparison_file": str(pair_file),
             })
             
-            print(f"QPS {qps_i} vs QPS {qps_j}: {num_mismatches} mismatches, "
+            print(f"QPS {qps_i} vs QPS {qps_j}: {num_mismatches} mismatches "
+                  f"({non_zero_mismatches} non-zero), "
                   f"{num_delta_gt_64} deltas > 64, {num_delta_gt_128} deltas > 128")
     
     # Plot heatmap
@@ -440,7 +466,8 @@ def main():
         f.write("-" * 60 + "\n")
         for pd in pairwise_details:
             f.write(f"QPS {pd['qps_1']} vs QPS {pd['qps_2']}: "
-                   f"{pd['num_mismatches']} mismatches, "
+                   f"{pd['num_mismatches']} mismatches "
+                   f"({pd['non_zero_mismatches']} non-zero), "
                    f"{pd['num_delta_gt_64']} deltas > 64, "
                    f"{pd['num_delta_gt_128']} deltas > 128\n")
         f.write("\n")
@@ -460,7 +487,8 @@ def main():
     print("\nPairwise Comparisons:")
     for pd in pairwise_details:
         print(f"  QPS {pd['qps_1']} vs QPS {pd['qps_2']}: "
-              f"{pd['num_mismatches']} mismatches, "
+              f"{pd['num_mismatches']} mismatches "
+              f"({pd['non_zero_mismatches']} non-zero), "
               f"{pd['num_delta_gt_64']} deltas > 64, "
               f"{pd['num_delta_gt_128']} deltas > 128")
     

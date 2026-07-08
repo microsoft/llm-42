@@ -8,7 +8,10 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "sgl-kernel"
-version = "0.3.14"
+version = "0.3.21"
+authors = [
+  { name="SGLang Kernel Team", email="sglang@lmsys.org" },
+]
 description = "Kernel Library for SGLang"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -31,7 +34,6 @@ exclude = [
 ]
 
 [tool.scikit-build]
-cmake.version = ">=3.30"
 cmake.build-type = "Release"
 minimum-version = "build-system.requires"
 

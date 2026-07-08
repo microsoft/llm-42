@@ -2,7 +2,14 @@ from typing import Optional, Tuple
 
 import torch
 from sgl_kernel.scalar_type import ScalarType
-from sgl_kernel.utils import _get_cache_buf, get_cuda_stream
+from sgl_kernel.utils import _get_cache_buf
+
+
+def bf16_batch_invariant_mm(mat_a, mat_b, out_dtype, bias=None, out=None):
+    return torch.ops.sgl_kernel.bf16_batch_invariant_mm.default(mat_a, mat_b, out_dtype, bias, out)
+
+def bf16_batch_invariant_fused_mm(mat_a, mat_b, out_dtype, split_frac, bias=None, out=None):
+    return torch.ops.sgl_kernel.bf16_batch_invariant_fused_mm.default(mat_a, mat_b, out_dtype, split_frac, bias, out)
 
 
 def awq_dequantize(
@@ -10,11 +17,6 @@ def awq_dequantize(
 ) -> torch.ByteTensor:
     return torch.ops.sgl_kernel.awq_dequantize.default(qweight, scales, qzeros)
 
-def bf16_batch_invariant_mm(mat_a, mat_b, out_dtype, bias=None, out=None):
-    return torch.ops.sgl_kernel.bf16_batch_invariant_mm.default(mat_a, mat_b, out_dtype, bias, out)
-
-def bf16_batch_invariant_fused_mm(mat_a, mat_b, out_dtype, split_frac, bias=None, out=None):
-    return torch.ops.sgl_kernel.bf16_batch_invariant_fused_mm.default(mat_a, mat_b, out_dtype, split_frac, bias, out)
 
 def int8_scaled_mm(mat_a, mat_b, scales_a, scales_b, out_dtype, bias=None):
     return torch.ops.sgl_kernel.int8_scaled_mm.default(
@@ -65,7 +67,6 @@ def _bmm_fp8_internal(
         B_scale,
         workspace_buffer,
         cublas_handle,
-        get_cuda_stream(),
     )
 
 
@@ -103,7 +104,7 @@ def dsv3_fused_a_gemm(
     return output
 
 
-def sgl_per_token_group_quant_fp8(
+def sgl_per_token_group_quant_8bit(
     input: torch.Tensor,
     output_q: torch.Tensor,
     output_s: torch.Tensor,
@@ -111,25 +112,40 @@ def sgl_per_token_group_quant_fp8(
     eps: float,
     fp8_min: float,
     fp8_max: float,
-    scale_ue8m0: bool,
+    scale_ue8m0: bool = False,
+    fuse_silu_and_mul: bool = False,
+    masked_m: Optional[torch.Tensor] = None,
+    enable_v2: Optional[bool] = None,
 ) -> None:
-    torch.ops.sgl_kernel.sgl_per_token_group_quant_fp8.default(
+    if enable_v2 is None:
+        from sglang.srt.utils import get_bool_env_var
+
+        enable_v2 = get_bool_env_var("SGLANG_PER_TOKEN_GROUP_QUANT_8BIT_V2")
+
+    if enable_v2:
+        return torch.ops.sgl_kernel.sgl_per_token_group_quant_8bit_v2.default(
+            input,
+            output_q,
+            output_s,
+            group_size,
+            eps,
+            fp8_min,
+            fp8_max,
+            scale_ue8m0,
+            fuse_silu_and_mul,
+            masked_m,
+        )
+
+    assert not fuse_silu_and_mul, "only v2 support fuse_silu_and_mul"
+    assert masked_m is None, "only v2 support masked_m"
+    torch.ops.sgl_kernel.sgl_per_token_group_quant_8bit.default(
         input, output_q, output_s, group_size, eps, fp8_min, fp8_max, scale_ue8m0
     )
 
 
-def sgl_per_token_group_quant_int8(
-    input: torch.Tensor,
-    output_q: torch.Tensor,
-    output_s: torch.Tensor,
-    group_size: int,
-    eps: float,
-    int8_min: float,
-    int8_max: float,
-) -> None:
-    torch.ops.sgl_kernel.sgl_per_token_group_quant_int8.default(
-        input, output_q, output_s, group_size, eps, int8_min, int8_max
-    )
+# For legacy usage
+sgl_per_token_group_quant_fp8 = sgl_per_token_group_quant_8bit
+sgl_per_token_group_quant_int8 = sgl_per_token_group_quant_8bit
 
 
 def sgl_per_tensor_quant_fp8(
@@ -445,7 +461,7 @@ def scaled_fp4_experts_quant(
         input_tensor.ndim == 2
     ), f"input.ndim needs to be == 2, but got {input_tensor.ndim}."
     if expert_map is not None:
-        (m, k) = input_tensor.shape
+        m, k = input_tensor.shape
         output_tensor_shape = (m * topk, k)
         input_tensor = shuffle_rows(input_tensor, expert_map, output_tensor_shape)
     m_numtopk, k = input_tensor.shape
@@ -455,7 +471,7 @@ def scaled_fp4_experts_quant(
     # larger models.
     import os
 
-    MAX_TOKENS_PER_EXPERT = os.environ.get("MODELOPT_MAX_TOKENS_PER_EXPERT", 65536)
+    MAX_TOKENS_PER_EXPERT = int(os.environ.get("MODELOPT_MAX_TOKENS_PER_EXPERT", 65536))
     assert m_numtopk <= MAX_TOKENS_PER_EXPERT * topk, (
         f"m_numtopk must be less than MAX_TOKENS_PER_EXPERT("
         f"{MAX_TOKENS_PER_EXPERT})"

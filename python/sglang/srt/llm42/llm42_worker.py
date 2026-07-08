@@ -25,7 +25,8 @@ from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 import torch
 
 from sglang.srt.llm42.llm42_info import LLM42Info
-from sglang.srt.model_executor.forward_batch_info import ForwardBatchOutput, ForwardMode
+from sglang.srt.managers.utils import GenerationBatchResult
+from sglang.srt.model_executor.forward_batch_info import ForwardMode
 
 if TYPE_CHECKING:
     from sglang.srt.managers.schedule_batch import Req, ScheduleBatch, ModelWorkerBatch
@@ -97,12 +98,15 @@ class FixedSizeVerificationPool:
         # CRITICAL FIX: Allocate actual row indices in req_to_token_pool for dummy requests
         # This is necessary because FlashAttention uses req_pool_indices to look up
         # the page_table from req_to_token_pool.req_to_token[req_pool_indices, :]
-        allocated_pool_indices = req_to_token_pool.alloc(fixed_size)
-        if allocated_pool_indices is None or len(allocated_pool_indices) < fixed_size:
+        # Note: ReqToTokenPool.alloc() expects list[Req] in the new API, so we
+        # allocate directly from free_slots for dummy padding requests.
+        if len(req_to_token_pool.free_slots) < fixed_size:
             raise RuntimeError(
                 f"Failed to allocate {fixed_size} req_to_token_pool slots for dummy requests. "
                 f"Consider reducing llm42_verify_batch_size or increasing pool size."
             )
+        allocated_pool_indices = req_to_token_pool.free_slots[:fixed_size]
+        req_to_token_pool.free_slots = req_to_token_pool.free_slots[fixed_size:]
         
         self.dummy_req_pool_indices = torch.tensor(
             allocated_pool_indices, dtype=torch.int64, device=device
@@ -130,9 +134,37 @@ class FixedSizeVerificationPool:
         self.dummy_prefix_lens = torch.zeros(fixed_size, dtype=torch.int64, device=device)
         self.dummy_output_lens = torch.full((fixed_size,), window_size, dtype=torch.int64, device=device)
         
+        # Pre-allocate KV cache slots for padding tokens of real requests.
+        # Each request needs (padded_len - 1) cache slots. With truncation in
+        # from_requests, padded_len is at most window_size, so the worst case
+        # is fixed_size * (window_size - 1).
+        max_padding_slots = fixed_size * (window_size - 1)
+        if max_padding_slots > 0:
+            padding_slots_to_alloc = max_padding_slots
+            if page_size > 1:
+                padding_slots_to_alloc = (
+                    (max_padding_slots + page_size - 1) // page_size
+                ) * page_size
+            self.padding_cache_pool = token_to_kv_pool_allocator.alloc(padding_slots_to_alloc)
+            if self.padding_cache_pool is None or len(self.padding_cache_pool) == 0:
+                raise RuntimeError(
+                    f"Failed to allocate {padding_slots_to_alloc} KV cache slots for padding pool. "
+                    f"Consider reducing llm42_verify_batch_size or increasing KV cache size."
+                )
+            # Trim to exact amount needed (discard page-alignment surplus)
+            if len(self.padding_cache_pool) > max_padding_slots:
+                self._padding_cache_pool_allocated = self.padding_cache_pool
+                self.padding_cache_pool = self.padding_cache_pool[:max_padding_slots]
+            else:
+                self._padding_cache_pool_allocated = self.padding_cache_pool
+        else:
+            self.padding_cache_pool = None
+            self._padding_cache_pool_allocated = None
+        
         logger.info(
             f"FixedSizeVerificationPool initialized: fixed_size={fixed_size}, "
             f"window_size={window_size}, dummy_cache_slots={len(self.dummy_cache_locs)}, "
+            f"padding_cache_slots={max_padding_slots}, "
             f"dummy_pool_indices={allocated_pool_indices}"
         )
     
@@ -163,6 +195,29 @@ class FixedSizeVerificationPool:
             self.dummy_req_pool_indices[:num_dummies],
         )
     
+    def get_padding_cache_locs(self, num_slots: int) -> Optional[torch.Tensor]:
+        """
+        Get a slice of pre-allocated padding KV cache slots.
+        
+        Args:
+            num_slots: Number of padding cache slots needed
+            
+        Returns:
+            Tensor of cache locations, or None if no slots needed or pool unavailable
+        """
+        if num_slots <= 0:
+            return None
+        if self.padding_cache_pool is None:
+            raise RuntimeError(
+                f"Padding cache pool not allocated but {num_slots} slots requested"
+            )
+        if num_slots > len(self.padding_cache_pool):
+            raise RuntimeError(
+                f"Requested {num_slots} padding slots but pool only has "
+                f"{len(self.padding_cache_pool)}"
+            )
+        return self.padding_cache_pool[:num_slots]
+
     def get_dummy_sampling_tensors(self, num_dummies: int):
         """
         Get pre-allocated dummy sampling tensors.
@@ -196,9 +251,15 @@ class FixedSizeVerificationPool:
             token_to_kv_pool_allocator.free(self.dummy_cache_locs)
             self.dummy_cache_locs = None
         
+        # Free pre-allocated padding cache pool
+        if self._padding_cache_pool_allocated is not None and len(self._padding_cache_pool_allocated) > 0:
+            token_to_kv_pool_allocator.free(self._padding_cache_pool_allocated)
+            self._padding_cache_pool_allocated = None
+            self.padding_cache_pool = None
+        
         # Also free the req_to_token_pool slots
         if hasattr(self, '_allocated_pool_indices') and self._allocated_pool_indices is not None:
-            self.req_to_token_pool.free(self._allocated_pool_indices)
+            self.req_to_token_pool.free_slots.extend(self._allocated_pool_indices)
             self._allocated_pool_indices = None
 
 
@@ -267,6 +328,14 @@ class LLM42Worker:
         # (they may be None here, in which case init_fixed_pool() will be called later)
         self.fixed_pool: Optional[FixedSizeVerificationPool] = None
         self._window_size = window_size
+
+        # Instrumentation: count decode steps vs verification forward passes
+        self.stats = {
+            "decode_steps": 0,
+            "verify_forward_passes": 0,
+            "verify_total_reqs": 0,
+            "verify_total_tokens": 0,
+        }
         if req_to_token_pool is not None and token_to_kv_pool_allocator is not None:
             self._init_fixed_pool(
                 req_to_token_pool, 
@@ -331,21 +400,22 @@ class LLM42Worker:
 
     def forward_batch_generation(
         self,
-        batch: Union[ScheduleBatch, ModelWorkerBatch],
-        skip_sample: bool = False,
-    ) -> ForwardBatchOutput:
+        model_worker_batch=None,
+        **kwargs,
+    ) -> GenerationBatchResult:
         """
         Forward pass - just delegates to target worker.
         Verification happens later in process_batch_result_decode.
         
         Args:
-            batch: Input ScheduleBatch or ModelWorkerBatch
+            model_worker_batch: Input ModelWorkerBatch
             
         Returns:
-            ForwardBatchOutput object
+            GenerationBatchResult object
         """
 
-        return self.target_worker.forward_batch_generation(batch, skip_sample=skip_sample)
+        self.stats["decode_steps"] += 1
+        return self.target_worker.forward_batch_generation(model_worker_batch, **kwargs)
 
     def check_and_verify_deterministic_requests(
         self, 
@@ -379,6 +449,13 @@ class LLM42Worker:
         
         for req in batch.reqs:
             if not req.is_deterministic:
+                continue
+
+            # Skip requests that were retracted between the forward pass and
+            # result processing (overlap scheduler race: retract_decode sets
+            # req_pool_idx=None on the shared Req object while the previous
+            # batch copy still references it).
+            if req.req_pool_idx is None or req.is_retracted:
                 continue
             
             # Calculate unverified tokens
@@ -534,11 +611,26 @@ class LLM42Worker:
             if num_dummies > 0:
                 llm42_info.append_dummy_entries(num_dummies, self.fixed_pool.window_size)
 
-            # 2. Allocate temporary KV cache for padding positions
+            # 2. Assign pre-allocated padding KV cache slots (or allocate on the fly
+            #    for the variable-size path which has no fixed_pool)
             if llm42_info.total_padding_cache_slots > 0:
-                llm42_info.allocate_padding_kv_cache(
-                    original_batch.token_to_kv_pool_allocator
-                )
+                if self.fixed_pool is not None:
+                    padding_locs = self.fixed_pool.get_padding_cache_locs(
+                        llm42_info.total_padding_cache_slots
+                    )
+                    llm42_info.set_padding_cache_locs(padding_locs)
+                else:
+                    alloc_ok = llm42_info.allocate_padding_kv_cache(
+                        original_batch.token_to_kv_pool_allocator
+                    )
+                    if not alloc_ok:
+                        logger.error(
+                            "FATAL: Padding KV cache allocation failed during LLM-42 verification. "
+                            "This breaks the fixed-batch-shape invariant required for deterministic inference. "
+                            "The server will shut down to prevent silent non-determinism."
+                        )
+                        import os, signal
+                        os.kill(os.getpid(), signal.SIGTERM)
 
             # 3. Build the verification ScheduleBatch
             if num_dummies > 0:
@@ -562,6 +654,9 @@ class LLM42Worker:
             # 4. Run verification forward pass
             verify_model_worker_batch = verify_batch.get_model_worker_batch()
             verify_output = self.target_worker.forward_batch_generation(verify_model_worker_batch)
+            self.stats["verify_forward_passes"] += 1
+            self.stats["verify_total_reqs"] += len(reqs)
+            self.stats["verify_total_tokens"] += sum(getattr(llm42_info, "output_lens", []))
             verified_token_ids = verify_output.next_token_ids
             verified_logprobs = verify_output.logits_output.next_token_logprobs
 
@@ -583,29 +678,34 @@ class LLM42Worker:
 
             # 6. Collect rollback results and update per-request stats
             rollback_results = []
-            for req, info in zip(reqs, rollback_info):
+            for req_idx, (req, info) in enumerate(zip(reqs, rollback_info)):
                 req.llm42_num_verification_windows += 1
                 if info is not None and info[1] > 0:
                     req.llm42_num_rollbacks += 1
                     req.llm42_tokens_rolled_back += info[1]
                     if self.metrics_collector:
-                        self.metrics_collector.num_rollbacks_total.labels(
-                            **self.metrics_collector.labels
-                        ).inc()
-                        self.metrics_collector.tokens_rolled_back_total.labels(
-                            **self.metrics_collector.labels
-                        ).inc(info[1])
+                        self.metrics_collector.increment_rollbacks(info[1])
                     rollback_results.append((req, info[1]))
-                req.llm42_verified_tokens = len(req.output_ids)
+                    # After rollback, output_ids has been truncated — mark
+                    # everything remaining as verified.
+                    req.llm42_verified_tokens = len(req.output_ids)
+                else:
+                    # No rollback.  Advance by the number of tokens that were
+                    # actually verified (may be < total unverified if truncated
+                    # to window_size in fixed-batch mode).
+                    tokens_verified = llm42_info.output_lens[req_idx] if req_idx < len(llm42_info.output_lens) else 0
+                    req.llm42_verified_tokens += tokens_verified
 
             if rollback_results:
-                self._update_batch_state(original_batch)
+                rolled_back_reqs = {req for req, _ in rollback_results}
+                self._update_batch_state(original_batch, rolled_back_reqs)
 
             # 7. Release verification-batch tensor references
             self._cleanup_verify_batch(verify_batch)
 
-            # 8. Free temporary KV cache for padding
-            if llm42_info.total_padding_cache_slots > 0:
+            # 8. Free temporary KV cache for padding (only for variable-size path;
+            #    fixed_pool padding is pre-allocated and reused)
+            if llm42_info.total_padding_cache_slots > 0 and self.fixed_pool is None:
                 llm42_info.free_padding_kv_cache(
                     original_batch.token_to_kv_pool_allocator
                 )
@@ -613,7 +713,7 @@ class LLM42Worker:
             return rollback_results
 
         except Exception as e:
-            if 'llm42_info' in locals() and llm42_info.total_padding_cache_slots > 0:
+            if 'llm42_info' in locals() and llm42_info.total_padding_cache_slots > 0 and self.fixed_pool is None:
                 try:
                     llm42_info.free_padding_kv_cache(
                         original_batch.token_to_kv_pool_allocator
@@ -641,42 +741,52 @@ class LLM42Worker:
         verify_batch.req_to_token_pool = None
         verify_batch.token_to_kv_pool_allocator = None
 
-    def _update_batch_state(self, batch: Union[ScheduleBatch, ModelWorkerBatch]):
+    def _update_batch_state(self, batch: Union[ScheduleBatch, ModelWorkerBatch],
+                           rolled_back_reqs: set = None):
         """Sync ``batch.output_ids`` and ``batch.seq_lens`` with the current
         ``req.output_ids`` after a rollback, so that ``prepare_for_decode()``
         picks up the correct state.
+
+        Only updates entries for requests in *rolled_back_reqs*.  Non-rolled-back
+        requests keep their current ``batch.seq_lens`` / ``batch.output_ids``
+        values so that the next ``prepare_for_decode`` increments from the
+        correct position.
         """
         if not hasattr(batch, 'output_ids') or batch.output_ids is None:
             return
         
-        updated_output_ids = []
-        updated_seq_lens = []
+        # Start from the current batch tensors; only overwrite rolled-back entries
+        current_output_ids = batch.output_ids.tolist()
+        current_seq_lens = batch.seq_lens.tolist()
         
-        for req in batch.reqs:
+        for i, req in enumerate(batch.reqs):
+            if rolled_back_reqs and req not in rolled_back_reqs:
+                continue  # keep existing batch values for non-rolled-back requests
+            
             # Get last generated token or fallback to last input token
             if req.output_ids:
-                updated_output_ids.append(req.output_ids[-1])
+                current_output_ids[i] = req.output_ids[-1]
             else:
-                updated_output_ids.append(req.origin_input_ids[-1] if req.origin_input_ids else 0)
+                current_output_ids[i] = req.origin_input_ids[-1] if req.origin_input_ids else 0
             
             # seq_lens should be length BEFORE current token (prepare_for_decode increments by 1)
             current_total_len = len(req.origin_input_ids) + len(req.output_ids)
-            updated_seq_lens.append(current_total_len - 1)
+            current_seq_lens[i] = current_total_len - 1
         
         # Update batch tensors
         batch.output_ids = torch.tensor(
-            updated_output_ids, 
+            current_output_ids, 
             dtype=torch.int64, 
             device=batch.device
         )
         batch.seq_lens = torch.tensor(
-            updated_seq_lens,
+            current_seq_lens,
             dtype=torch.int32,
             device=batch.device
         )
-        batch.seq_lens_cpu = torch.tensor(updated_seq_lens, dtype=torch.int32)
+        batch.seq_lens_cpu = torch.tensor(current_seq_lens, dtype=torch.int32)
         batch.orig_seq_lens = batch.seq_lens.clone()
-        batch.seq_lens_sum = sum(updated_seq_lens)
+        batch.seq_lens_sum = sum(current_seq_lens)
 
     def __getattr__(self, name):
         """Delegate unknown attributes to ``target_worker`` (transparent proxy)."""

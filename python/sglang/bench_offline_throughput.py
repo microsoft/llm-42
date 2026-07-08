@@ -62,6 +62,8 @@ class BenchArgs:
     skip_warmup: bool = False
     do_not_exit: bool = False
     prompt_suffix: str = ""
+    return_logprob: bool = False
+    logprob_start_len: int = -1
 
     @staticmethod
     def add_cli_args(parser: argparse.ArgumentParser):
@@ -203,6 +205,17 @@ class BenchArgs:
             default="",
             help="Suffix applied to the end of all user prompts, followed by assistant prompt suffix.",
         )
+        parser.add_argument(
+            "--return-logprob",
+            action="store_true",
+            help="Enable returning log probabilities.",
+        )
+        parser.add_argument(
+            "--logprob-start-len",
+            type=int,
+            default=-1,
+            help="Start length for logprob. -1 means only return logprobs for output tokens (default). 0 means return logprobs for all tokens including input.",
+        )
 
     @classmethod
     def from_cli_args(cls, args: argparse.Namespace):
@@ -217,6 +230,8 @@ def throughput_test_once(
     ignore_eos: bool,
     extra_request_body: Dict,
     profile: bool,
+    return_logprob: bool = False,
+    logprob_start_len: int = -1,
     deterministic_ratio: float = 1.0,
     deterministic_seed: int = 42,
 ):
@@ -233,7 +248,7 @@ def throughput_test_once(
     }
 
     prompt = [r.prompt for r in reqs]
-    
+
     # Pre-compute which requests will be deterministic (exact count)
     # Use deterministic_seed for reproducible selection
     num_deterministic = int(len(reqs) * deterministic_ratio)
@@ -243,7 +258,7 @@ def throughput_test_once(
     else:
         deterministic_indices = set()
     deterministic_flags = [i in deterministic_indices for i in range(len(reqs))]
-    
+
     sampling_params = [
         {
             "temperature": 0,
@@ -263,7 +278,12 @@ def throughput_test_once(
         backend.start_profile(activities=["GPU"], with_stack=False)
 
     st = time.perf_counter()
-    gen_out = backend.generate(prompt=prompt, sampling_params=sampling_params)
+    gen_out = backend.generate(
+        prompt=prompt,
+        sampling_params=sampling_params,
+        return_logprob=return_logprob,
+        logprob_start_len=logprob_start_len,
+    )
     latency = time.perf_counter() - st
 
     if profile:
@@ -385,6 +405,8 @@ def throughput_test(
             ignore_eos=not bench_args.disable_ignore_eos,
             extra_request_body=extra_request_body,
             profile=False,
+            return_logprob=bench_args.return_logprob,
+            logprob_start_len=bench_args.logprob_start_len,
             deterministic_ratio=bench_args.deterministic_ratio,
             deterministic_seed=bench_args.deterministic_seed,
         )
@@ -398,6 +420,8 @@ def throughput_test(
         ignore_eos=not bench_args.disable_ignore_eos,
         extra_request_body=extra_request_body,
         profile=bench_args.profile,
+        return_logprob=bench_args.return_logprob,
+        logprob_start_len=bench_args.logprob_start_len,
         deterministic_ratio=bench_args.deterministic_ratio,
         deterministic_seed=bench_args.deterministic_seed,
     )

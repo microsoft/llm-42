@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 import torch
-from sgl_kernel.utils import get_cuda_stream, is_arch_support_pdl
+from sgl_kernel.utils import is_arch_support_pdl
 
 
 # These implementations extensively draw from and build upon the FlashInfer project https://github.com/flashinfer-ai/flashinfer
@@ -45,17 +45,6 @@ def rmsnorm(
     torch.ops.sgl_kernel.rmsnorm.default(out, input, weight, eps, enable_pdl)
     return out
 
-def vllm_rmsnorm(
-    input: torch.Tensor,
-    weight: torch.Tensor,
-    eps: float = 1e-6,
-    out: Optional[torch.Tensor] = None,
-) -> torch.Tensor:
-    if out is None:
-        out = torch.empty_like(input)
-    torch.ops.sgl_kernel.vllm_rmsnorm.default(out, input, weight, eps)
-    return out
-
 
 def fused_add_rmsnorm(
     input: torch.Tensor,
@@ -93,6 +82,19 @@ def fused_add_rmsnorm(
         input, residual, weight, eps, enable_pdl
     )
 
+
+def vllm_rmsnorm(
+    input: torch.Tensor,
+    weight: torch.Tensor,
+    eps: float = 1e-6,
+    out: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    if out is None:
+        out = torch.empty_like(input)
+    torch.ops.sgl_kernel.vllm_rmsnorm.default(out, input, weight, eps)
+    return out
+
+
 def vllm_fused_add_rmsnorm_dynamic(
     input: torch.Tensor,
     residual: torch.Tensor,
@@ -114,6 +116,7 @@ def vllm_fused_add_rmsnorm_fixed(
     torch.ops.sgl_kernel.vllm_fused_add_rmsnorm_fixed.default(
         input, residual, weight, fixed_blk_size, eps
     )
+
 
 def vllm_fused_add_rmsnorm_256(
     input: torch.Tensor,
@@ -317,6 +320,10 @@ class FusedSetKVBufferArg:
     cache_loc: torch.Tensor
 
 
+def _view_3d(x, head_size):
+    return x.view(x.shape[0], -1, head_size)
+
+
 def apply_rope_with_cos_sin_cache_inplace(
     positions: torch.Tensor,
     query: torch.Tensor,
@@ -371,31 +378,27 @@ def apply_rope_with_cos_sin_cache_inplace(
         assert a.v_scale is None, "v_scale is not yet supported"
         assert a.cache_loc.dtype == torch.int64, f"{a.cache_loc.dtype=}"
 
-    def _view_3d(x):
-        return x.view(x.shape[0], -1, head_size)
-
     torch.ops.sgl_kernel.apply_rope_pos_ids_cos_sin_cache.default(
-        _view_3d(query),
-        _view_3d(key),
-        _view_3d(query),
-        _view_3d(key),
+        _view_3d(query, head_size),
+        _view_3d(key, head_size),
+        _view_3d(query, head_size),
+        _view_3d(key, head_size),
         cos_sin_cache,
         positions.long(),
         (not is_neox),
         enable_pdl,
-        get_cuda_stream(),
         (
-            _view_3d(fused_set_kv_buffer_arg.value)
+            _view_3d(fused_set_kv_buffer_arg.value, head_size)
             if fused_set_kv_buffer_arg is not None
             else None
         ),
         (
-            _view_3d(fused_set_kv_buffer_arg.k_buffer)
+            _view_3d(fused_set_kv_buffer_arg.k_buffer, head_size)
             if fused_set_kv_buffer_arg is not None
             else None
         ),
         (
-            _view_3d(fused_set_kv_buffer_arg.v_buffer)
+            _view_3d(fused_set_kv_buffer_arg.v_buffer, head_size)
             if fused_set_kv_buffer_arg is not None
             else None
         ),
@@ -404,6 +407,19 @@ def apply_rope_with_cos_sin_cache_inplace(
             if fused_set_kv_buffer_arg is not None
             else None
         ),
+    )
+
+
+def rotary_embedding(
+    positions: torch.Tensor,
+    query: torch.Tensor,
+    key: torch.Tensor,
+    head_size: int,
+    cos_sin_cache: torch.Tensor,
+    is_neox: bool = True,
+):
+    torch.ops.sgl_kernel.rotary_embedding.default(
+        positions, query, key, head_size, cos_sin_cache, is_neox
     )
 
 
@@ -419,11 +435,11 @@ def downcast_fp8(
     offset: int = 0,
 ) -> None:
     torch.ops.sgl_kernel.downcast_fp8(
-        k, v, k_out, v_out, k_scale, v_scale, loc, mult, offset, get_cuda_stream()
+        k, v, k_out, v_out, k_scale, v_scale, loc, mult, offset
     )
 
 
-def copy_to_gpu_no_ce(input: List[int], output: torch.Tensor):
+def copy_to_gpu_no_ce(input: torch.Tensor, output: torch.Tensor):
     torch.ops.sgl_kernel.copy_to_gpu_no_ce(input, output)
 
 

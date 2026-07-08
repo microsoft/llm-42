@@ -25,14 +25,17 @@ BACKEND=${BACKEND:-sglang}
 
 # Deterministic ratios for different config types
 BASELINE_RATIOS="1.0"
-LLM42_RATIOS="0.02 0.05 0.1 0.2 0.5 1.0"
+LLM42_RATIOS="${LLM42_RATIOS:-0.02 0.05 0.1 0.2 0.5 1.0}"
 
-# Output directory structure: results/<config_name>/
-RESULTS_ROOT="${ROOT}/results"
+# Output directory
+if [ -z "${RESULTS_ROOT:-}" ]; then
+    TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+    RESULTS_ROOT="${ROOT}/runs/${TIMESTAMP}/results"
+fi
 if [ "$DATASET_NAME" = "random" ]; then
-    CONFIG_DIR_NAME="random_in${RANDOM_INPUT_LEN}_out${RANDOM_OUTPUT_LEN}"
+    CONFIG_DIR_NAME="random_in${RANDOM_INPUT_LEN}_out${RANDOM_OUTPUT_LEN}_n${NUM_PROMPTS}"
 else
-    CONFIG_DIR_NAME="${DATASET_NAME}"
+    CONFIG_DIR_NAME="${DATASET_NAME}_n${NUM_PROMPTS}"
 fi
 OUTPUT_DIR="${RESULTS_ROOT}/${CONFIG_DIR_NAME}"
 RESULTS_FILE="${OUTPUT_DIR}/benchmark_results.jsonl"
@@ -132,6 +135,7 @@ run_benchmark() {
         EXTRA_BODY='{"ignore_eos": true, "temperature": 0}'
     fi
     
+    local bench_rc=0
     python -m sglang.bench_serving \
         --backend "$BACKEND" \
         --base-url "$url" \
@@ -146,7 +150,11 @@ run_benchmark() {
         --extra-request-body "$EXTRA_BODY" \
         --output-file "$temp_result" \
         --output-details \
-        2>&1 | tee "${OUTPUT_DIR}/log_${config_name}_det${det_ratio}.log"
+        2>&1 | tee "${OUTPUT_DIR}/log_${config_name}_det${det_ratio}.log" || bench_rc=$?
+    
+    if [ "$bench_rc" -ne 0 ]; then
+        echo "[${config_name}] WARNING: bench_serving exited with code $bench_rc for det_ratio=$det_ratio"
+    fi
     
     # Extract metrics and append to results
     if [ -f "$temp_result" ]; then
@@ -216,13 +224,13 @@ run_server_benchmarks() {
         done
     else
         # Baseline: run only with ratio 1.0
-        run_benchmark "$url" "$config_name" "1.0"
+        run_benchmark "$url" "$config_name" "$BASELINE_RATIOS"
     fi
 }
 
 # Run all servers in parallel - each server runs its own workload
 echo "========== Running All Servers in Parallel =========="
-echo "Baseline configs: det_ratio=1.0"
+echo "Baseline configs: det_ratio=$BASELINE_RATIOS"
 echo "LLM42 configs: det_ratios=$LLM42_RATIOS"
 echo ""
 

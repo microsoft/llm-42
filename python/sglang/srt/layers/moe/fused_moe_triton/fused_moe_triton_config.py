@@ -9,23 +9,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 import triton
 
+from sglang.srt.server_args import get_global_server_args
 from sglang.srt.utils import get_device_name, is_hip
-
-# Import global_server_args_dict for deterministic inference check
-# This dict is populated early in server startup and remains valid during CUDA graph capture
-def _get_deterministic_flags():
-    """Get deterministic inference flags from global_server_args_dict.
-    
-    Returns (enable_deterministic_inference, enable_llm42) tuple.
-    Falls back to (0, 0) if dict is not available (e.g., in tuning scripts).
-    """
-    try:
-        from sglang.srt.managers.schedule_batch import global_server_args_dict
-        enable_llm42 = global_server_args_dict.get("enable_llm42", 0) or 0
-        enable_deterministic_inference = global_server_args_dict.get("enable_deterministic_inference", 0) or 0
-        return enable_deterministic_inference, enable_llm42
-    except (ImportError, KeyError):
-        return 0, 0
 
 logger = logging.getLogger(__name__)
 _is_hip = is_hip()
@@ -35,8 +20,9 @@ def get_config_file_name(
     E: int,
     N: int,
     dtype: Optional[str],
-    block_shape: Optional[List[int]] = None,
+    block_shape: Optional[int] = None,
     per_channel_quant: bool = False,
+    down_moe: bool = False,
 ) -> str:
     device_name = get_device_name().replace(" ", "_")
     dtype_selector = "" if not dtype else f",dtype={dtype}"
@@ -44,7 +30,8 @@ def get_config_file_name(
         "" if not block_shape or not all(block_shape) else f",block_shape={block_shape}"
     )
     per_channel_quant_selector = ",per_channel_quant=True" if per_channel_quant else ""
-    return f"E={E},N={N},device_name={device_name}{dtype_selector}{block_shape_selector}{per_channel_quant_selector}.json"
+    down_moe_selector = "_down" if down_moe else ""
+    return f"E={E},N={N},device_name={device_name}{dtype_selector}{block_shape_selector}{per_channel_quant_selector}{down_moe_selector}.json"
 
 
 @functools.lru_cache
@@ -55,6 +42,7 @@ def get_moe_configs(
     block_n: Optional[int] = 0,
     block_k: Optional[int] = 0,
     per_channel_quant: bool = False,
+    down_moe: bool = False,
 ) -> Optional[Dict[int, Any]]:
     """
     Return optimized configurations for the fused MoE kernel.
@@ -64,23 +52,27 @@ def get_moe_configs(
     kernel on a given batch size bs, the closest batch size in the grid should
     be picked and the associated configuration chosen to invoke the kernel.
     """
-    # Deterministic inference: return None (default config) for batch invariance.
-    # Mode 3 (enable_llm42=3) uses standard kernels, so skip this check.
-    enable_deterministic_inference, enable_llm42 = _get_deterministic_flags()
-    if enable_deterministic_inference > 0 or (enable_llm42 > 0 and enable_llm42 != 3):
+    server_args = get_global_server_args()
+    enable_llm42 = getattr(server_args, "enable_llm42", 0) or 0
+    if server_args.enable_deterministic_inference or (enable_llm42 > 0 and enable_llm42 != 3):
         logger.debug(
             "Deterministic inference enabled, using default MoE kernel config "
-            "for batch invariance (enable_deterministic_inference=%d, enable_llm42=%d).",
-            enable_deterministic_inference, enable_llm42
+            "for batch invariance."
         )
         return None
-
     # Supported Triton versions, should be sorted from the newest to the oldest
     supported_triton_versions = ["3.4.0", "3.3.1", "3.2.0", "3.1.0"]
 
     # First look up if an optimized configuration is available in the configs
     # directory
-    json_file_name = get_config_file_name(E, N, dtype, [block_n, block_k])
+    json_file_name = get_config_file_name(
+        E,
+        N,
+        dtype,
+        [block_n, block_k],
+        per_channel_quant,
+        down_moe=down_moe,
+    )
 
     # We found that using the fused_moe_kernel config from Triton 3.1.0 with Triton 3.2.0 results in negative performance gains,
     # so we also include the Triton version as a key for finding the fused_moe_kernel config to achieve the best performance.
@@ -125,15 +117,24 @@ def get_moe_configs(
                 # If a configuration has been found, return it
                 return {int(key): val for key, val in json.load(f).items()}
 
-    # If no optimized configuration is available, we will use the default
-    # configuration
-    logger.warning(
-        (
-            "Using default MoE kernel config. Performance might be sub-optimal! "
-            "Config file not found at %s, you can create them with https://github.com/sgl-project/sglang/tree/main/benchmark/kernels/fused_moe_triton"
-        ),
-        config_file_path,
-    )
+    # If no optimized configuration is available, we will use the default configuration when down_moe is False
+    # When down_moe is True, we will try to use the config for down_moe=False
+    if down_moe:
+        logger.warning(
+            (
+                "Using MoE kernel config with down_moe=False. Performance might be sub-optimal! "
+                "Config file not found at %s, you can create them with https://github.com/sgl-project/sglang/tree/main/benchmark/kernels/fused_moe_triton"
+            ),
+            config_file_path,
+        )
+    else:
+        logger.warning(
+            (
+                "Using default MoE kernel config. Performance might be sub-optimal! "
+                "Config file not found at %s, you can create them with https://github.com/sgl-project/sglang/tree/main/benchmark/kernels/fused_moe_triton"
+            ),
+            config_file_path,
+        )
     return None
 
 
@@ -147,18 +148,16 @@ def get_default_config(
     is_marlin: bool,
     block_shape: Optional[List[int]] = None,
 ) -> Dict[str, int]:
-    # Check for deterministic inference - use fixed config for batch invariance
-    # Mode 3 (enable_llm42=3) uses non-batch-invariant kernels, so skip this check
-    enable_deterministic_inference, enable_llm42 = _get_deterministic_flags()
-    if enable_deterministic_inference > 0 or (enable_llm42 > 0 and enable_llm42 != 3):
-        # Return fixed config regardless of M, E, dtype for batch invariance
-        return {
+    server_args = get_global_server_args()
+    enable_llm42 = getattr(server_args, "enable_llm42", 0) or 0
+    if server_args.enable_deterministic_inference or (enable_llm42 > 0 and enable_llm42 != 3):
+        config = {
             "BLOCK_SIZE_M": 64,
             "BLOCK_SIZE_N": 64,
             "BLOCK_SIZE_K": 32,
             "GROUP_SIZE_M": 8,
         }
-
+        return config
     if dtype == "fp8_w8a8":
         if block_shape is None:
             config = {
@@ -214,9 +213,13 @@ def try_get_optimal_moe_config(
     M: int,
     is_marlin: bool = False,
     block_shape: Optional[List[int]] = None,
+    per_channel_quant: bool = False,
+    return_down_config: bool = False,
 ):
     from sglang.srt.layers.moe.fused_moe_triton import get_config
 
+    down_config = None
+    max_block_m = None
     override_config = get_config()
     if override_config:
         config = override_config
@@ -225,7 +228,15 @@ def try_get_optimal_moe_config(
         E, _, N = w2_shape
         block_n = block_shape[0] if block_shape else 0
         block_k = block_shape[1] if block_shape else 0
-        configs = get_moe_configs(E, N, dtype, block_n, block_k)
+        configs = get_moe_configs(
+            E,
+            N,
+            dtype,
+            block_n,
+            block_k,
+            per_channel_quant=per_channel_quant,
+            down_moe=False,
+        )
 
         if configs:
             # If an optimal configuration map has been found, look up the
@@ -236,6 +247,29 @@ def try_get_optimal_moe_config(
             config = get_default_config(
                 M, E, N, w1_shape[2], top_k, dtype, is_marlin, block_shape
             )
+        if return_down_config:
+            down_configs = get_moe_configs(
+                E,
+                N,
+                dtype,
+                block_n,
+                block_k,
+                per_channel_quant=per_channel_quant,
+                down_moe=True,
+            )
+            if down_configs:
+                down_config = down_configs[
+                    min(down_configs.keys(), key=lambda x: abs(x - M))
+                ]
+                down_config = dict(**down_config)
+                max_block_m = max(
+                    [cfg["BLOCK_SIZE_M"] for cfg in down_configs.values()]
+                )
+    if return_down_config:
+        assert (
+            down_config is None or config["BLOCK_SIZE_M"] == down_config["BLOCK_SIZE_M"]
+        )
+        return config, (down_config, max_block_m)
     return config
 
 

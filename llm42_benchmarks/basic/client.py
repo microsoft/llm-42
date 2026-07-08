@@ -46,6 +46,13 @@ def run_once(base_url, request_rate, num_prompts, model, seed,
         gsp_system_prompt_len=2048, gsp_question_len=128, gsp_output_len=256,
         mooncake_slowdown_factor=1.0, mooncake_num_rounds=1,
         mooncake_workload="conversation",
+        lora_request_distribution="uniform", lora_zipf_alpha=1.5,
+        served_model_name=None,
+        return_routed_experts=False,
+        arrival_seed=None, order_seed=None, select_seed=None,
+        plot_throughput=False,
+        image_content=None, image_count=1, image_format="png",
+        image_resolution="1080p", random_image_count=1,
     )
     bench_serving.set_global_args(args)
     with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
@@ -92,8 +99,6 @@ def main():
         )
         total = sum(len(t) for t in tokens)
         pct = (stats["tokens_rolled_back"] / total * 100) if total else 0
-        print(f"[Run {i}] {len(tokens)} responses, {total} tokens, "
-              f"{stats['rollbacks']} rollbacks ({pct:.2f}% rolled back)")
         # Log each generated output with token length
         for idx, text in enumerate(texts):
             tok_len = len(tokens[idx]) if idx < len(tokens) else 0
@@ -117,6 +122,9 @@ def main():
         print("FAIL: non-deterministic outputs detected")
     else:
         print(f"PASS: all {args.num_runs} runs identical")
+
+    print(f"[Run {i}] {len(tokens)} responses, {total} tokens, "
+            f"{stats['rollbacks']} rollbacks ({pct:.2f}% rolled back)")
 
     return 1 if any_mismatch else 0
 

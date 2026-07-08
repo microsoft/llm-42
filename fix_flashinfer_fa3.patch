@@ -1,0 +1,13 @@
+diff --git a/python/sglang/srt/layers/attention/flashinfer_backend.py b/python/sglang/srt/layers/attention/flashinfer_backend.py
+index 96b65a9d9..ebdb2591b 100644
+--- a/python/sglang/srt/layers/attention/flashinfer_backend.py
++++ b/python/sglang/srt/layers/attention/flashinfer_backend.py
+@@ -300,7 +300,7 @@ class FlashInferAttnBackend(AttentionBackend):
+                     BatchPrefillWithPagedKVCacheWrapper(
+                         self.workspace_buffer,
+                         "NHD",
+-                        backend="fa3",
++                        backend=self.prefill_backend,
+                     )
+                 )
+             self.decode_wrappers.append(

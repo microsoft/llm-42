@@ -7,32 +7,23 @@ FlashInfer is faster and Triton is easier to customize.
 Each backend supports two operators: extend (i.e. prefill with cached prefix) and decode.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 from enum import Enum, auto
 from functools import partial
 from typing import TYPE_CHECKING, Callable, List, Optional, Union
-import logging
 
 import torch
-from torch.profiler import record_function
 
-logger = logging.getLogger(__name__)
-
-if os.environ["SGLANG_ENABLE_TORCH_COMPILE"] == "1":
-    import logging
-
-    torch._logging.set_logs(dynamo=logging.ERROR)
-    torch._dynamo.config.suppress_errors = True
-
-from sglang.global_config import global_config
+from sglang.srt.dllm.config import DllmConfig
+from sglang.srt.environ import envs
 from sglang.srt.layers.attention.base_attn_backend import AttentionBackend
 from sglang.srt.layers.attention.utils import create_flashinfer_kv_indices_triton
 from sglang.srt.layers.dp_attention import get_attention_tp_size
 from sglang.srt.layers.radix_attention import AttentionType
-from sglang.srt.mem_cache.allocator import SWATokenToKVPoolAllocator
+from sglang.srt.mem_cache.swa_memory_pool import SWATokenToKVPoolAllocator
 from sglang.srt.model_executor.forward_batch_info import ForwardBatch, ForwardMode
-from sglang.srt.speculative.eagle_info import EagleDraftInput, EagleVerifyInput
 from sglang.srt.speculative.spec_info import SpecInput
 from sglang.srt.utils import (
     get_int_env_var,
@@ -45,6 +36,27 @@ if TYPE_CHECKING:
     from sglang.srt.layers.radix_attention import RadixAttention
     from sglang.srt.model_executor.model_runner import ModelRunner
 
+logger = logging.getLogger(__name__)
+
+# Debug flags to skip attention computation and return zeros instead.
+# Useful for isolating non-determinism sources outside of attention.
+_SKIP_DECODE_ATTN = os.environ.get("SGLANG_SKIP_DECODE_ATTN", "0") == "1"
+_SKIP_EXTEND_ATTN = os.environ.get("SGLANG_SKIP_EXTEND_ATTN", "0") == "1"
+_SKIP_VERIFY_ATTN = os.environ.get("SGLANG_SKIP_VERIFY_ATTN", "0") == "1"
+
+if _SKIP_DECODE_ATTN or _SKIP_EXTEND_ATTN or _SKIP_VERIFY_ATTN:
+    logger.warning(
+        "Attention skip flags active: DECODE=%s EXTEND=%s VERIFY=%s. "
+        "Attention will be bypassed for flagged modes (debug only).",
+        _SKIP_DECODE_ATTN,
+        _SKIP_EXTEND_ATTN,
+        _SKIP_VERIFY_ATTN,
+    )
+
+if envs.SGLANG_ENABLE_TORCH_COMPILE.get():
+    torch._logging.set_logs(dynamo=logging.ERROR)
+    torch._dynamo.config.suppress_errors = True
+
 
 if is_flashinfer_available():
     from flashinfer import (
@@ -54,12 +66,41 @@ if is_flashinfer_available():
         fast_decode_plan,
     )
     from flashinfer.cascade import merge_state
-    from flashinfer.decode import _get_range_buf, get_seq_lens
 
 
 class WrapperDispatch(Enum):
     SLIDING_WINDOW = auto()
     CROSS_ATTENTION = auto()
+
+
+@dataclass
+class MultiItemScoringParams:
+    """Parameters for multi-item scoring in attention computation.
+
+    Used when processing sequences with multiple items separated by delimiters,
+    where each item needs specific attention patterns that respect item boundaries.
+
+    Attributes:
+        prefix_len_ptr: A uint32 1D tensor indicating the prefix length of each prompt.
+                       The tensor size is equal to the batch size.
+        token_pos_in_items_ptr: A uint16 1D tensor indicating the token position of each item
+                               starting from 0 (delimiter) for each item. For batch size > 1,
+                               sequences are concatenated with zero padding to ensure same length.
+        token_pos_in_items_len: Zero padding length for token_pos_in_items_ptr to handle
+                               batch_size > 1 case. Defines the padded length for each sequence.
+        max_item_len_ptr: A uint16 tensor containing the max token length of all items
+                         for each prompt in the batch.
+
+    """
+
+    prefix_len_ptr: Optional[torch.Tensor] = None
+    token_pos_in_items_ptr: Optional[torch.Tensor] = None
+    token_pos_in_items_len: int = 0
+    max_item_len_ptr: Optional[torch.Tensor] = None
+
+    def is_enabled(self) -> bool:
+        """Check if multi-item scoring is enabled."""
+        return self.prefix_len_ptr is not None
 
 
 @dataclass
@@ -72,6 +113,7 @@ class PrefillMetadata:
     prefill_wrappers: List[BatchPrefillWithPagedKVCacheWrapper]
     use_ragged: bool
     extend_no_prefix: bool
+    multi_item_params: Optional[MultiItemScoringParams] = None
 
 
 # Reuse this workspace buffer across all flashinfer wrappers
@@ -91,8 +133,20 @@ class FlashInferAttnBackend(AttentionBackend):
         skip_prefill: bool = False,
         kv_indptr_buf: Optional[torch.Tensor] = None,
         kv_last_page_len_buf: Optional[torch.Tensor] = None,
+        init_new_workspace: bool = False,
     ):
         super().__init__()
+        self.prefill_backend = "fa2"
+        self.decode_backend = "fa2"
+
+        # Store multi-item scoring delimiter for efficient access
+        self.multi_item_scoring_delimiter = (
+            model_runner.server_args.multi_item_scoring_delimiter
+        )
+
+        # FIXME: remove dllm workarounds from flashinfer
+        self.dllm_config = DllmConfig.from_server_args(model_runner.server_args)
+        self.is_dllm_model = self.dllm_config is not None
 
         # Parse constants
         self.decode_use_tensor_cores = should_use_tensor_core(
@@ -127,8 +181,12 @@ class FlashInferAttnBackend(AttentionBackend):
             "Qwen2ForCausalLM" in model_runner.model_config.hf_config.architectures
             or "Qwen3ForCausalLM" in model_runner.model_config.hf_config.architectures
             or "MiMoForCausalLM" in model_runner.model_config.hf_config.architectures
+            or "Qwen3VLForConditionalGeneration"
+            in model_runner.model_config.hf_config.architectures
+            or "Qwen3VLMoeForConditionalGeneration"
+            in model_runner.model_config.hf_config.architectures
         ):
-            global_config.flashinfer_workspace_size = 512 * 1024 * 1024
+            envs.SGLANG_FLASHINFER_WORKSPACE_SIZE.set(512 * 1024 * 1024)
 
         # When deterministic inference is enabled, tensor cores should be used for decode
         # Also set split tile sizes for prefill and decode from environment variables, and disable kv split for cuda graph
@@ -137,21 +195,21 @@ class FlashInferAttnBackend(AttentionBackend):
         # Store deterministic inference configuration
         self.deterministic_inference_flag = model_runner.server_args.enable_deterministic_inference
 
-        # Static deterministic mode (enable_deterministic_inference)
+        # Static deterministic mode
         self.enable_deterministic = (
             self.deterministic_inference_flag > 0
         )
-        
+
         # Separate flag for llm42 mode (dynamic batch-invariant control)
-        self.enable_llm42_mode = model_runner.server_args.enable_llm42
+        self.enable_llm42_mode = getattr(model_runner.server_args, 'enable_llm42', 0) or 0
         # Store original (non-deterministic) settings
         self.original_decode_use_tensor_cores = self.decode_use_tensor_cores
         self.prefill_split_tile_size = None
         self.decode_split_tile_size = None
+        self.verification_split_tile_size = None
         self.disable_cuda_graph_kv_split = False
 
-        if self.enable_deterministic > 0 or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
-            # Static deterministic mode: always use deterministic settings
+        if self.enable_deterministic or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
             self.decode_use_tensor_cores = True
             self.prefill_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
@@ -160,28 +218,33 @@ class FlashInferAttnBackend(AttentionBackend):
                 "SGLANG_FLASHINFER_DECODE_SPLIT_TILE_SIZE", 2048
             )
             self.disable_cuda_graph_kv_split = True
-            # Increased workspace size for deterministic inference with larger prefill batches
-            global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
-        
+            envs.SGLANG_FLASHINFER_WORKSPACE_SIZE.set(8192 * 1024 * 1024)
+
         if self.enable_llm42_mode > 0 and self.enable_llm42_mode == 3:
-            # Mode 3: use deterministic attention settings
+            # Mode 3: use deterministic attention settings for verification only
             self.verification_split_tile_size = get_int_env_var(
                 "SGLANG_FLASHINFER_PREFILL_SPLIT_TILE_SIZE", 4096
             )
-            global_config.flashinfer_workspace_size = 8192 * 1024 * 1024
+            envs.SGLANG_FLASHINFER_WORKSPACE_SIZE.set(8192 * 1024 * 1024)
 
         # Allocate buffers
         global global_workspace_buffer
         if global_workspace_buffer is None:
             # different from flashinfer zero_init_global_workspace_buffer
-            global_workspace_size = global_config.flashinfer_workspace_size
+            global_workspace_size = envs.SGLANG_FLASHINFER_WORKSPACE_SIZE.get()
             global_workspace_buffer = torch.empty(
                 global_workspace_size,
                 dtype=torch.uint8,
                 device=model_runner.device,
             )
-
-        self.workspace_buffer = global_workspace_buffer
+        if init_new_workspace:
+            self.workspace_buffer = torch.empty(
+                envs.SGLANG_FLASHINFER_WORKSPACE_SIZE.get(),
+                dtype=torch.uint8,
+                device=model_runner.device,
+            )
+        else:
+            self.workspace_buffer = global_workspace_buffer
         max_bs = model_runner.req_to_token_pool.size
         if kv_indptr_buf is None:
             self.kv_indptr = [
@@ -212,7 +275,16 @@ class FlashInferAttnBackend(AttentionBackend):
 
         fmha_backend = "auto"
         if is_sm100_supported():
-            fmha_backend = "cutlass"
+            # Disable CUTLASS backend when piecewise cuda graph is enabled
+            # due to TMA descriptor initialization issues on B200
+            if model_runner.server_args.enable_piecewise_cuda_graph:
+                logger.warning(
+                    "CUTLASS backend is disabled when piecewise cuda graph is enabled "
+                    "due to TMA descriptor initialization issues on B200. "
+                    "Using auto backend instead for stability."
+                )
+            else:
+                fmha_backend = "cutlass"
         self.prefill_wrapper_ragged = BatchPrefillWithRaggedKVCacheWrapper(
             self.workspace_buffer, "NHD", backend=fmha_backend
         )
@@ -229,26 +301,28 @@ class FlashInferAttnBackend(AttentionBackend):
                     BatchPrefillWithPagedKVCacheWrapper(
                         self.workspace_buffer,
                         "NHD",
-                        backend="fa2",
+                        backend=self.prefill_backend,
                     )
                 )
                 self.prefill_wrappers_verify.append(
                     BatchPrefillWithPagedKVCacheWrapper(
                         self.workspace_buffer,
                         "NHD",
+                        backend=self.prefill_backend,
                     )
                 )
                 self.llm42_verification_wrappers.append(
                     BatchPrefillWithPagedKVCacheWrapper(
                         self.workspace_buffer,
                         "NHD",
-                        backend="fa3",
+                        backend=self.prefill_backend,
                     )
                 )
             self.decode_wrappers.append(
                 BatchDecodeWithPagedKVCacheWrapper(
                     self.workspace_buffer,
                     "NHD",
+                    backend=self.decode_backend,
                     use_tensor_cores=self.decode_use_tensor_cores,
                 )
             )
@@ -257,20 +331,140 @@ class FlashInferAttnBackend(AttentionBackend):
         if not skip_prefill:
             self.indices_updater_prefill = FlashInferIndicesUpdaterPrefill(
                 model_runner, self
-            )
+            )  # for verify
         self.indices_updater_decode = FlashInferIndicesUpdaterDecode(model_runner, self)
 
         # Other metadata
         self.forward_metadata: Union[PrefillMetadata, DecodeMetadata] = None
+
         self.decode_cuda_graph_metadata = {}
         self.prefill_cuda_graph_metadata = {}  # For verify
         self.draft_extend_cuda_graph_metadata = {}  # For draft extend
 
+    def _process_multi_item_scoring(
+        self, forward_batch: ForwardBatch
+    ) -> MultiItemScoringParams:
+        """Process multi-item scoring tensors for FlashInfer attention.
+
+        This method handles sequences containing multiple "items" separated by delimiter tokens,
+        where each item needs specific attention patterns that respect item boundaries.
+
+        The method produces four key tensors for FlashInfer:
+        - prefix_len_ptr: uint32 tensor with prefix length for each prompt in batch
+        - token_pos_in_items_ptr: uint16 tensor with token positions starting from 0 at delimiters
+        - token_pos_in_items_len: padding length for batch processing
+        - max_item_len_ptr: uint16 tensor with max item length for each prompt
+
+        Args:
+            forward_batch: The forward batch containing input sequences and delimiter info
+
+        Returns:
+            MultiItemScoringParams: The processed multi-item scoring parameters
+
+        Examples:
+            Following FlashInfer definition: for 3 items of length 3, 2, 4 respectively:
+            token_pos_in_items_ptr = [0, 1, 2, 3, 0, 1, 2, 0, 1, 2, 3, 4, 0]
+
+            Case 1: Single sequence
+            Text: "What is the capital of France? <delim> London <delim> Paris <delim> Berlin <delim>"
+            Tokens: [What, is, the, capital, of, France, ?, <delim>, London, <delim>, Paris, <delim>, Berlin, <delim>]
+            Indices: [ 0,   1,  2,   3,      4,  5,     6,   7,     8,      9,     10,    11,    12,     13]
+            - prefix_len_ptr: [7] (query length before first delimiter)
+            - token_pos_in_items_ptr: [0, 1, 0, 1, 0, 1, 0] (delim=0, London=1, delim=0, Paris=1, delim=0, Berlin=1, delim=0)
+            - token_pos_in_items_len: 7 (actual length)
+            - max_item_len_ptr: [1] (max item length is 1 token - all options are single tokens)
+
+            Case 2: Batch processing (batch_size=2)
+            Sequence 1: 2 items of length 2, 1 → [0, 1, 2, 0, 1, 0] (6 elements)
+            Sequence 2: 3 items of length 1, 3, 2 → [0, 1, 0, 1, 2, 3, 0, 1, 2, 0] (10 elements)
+            After padding both to length 10:
+            - token_pos_in_items_ptr: [0, 1, 2, 0, 1, 0, 0, 0, 0, 0,    0, 1, 0, 1, 2, 3, 0, 1, 2, 0]
+            - token_pos_in_items_len: 10 (padded length for batch processing)
+            - max_item_len_ptr: [2, 3] (max lengths per sequence)
+        """
+
+        delimiter = self.multi_item_scoring_delimiter
+        if delimiter is None or forward_batch.forward_mode == ForwardMode.DECODE:
+            return MultiItemScoringParams()
+
+        delimiter_mask = forward_batch.input_ids == delimiter
+        prefix_cache_lens = getattr(forward_batch, "extend_prefix_lens", None)
+        extend_seq_lens = getattr(forward_batch, "extend_seq_lens", None)
+        prefix_len_ptr, token_pos_in_items_ptr = [], []
+        token_pos_in_items_len = 0
+
+        # If no extend_seq_lens, treat whole batch as one sequence
+        if extend_seq_lens is None or len(extend_seq_lens) <= 1:
+            extend_seq_lens = [forward_batch.input_ids.size(0)]
+
+        seq_start = 0
+        for i, seq_len in enumerate(extend_seq_lens):
+            seq_end = seq_start + seq_len
+            mask = delimiter_mask[seq_start:seq_end]
+            pos = forward_batch.positions[seq_start:seq_end]
+            delimiter_indices = torch.nonzero(mask, as_tuple=True)[0]
+
+            if len(delimiter_indices) > 0:
+                first_delim = delimiter_indices[0]
+                # Prefix length: store as scalar
+                prefix_len = first_delim + (
+                    prefix_cache_lens[i] if prefix_cache_lens is not None else 0
+                )
+                prefix_len_ptr.append(
+                    prefix_len.item() if torch.is_tensor(prefix_len) else prefix_len
+                )
+
+                # Compute relative positions within items after delimiters
+                diff = pos[first_delim:] - torch.cummax(mask[first_delim:], 0)[1]
+                token_pos = (diff - pos[first_delim]).to(torch.uint16)
+                token_pos_in_items_ptr.append(token_pos)
+
+                # Update forward_batch positions in-place
+                pos[first_delim:] = diff - 1
+                forward_batch.positions[seq_start:seq_end] = pos
+
+            seq_start = seq_end
+
+        # Pad token_pos_in_items_ptr for batch processing
+        if token_pos_in_items_ptr:
+            token_pos_in_items_len = max(t.numel() for t in token_pos_in_items_ptr)
+            device = forward_batch.input_ids.device
+            token_pos_in_items_ptr = [
+                torch.cat(
+                    [
+                        t,
+                        torch.zeros(
+                            token_pos_in_items_len - t.numel(),
+                            dtype=torch.uint16,
+                            device=device,
+                        ),
+                    ]
+                )
+                for t in token_pos_in_items_ptr
+            ]
+
+        if not prefix_len_ptr or not token_pos_in_items_ptr:
+            return MultiItemScoringParams()
+
+        # Build final params
+        device = forward_batch.input_ids.device
+        return MultiItemScoringParams(
+            prefix_len_ptr=torch.tensor(
+                prefix_len_ptr, dtype=torch.uint32, device=device
+            ),
+            token_pos_in_items_ptr=torch.cat(token_pos_in_items_ptr, dim=0),
+            token_pos_in_items_len=token_pos_in_items_len & 0xFFFFFFFF,
+            max_item_len_ptr=torch.stack(
+                [
+                    t.to(torch.int32).max().to(torch.uint16)
+                    for t in token_pos_in_items_ptr
+                ],
+                dim=0,
+            ),
+        )
+
     def init_forward_metadata(self, forward_batch: ForwardBatch):
         if forward_batch.forward_mode.is_decode_or_idle():
-            enable_deterministic_current = self.enable_deterministic
-
-            current_decode_split_tile_size = (self.decode_split_tile_size if enable_deterministic_current else None)
             self.indices_updater_decode.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
@@ -279,7 +473,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 decode_wrappers=self.decode_wrappers,
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=forward_batch.spec_info,
-                fixed_split_size=current_decode_split_tile_size,
+                fixed_split_size=(self.decode_split_tile_size if self.enable_deterministic or (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3) else None),
                 disable_split_kv=False,
             )
             self.forward_metadata = DecodeMetadata(self.decode_wrappers)
@@ -314,40 +508,48 @@ class FlashInferAttnBackend(AttentionBackend):
                 self.prefill_wrappers_verify, False, False
             )
         elif forward_batch.forward_mode.is_target_llm42_verify():
-            # Handle TARGET_LLM42_VERIFY - this mode MUST always use deterministic settings
-            # This mode is used for deterministic verification - re-running output tokens
-            # to verify determinism. The input tokens are already in KV cache.
-            # We need to pass prefix_lens (the length of input tokens already in cache)
-            # Use fixed split size for deterministic verification with fa2 backend
+            # TARGET_LLM42_VERIFY: deterministic verification of output tokens
+            # Input tokens already in KV cache, we re-run output tokens for verification
             extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
-            # Always use a fixed split size for determinism
-            llm42_verify_split_size = self.verification_split_tile_size if self.verification_split_tile_size is not None else 4096
-            
+            # Use prefill_split_tile_size (same as global deterministic extend)
+            # for modes 1/2; fall back to verification_split_tile_size for mode 3.
+            llm42_verify_split_size = (
+                self.prefill_split_tile_size
+                if self.prefill_split_tile_size is not None
+                else (self.verification_split_tile_size if self.verification_split_tile_size is not None else 4096)
+            )
+
+            # Use the same paged wrappers as global deterministic extend
+            # to ensure identical flashinfer kernel behavior.
             self.indices_updater_prefill.update(
                 forward_batch.req_pool_indices,
                 forward_batch.seq_lens,
                 forward_batch.seq_lens_cpu,
                 forward_batch.seq_lens_sum,
                 prefix_lens=forward_batch.extend_prefix_lens,
-                prefill_wrappers=self.llm42_verification_wrappers,
+                prefill_wrappers=self.prefill_wrappers_paged,
                 use_ragged=False,
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=None,
-                fixed_split_size=None,
-                disable_split_kv=False,
+                fixed_split_size=llm42_verify_split_size,
             )
             self.forward_metadata = PrefillMetadata(
-                self.llm42_verification_wrappers, False, extend_no_prefix,
+                self.prefill_wrappers_paged, False, extend_no_prefix,
             )
         else:
             prefix_lens = forward_batch.extend_prefix_lens
-            current_prefill_split_tile_size = None
 
-            if self.is_multimodal:
+            # Disable ragged wrapper and ensure prefix handling for multimodal and multi-item scoring
+            if self.is_multimodal or self.multi_item_scoring_delimiter is not None:
+                # use_ragged = False: Multi-item scoring requires the paged wrapper because:
+                # 1. Ragged wrapper doesn't support the specialized multi-item parameters
+                #    (prefix_len_ptr, token_pos_in_items_ptr, etc.)
+                # 2. Paged wrapper provides better control over attention masking needed
+                #    for respecting item boundaries in multi-item sequences
+                # 3. Custom masking logic conflicts with ragged wrapper's assumptions
                 use_ragged = False
                 extend_no_prefix = False
             else:
-                # Use self.enable_deterministic for static deterministic mode
                 enable_deterministic_current = self.enable_deterministic
                 if (self.enable_llm42_mode > 0 and self.enable_llm42_mode != 3):
                     from sglang.srt.batch_invariant_ops import is_batch_invariant_mode_enabled
@@ -355,6 +557,12 @@ class FlashInferAttnBackend(AttentionBackend):
                 current_prefill_split_tile_size = (self.prefill_split_tile_size if enable_deterministic_current else None)
                 use_ragged = not enable_deterministic_current
                 extend_no_prefix = not any(forward_batch.extend_prefix_lens_cpu)
+
+            # Process multi-item scoring in attention backend instead of ForwardBatch
+            multi_item_params = MultiItemScoringParams()
+            if self.multi_item_scoring_delimiter is not None:
+                # Use new backend-specific implementation
+                multi_item_params = self._process_multi_item_scoring(forward_batch)
 
             self.indices_updater_prefill.update(
                 forward_batch.req_pool_indices,
@@ -367,10 +575,13 @@ class FlashInferAttnBackend(AttentionBackend):
                 encoder_lens=forward_batch.encoder_lens,
                 spec_info=None,
                 fixed_split_size=current_prefill_split_tile_size,
-                disable_split_kv=False,
+                multi_item_params=multi_item_params,
             )
             self.forward_metadata = PrefillMetadata(
-                self.prefill_wrappers_paged, use_ragged, extend_no_prefix,
+                self.prefill_wrappers_paged,
+                use_ragged,
+                extend_no_prefix,
+                multi_item_params,
             )
 
     def init_cuda_graph_state(
@@ -418,19 +629,15 @@ class FlashInferAttnBackend(AttentionBackend):
         spec_info: Optional[SpecInput],
     ):
         if forward_mode.is_decode_or_idle():
-            # Static mode: use configured settings
-            is_deterministic_graph = self.enable_deterministic
-            use_tensor_cores = self.decode_use_tensor_cores
-            disable_split_kv = self.disable_cuda_graph_kv_split
-
             decode_wrappers = []
             for i in range(self.num_wrappers):
                 decode_wrappers.append(
                     BatchDecodeWithPagedKVCacheWrapper(
                         self.workspace_buffer,
                         "NHD",
+                        backend=self.decode_backend,
                         use_cuda_graph=True,
-                        use_tensor_cores=use_tensor_cores,
+                        use_tensor_cores=self.decode_use_tensor_cores,
                         paged_kv_indptr_buffer=self.kv_indptr[i][: num_tokens + 1],
                         paged_kv_indices_buffer=self.cuda_graph_kv_indices[i],
                         paged_kv_last_page_len_buffer=self.kv_last_page_len[
@@ -448,14 +655,9 @@ class FlashInferAttnBackend(AttentionBackend):
                 encoder_lens=encoder_lens,
                 spec_info=spec_info,
                 fixed_split_size=None,
-                disable_split_kv=disable_split_kv,
+                disable_split_kv=self.disable_cuda_graph_kv_split,
             )
-            # Store with tuple key (bs, is_deterministic) for dual graphs
-            if uses_dual_graphs:
-                storage_key = (bs, is_deterministic_graph)
-            else:
-                storage_key = bs
-            self.decode_cuda_graph_metadata[storage_key] = decode_wrappers
+            self.decode_cuda_graph_metadata[bs] = decode_wrappers
             self.forward_metadata = DecodeMetadata(decode_wrappers)
             for i in range(self.num_wrappers):
                 decode_wrappers[i].begin_forward = partial(
@@ -469,6 +671,7 @@ class FlashInferAttnBackend(AttentionBackend):
                         self.workspace_buffer,
                         "NHD",
                         use_cuda_graph=True,
+                        backend=self.prefill_backend,
                         qo_indptr_buf=self.cuda_graph_qo_indptr[i][: bs + 1],
                         paged_kv_indptr_buf=self.kv_indptr[i][: bs + 1],
                         paged_kv_indices_buf=self.cuda_graph_kv_indices[i],
@@ -492,9 +695,7 @@ class FlashInferAttnBackend(AttentionBackend):
             self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
             self.forward_metadata = PrefillMetadata(prefill_wrappers, False, False)
         elif forward_mode.is_target_llm42_verify():
-            # TARGET_LLM42_VERIFY is not expected to use CUDA graphs in initial implementation
-            # It should follow the non-CUDA-graph path
-            raise ValueError(f"CUDA graph capture not supported for TARGET_LLM42_VERIFY mode")
+            raise ValueError("CUDA graph capture not supported for TARGET_LLM42_VERIFY mode")
         elif forward_mode.is_draft_extend():
             prefill_wrappers = []
             for i in range(self.num_wrappers):
@@ -502,7 +703,7 @@ class FlashInferAttnBackend(AttentionBackend):
                     BatchPrefillWithPagedKVCacheWrapper(
                         self.workspace_buffer,
                         "NHD",
-                        backend="fa2",
+                        backend=self.prefill_backend,
                         use_cuda_graph=True,
                         qo_indptr_buf=self.cuda_graph_qo_indptr[i][: bs + 1],
                         paged_kv_indptr_buf=self.kv_indptr[i][: bs + 1],
@@ -525,6 +726,35 @@ class FlashInferAttnBackend(AttentionBackend):
             )
             self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
             self.forward_metadata = PrefillMetadata(prefill_wrappers, False, False)
+        elif forward_mode.is_dllm_extend():
+            prefill_wrappers = []
+            for i in range(self.num_wrappers):
+                prefill_wrappers.append(
+                    BatchPrefillWithPagedKVCacheWrapper(
+                        self.workspace_buffer,
+                        "NHD",
+                        backend=self.prefill_backend,
+                        use_cuda_graph=True,
+                        qo_indptr_buf=self.cuda_graph_qo_indptr[i][: bs + 1],
+                        paged_kv_indptr_buf=self.kv_indptr[i][: bs + 1],
+                        paged_kv_indices_buf=self.cuda_graph_kv_indices[i],
+                        paged_kv_last_page_len_buf=self.kv_last_page_len[:bs],
+                    )
+                )
+            seq_lens_sum = seq_lens.sum().item()
+            self.indices_updater_prefill.update(
+                req_pool_indices,
+                seq_lens,
+                seq_lens.cpu(),  # may add a little overhead in capture stage
+                seq_lens_sum,
+                prefix_lens=seq_lens - self.dllm_config.block_size,
+                prefill_wrappers=prefill_wrappers,
+                use_ragged=True,
+                encoder_lens=encoder_lens,
+                spec_info=None,
+            )
+            self.prefill_cuda_graph_metadata[bs] = prefill_wrappers
+            self.forward_metadata = PrefillMetadata(prefill_wrappers, True, False)
         else:
             raise ValueError(f"Invalid mode: {forward_mode=}")
 
@@ -538,25 +768,18 @@ class FlashInferAttnBackend(AttentionBackend):
         forward_mode: ForwardMode,
         spec_info: Optional[SpecInput],
         seq_lens_cpu: Optional[torch.Tensor],
-        use_deterministic: Optional[bool] = None,
     ):
         if forward_mode.is_decode_or_idle():
-            # Static mode: use configured settings
-            storage_key = bs
-            if self.enable_deterministic > 0:
-                disable_split_kv = self.disable_cuda_graph_kv_split
-            else:
-                disable_split_kv = False
             self.indices_updater_decode.update(
                 req_pool_indices[:bs],
                 seq_lens[:bs],
                 seq_lens_cpu[:bs] if seq_lens_cpu is not None else None,
                 seq_lens_sum,
-                decode_wrappers=self.decode_cuda_graph_metadata[storage_key],
+                decode_wrappers=self.decode_cuda_graph_metadata[bs],
                 encoder_lens=encoder_lens[:bs] if encoder_lens is not None else None,
                 spec_info=spec_info,
                 fixed_split_size=None,
-                disable_split_kv=disable_split_kv,
+                disable_split_kv=self.disable_cuda_graph_kv_split,
             )
         elif forward_mode.is_target_verify():
             self.indices_updater_prefill.update(
@@ -571,8 +794,7 @@ class FlashInferAttnBackend(AttentionBackend):
                 spec_info=spec_info,
             )
         elif forward_mode.is_target_llm42_verify():
-            # TARGET_LLM42_VERIFY is not expected to use CUDA graphs in replay
-            raise ValueError(f"CUDA graph replay not supported for TARGET_LLM42_VERIFY mode")
+            raise ValueError("CUDA graph replay not supported for TARGET_LLM42_VERIFY mode")
         elif forward_mode.is_draft_extend():
             self.indices_updater_prefill.update(
                 req_pool_indices[:bs],
@@ -584,6 +806,18 @@ class FlashInferAttnBackend(AttentionBackend):
                 use_ragged=False,
                 encoder_lens=encoder_lens[:bs] if encoder_lens is not None else None,
                 spec_info=spec_info,
+            )
+        elif forward_mode.is_dllm_extend():
+            self.indices_updater_prefill.update(
+                req_pool_indices[:bs],
+                seq_lens[:bs],
+                seq_lens_cpu[:bs] if seq_lens_cpu is not None else None,
+                seq_lens_sum,
+                prefix_lens=seq_lens - self.dllm_config.block_size,
+                prefill_wrappers=self.prefill_cuda_graph_metadata[bs],
+                use_ragged=True,
+                encoder_lens=encoder_lens[:bs] if encoder_lens is not None else None,
+                spec_info=None,
             )
         else:
             raise ValueError("Invalid forward mode")
@@ -600,7 +834,16 @@ class FlashInferAttnBackend(AttentionBackend):
         forward_batch: ForwardBatch,
         save_kv_cache=True,
     ):
-        wrapper = None
+        # Debug: skip attention for verify or extend modes
+        is_verify = (
+            forward_batch.forward_mode.is_target_verify()
+            or forward_batch.forward_mode.is_target_llm42_verify()
+        )
+        if (is_verify and _SKIP_VERIFY_ATTN) or (
+            not is_verify and _SKIP_EXTEND_ATTN
+        ):
+            return q.contiguous().view(-1, layer.tp_q_head_num * layer.head_dim)
+
         prefill_wrapper_paged = self.forward_metadata.prefill_wrappers[
             self._get_wrapper_idx(layer)
         ]
@@ -620,57 +863,77 @@ class FlashInferAttnBackend(AttentionBackend):
                     forward_batch.token_to_kv_pool.set_kv_buffer(
                         layer, cache_loc, k, v, layer.k_scale, layer.v_scale
                     )
-            with record_function("attention"):
-                o = prefill_wrapper_paged.forward(
-                    q.view(-1, layer.tp_q_head_num, layer.head_dim),
-                    forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
-                    causal=not layer.is_cross_attention,
-                    sm_scale=layer.scaling,
-                    window_left=layer.sliding_window_size,
-                    logits_soft_cap=logits_soft_cap,
-                    # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
-                    k_scale=layer.k_scale_float,
-                    v_scale=layer.v_scale_float,
-                )
+
+            o = prefill_wrapper_paged.forward(
+                q.view(-1, layer.tp_q_head_num, layer.head_dim),
+                forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
+                causal=not layer.is_cross_attention,
+                sm_scale=layer.scaling,
+                window_left=(
+                    layer.sliding_window_size
+                    if not (
+                        self.forward_metadata.multi_item_params
+                        and self.forward_metadata.multi_item_params.is_enabled()
+                    )
+                    else -1
+                ),
+                logits_soft_cap=logits_soft_cap,
+                k_scale=layer.k_scale_float,
+                v_scale=layer.v_scale_float,
+            )
         else:
+            # If `k`/`v` are not explicitly provided, fall back to the KV cache stored in
+            # `forward_batch.token_to_kv_pool` for this layer. This enables attention over
+            # previously cached context without re-materializing KV tensors (e.g., the
+            # IQuestLoopCoder path uses token_to_kv_pool as the KV source).
+            if k is None and v is None:
+                k = forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id)[0]
+                v = forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id)[1]
             causal = True
-            if layer.attn_type == AttentionType.ENCODER_ONLY:
-                save_kv_cache = False
+            if (
+                layer.is_cross_attention
+                or layer.attn_type == AttentionType.ENCODER_ONLY
+            ):
                 causal = False
+            if save_kv_cache and layer.attn_type == AttentionType.ENCODER_ONLY:
+                save_kv_cache = False
 
             if self.forward_metadata.extend_no_prefix:
                 # NOTE: FlashInfer currently has limitations with head_dim = 32 or other dimensions
                 # The FlashInfer head_dim limitation itself is tracked here:
                 # https://github.com/flashinfer-ai/flashinfer/issues/1048
-                with record_function("attention"):
-                    o = self.prefill_wrapper_ragged.forward(
-                        q.view(-1, layer.tp_q_head_num, layer.head_dim),
-                        k.view(-1, layer.tp_k_head_num, layer.head_dim),
-                        v.view(-1, layer.tp_v_head_num, layer.head_dim),
-                        causal=causal,
-                        sm_scale=layer.scaling,
-                        logits_soft_cap=logits_soft_cap,
-                    )
+                o = self.prefill_wrapper_ragged.forward(
+                    q.view(-1, layer.tp_q_head_num, layer.head_dim),
+                    k.view(-1, layer.tp_k_head_num, layer.head_dim),
+                    v.view(-1, layer.tp_v_head_num, layer.head_dim),
+                    causal=causal,
+                    sm_scale=layer.scaling,
+                    logits_soft_cap=logits_soft_cap,
+                )
 
             else:
-                with record_function("attention"):
-                    o1, s1 = self.prefill_wrapper_ragged.forward_return_lse(
-                        q.view(-1, layer.tp_q_head_num, layer.head_dim),
-                        k.view(-1, layer.tp_k_head_num, layer.head_dim),
-                        v.view(-1, layer.tp_v_head_num, layer.head_dim),
-                        causal=True,
-                        sm_scale=layer.scaling,
-                        logits_soft_cap=logits_soft_cap,
-                    )
-                    o2, s2 = prefill_wrapper_paged.forward_return_lse(
-                        q.view(-1, layer.tp_q_head_num, layer.head_dim),
-                        forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
-                        causal=False,
-                        sm_scale=layer.scaling,
-                        logits_soft_cap=logits_soft_cap,
-                    )
+                if not self.is_dllm_model:
+                    # TODO: design a better interface
+                    # For other models, use causal attention for the ragged part as previously
+                    causal = True
 
-                    o, _ = merge_state(o1, s1, o2, s2)
+                o1, s1 = self.prefill_wrapper_ragged.forward_return_lse(
+                    q.view(-1, layer.tp_q_head_num, layer.head_dim),
+                    k.view(-1, layer.tp_k_head_num, layer.head_dim),
+                    v.view(-1, layer.tp_v_head_num, layer.head_dim),
+                    causal=causal,
+                    sm_scale=layer.scaling,
+                    logits_soft_cap=logits_soft_cap,
+                )
+                o2, s2 = prefill_wrapper_paged.forward_return_lse(
+                    q.view(-1, layer.tp_q_head_num, layer.head_dim),
+                    forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
+                    causal=False,
+                    sm_scale=layer.scaling,
+                    logits_soft_cap=logits_soft_cap,
+                )
+
+                o, _ = merge_state(o1, s1, o2, s2)
 
             if save_kv_cache:
                 forward_batch.token_to_kv_pool.set_kv_buffer(
@@ -688,6 +951,10 @@ class FlashInferAttnBackend(AttentionBackend):
         forward_batch: ForwardBatch,
         save_kv_cache=True,
     ):
+        # Debug: skip attention for decode mode
+        if _SKIP_DECODE_ATTN:
+            return q.contiguous().view(-1, layer.tp_q_head_num * layer.head_dim)
+
         decode_wrapper = self.forward_metadata.decode_wrappers[
             self._get_wrapper_idx(layer)
         ]
@@ -705,16 +972,15 @@ class FlashInferAttnBackend(AttentionBackend):
                 )
 
         # Call the wrapped function
-        with record_function("attention"):
-            o = decode_wrapper.forward(
-                q.contiguous().view(-1, layer.tp_q_head_num, layer.head_dim),
-                forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
-                sm_scale=layer.scaling,
-                logits_soft_cap=layer.logit_cap,
-                # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
-                k_scale=layer.k_scale_float,
-                v_scale=layer.v_scale_float,
-            )
+        o = decode_wrapper.forward(
+            q.contiguous().view(-1, layer.tp_q_head_num, layer.head_dim),
+            forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id),
+            sm_scale=layer.scaling,
+            logits_soft_cap=layer.logit_cap,
+            # Must use _float to avoid device-to-host copy that breaks cuda graph capture.
+            k_scale=layer.k_scale_float,
+            v_scale=layer.v_scale_float,
+        )
 
         return o.view(-1, layer.tp_q_head_num * layer.head_dim)
 
@@ -1052,6 +1318,7 @@ class FlashInferIndicesUpdaterPrefill:
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
         disable_split_kv: Optional[bool] = None,
+        multi_item_params: Optional[MultiItemScoringParams] = None,
     ):
         if use_ragged:
             # TODO: remove this device sync, we can use forward_batch.extend_prefix_lens_cpu
@@ -1077,6 +1344,7 @@ class FlashInferIndicesUpdaterPrefill:
             spec_info,
             fixed_split_size=fixed_split_size,
             disable_split_kv=disable_split_kv,
+            multi_item_params=multi_item_params,
         )
 
     def update_sliding_window(
@@ -1092,6 +1360,7 @@ class FlashInferIndicesUpdaterPrefill:
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
         disable_split_kv: Optional[bool] = None,
+        multi_item_params: Optional[MultiItemScoringParams] = None,
     ):
         for wrapper_id in range(2):
             if wrapper_id == 0:
@@ -1126,6 +1395,7 @@ class FlashInferIndicesUpdaterPrefill:
                 spec_info,
                 use_sliding_window_kv_pool=use_sliding_window_kv_pool,
                 disable_split_kv=disable_split_kv,
+                multi_item_params=multi_item_params,
             )
 
     def update_cross_attention(
@@ -1141,6 +1411,7 @@ class FlashInferIndicesUpdaterPrefill:
         spec_info: Optional[SpecInput],
         fixed_split_size: Optional[int] = None,
         disable_split_kv: Optional[bool] = None,
+        multi_item_params: Optional[MultiItemScoringParams] = None,
     ):
         for wrapper_id in range(2):
             if wrapper_id == 0:
@@ -1168,6 +1439,7 @@ class FlashInferIndicesUpdaterPrefill:
                 use_ragged,
                 spec_info,
                 disable_split_kv=disable_split_kv,
+                multi_item_params=multi_item_params,
             )
 
     def call_begin_forward(
@@ -1187,6 +1459,7 @@ class FlashInferIndicesUpdaterPrefill:
         use_sliding_window_kv_pool: bool = False,
         fixed_split_size: Optional[int] = None,
         disable_split_kv: Optional[bool] = None,
+        multi_item_params: Optional[MultiItemScoringParams] = None,
     ):
         bs = len(seq_lens)
         if spec_info is None:
@@ -1242,6 +1515,22 @@ class FlashInferIndicesUpdaterPrefill:
             )
 
         # cached part
+        # Conditionally set multi-item parameters
+        if multi_item_params is not None and multi_item_params.is_enabled():
+            # Multi-item scoring is active - use specialized parameters and disable generic custom_mask
+            use_custom_mask = None
+            prefix_len_ptr = multi_item_params.prefix_len_ptr
+            token_pos_in_items_ptr = multi_item_params.token_pos_in_items_ptr
+            token_pos_in_items_len = multi_item_params.token_pos_in_items_len
+            max_item_len_ptr = multi_item_params.max_item_len_ptr
+        else:
+            # No multi-item scoring - use standard parameters
+            use_custom_mask = custom_mask
+            prefix_len_ptr = None
+            token_pos_in_items_ptr = None
+            token_pos_in_items_len = 0
+            max_item_len_ptr = None
+
         wrapper_paged.begin_forward(
             qo_indptr,
             kv_indptr,
@@ -1253,12 +1542,16 @@ class FlashInferIndicesUpdaterPrefill:
             1,
             q_data_type=self.q_data_type,
             kv_data_type=self.data_type,
-            custom_mask=custom_mask,
+            custom_mask=use_custom_mask,
             non_blocking=True,
             fixed_split_size=fixed_split_size,
             disable_split_kv=(
                 disable_split_kv if disable_split_kv is not None else False
             ),
+            prefix_len_ptr=prefix_len_ptr,
+            token_pos_in_items_ptr=token_pos_in_items_ptr,
+            token_pos_in_items_len=token_pos_in_items_len,
+            max_item_len_ptr=max_item_len_ptr,
         )
 
 
@@ -1294,7 +1587,7 @@ class FlashInferMultiStepDraftBackend:
             (max_bs,), dtype=torch.int32, device=model_runner.device
         )
         self.attn_backends: List[FlashInferAttnBackend] = []
-        for i in range(self.speculative_num_steps):
+        for i in range(self.speculative_num_steps - 1):
             self.attn_backends.append(
                 FlashInferAttnBackend(
                     model_runner,
@@ -1382,7 +1675,7 @@ class FlashInferMultiStepDraftBackend:
             device="cuda",
         )
 
-        for i in range(self.speculative_num_steps):
+        for i in range(self.speculative_num_steps - 1):
             self.attn_backends[i].init_cuda_graph_state(
                 max_bs, max_num_tokens, kv_indices_buf=self.cuda_graph_kv_indices[i]
             )

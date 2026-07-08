@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 import torch
 
 from sglang.srt.layers.attention.base_attn_backend import AttentionBackend
-from sglang.srt.managers.schedule_batch import global_server_args_dict
 from sglang.srt.model_executor.forward_batch_info import ForwardBatch
+from sglang.srt.server_args import get_global_server_args
 
 if TYPE_CHECKING:
     from sglang.srt.layers.radix_attention import RadixAttention
@@ -32,7 +32,7 @@ class DoubleSparseAttnBackend(AttentionBackend):
         self.heavy_token_num = model_runner.server_args.ds_heavy_token_num
 
         self.sorted_channels = model_runner.sorted_channels
-        self.sparse_decode_thresold = (
+        self.sparse_decode_threshold = (
             model_runner.server_args.ds_sparse_decode_threshold
         )
         self.att_out_approx: torch.Tensor = None
@@ -42,7 +42,7 @@ class DoubleSparseAttnBackend(AttentionBackend):
         # TODO: Change the hard-coded block_seq_num
         self.BLOCK_SEQ = 128
 
-        if global_server_args_dict.get("triton_attention_reduce_in_fp32", False):
+        if get_global_server_args().triton_attention_reduce_in_fp32:
             self.reduce_dtype = torch.float32
         else:
             self.reduce_dtype = torch.float16
@@ -210,7 +210,7 @@ class DoubleSparseAttnBackend(AttentionBackend):
         #            and set a minimum value for sparse_decode
         if (
             min_seq_len < self.heavy_token_num
-            or max_seq_len < self.sparse_decode_thresold
+            or max_seq_len < self.sparse_decode_threshold
         ):
             self.decode_attention_fwd(
                 q.view(-1, layer.tp_q_head_num, layer.qk_head_dim),

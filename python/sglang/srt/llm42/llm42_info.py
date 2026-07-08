@@ -134,6 +134,16 @@ class LLM42Info:
             if actual_len == 0:
                 continue
             
+            # In fixed-batch mode, truncate to window_size to preserve the
+            # fixed-shape invariant.  Remaining tokens will be verified in
+            # the next round.  On rollback the extra tokens are discarded
+            # together with the mismatched ones; on success the caller must
+            # only advance llm42_verified_tokens by actual_len (not the
+            # full unverified count) so the extra tokens get re-verified.
+            if force_include_all and window_size is not None and actual_len > window_size:
+                unverified_output_ids = unverified_output_ids[:window_size]
+                actual_len = window_size
+            
             output_lens.append(actual_len)
             
             # Determine if padding is needed
@@ -174,9 +184,29 @@ class LLM42Info:
             padding_counts=padding_counts,
         )
 
+    def set_padding_cache_locs(self, padding_locs: torch.Tensor):
+        """
+        Assign pre-allocated padding KV cache slots.
+        
+        Used when padding cache is managed externally (e.g., by
+        FixedSizeVerificationPool) instead of allocated per-pass.
+        
+        Args:
+            padding_locs: Pre-allocated cache location tensor (at least
+                ``total_padding_cache_slots`` elements).
+        """
+        self.padding_cache_locs = padding_locs[:self.total_padding_cache_slots]
+        # No allocated tensor to free — the pool owns it
+        self.padding_cache_locs_allocated = None
+
     def allocate_padding_kv_cache(self, token_to_kv_pool_allocator) -> bool:
         """
         Allocate temporary KV cache slots for padding tokens.
+        
+        This is the fallback path used when no pre-allocated padding pool is
+        available (variable-size verification).  When a
+        ``FixedSizeVerificationPool`` is in use, call :meth:`set_padding_cache_locs`
+        instead.
         
         Args:
             token_to_kv_pool_allocator: The KV cache allocator
@@ -342,6 +372,10 @@ class LLM42Info:
                 # Input: [last_verified, actual_unverified[:-1]]
                 input_ids.extend([last_verified_token] + list(actual_unverified[:-1]))
             
+            if req.req_pool_idx is None:
+                logger.warning(f"Skipping req {req.rid} in verification: req_pool_idx is None (likely retracted)")
+                continue
+
             req_pool_indices.append(req.req_pool_idx)
             output_lens.append(padded_len)
             prefix_lens_list.append(len(req.origin_input_ids) + req.llm42_verified_tokens - 1)
@@ -401,7 +435,7 @@ class LLM42Info:
                 verify_batch.sampling_info.sampling_seed = torch.repeat_interleave(
                     verify_batch.sampling_info.sampling_seed, tokens_per_request, dim=0
                 )
-            if verify_batch.sampling_info.deterministic_indices is not None:
+            if hasattr(verify_batch.sampling_info, 'deterministic_indices') and verify_batch.sampling_info.deterministic_indices is not None:
                 verify_batch.sampling_info.deterministic_indices = torch.repeat_interleave(
                     verify_batch.sampling_info.deterministic_indices, tokens_per_request, dim=0
                 )
@@ -464,11 +498,19 @@ class LLM42Info:
             if start_idx < end_idx:
                 output_cache_locs = verify_batch.req_to_token_pool.req_to_token[req.req_pool_idx, start_idx:end_idx]
 
-                # Check for invalid 0 values which indicate unallocated positions
+                # Check for invalid 0 values which indicate unallocated positions.
+                # This mirrors the old fork's diagnostic — log error but do NOT
+                # replace, because replacing out_cache_loc without also updating
+                # the page_table (built from req_to_token in init_forward_metadata)
+                # causes attention to read stale KV from slot 0 while the model
+                # writes fresh KV to the replacement slot → garbage output.
                 output_list = output_cache_locs.tolist()
                 for j, loc in enumerate(output_list):
                     if loc == 0:
-                        logger.error(f"[LLM42_VERIFY] Found invalid slot 0 at position {start_idx + j} in req_to_token!")
+                        logger.error(
+                            f"[LLM42_VERIFY] Found invalid slot 0 at position {start_idx + j} "
+                            f"in req_to_token! (req {req.rid})"
+                        )
                 
                 out_cache_locs.extend(output_list)
             
@@ -582,7 +624,7 @@ class LLM42Info:
                         verify_batch.sampling_info.sampling_seed, dummy_seeds
                     ], dim=0)
                 
-                if verify_batch.sampling_info.deterministic_indices is not None:
+                if hasattr(verify_batch.sampling_info, 'deterministic_indices') and verify_batch.sampling_info.deterministic_indices is not None:
                     if dummy_sampling_tuple is not None:
                         dummy_det_indices = dummy_sampling_tuple[5].to(verify_batch.sampling_info.deterministic_indices.dtype)
                     else:

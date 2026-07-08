@@ -2,24 +2,36 @@
 
 import fnmatch
 import logging
-from typing import Any, List, Optional, cast
+from typing import TYPE_CHECKING, Any, List, Optional, cast
 
 import torch
 
-from sglang.srt.layers.linear import LinearBase, UnquantizedLinearMethod
+from sglang.srt.layers.linear import LinearBase
+from sglang.srt.layers.moe import MoeRunnerConfig
 from sglang.srt.layers.quantization.base_config import (  # noqa: E501
+    FusedMoEMethodBase,
     LinearMethodBase,
     QuantizationConfig,
     QuantizeMethodBase,
 )
 from sglang.srt.layers.quantization.kv_cache import BaseKVCacheMethod
-from sglang.srt.layers.quantization.quark.quark_moe import QuarkMoEMethod
-from sglang.srt.layers.quantization.quark.schemes import QuarkScheme, QuarkW4A4MXFP4
+from sglang.srt.layers.quantization.quark.schemes import (
+    QuarkLinearScheme,
+    QuarkMoEScheme,
+    QuarkW4A4MXFP4,
+    QuarkW4A4MXFp4MoE,
+    QuarkW8A8Fp8,
+    QuarkW8A8FP8MoE,
+)
 from sglang.srt.layers.quantization.quark.utils import deep_compare, should_ignore_layer
+from sglang.srt.layers.quantization.unquant import UnquantizedLinearMethod
 from sglang.srt.layers.radix_attention import RadixAttention
 from sglang.srt.utils import get_device_capability
 
-__all__ = ["QuarkLinearMethod"]
+if TYPE_CHECKING:
+    from sglang.srt.layers.moe.token_dispatcher import StandardDispatchOutput
+
+__all__ = ["QuarkLinearMethod", "QuarkFusedMoEMethod"]
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +77,14 @@ class QuarkConfig(QuantizationConfig):
         if should_ignore_layer(
             prefix, ignore=exclude_layers, fused_mapping=self.packed_modules_mapping
         ):
-            return UnquantizedLinearMethod()
+            if isinstance(layer, LinearBase):
+                return UnquantizedLinearMethod()
+            elif isinstance(layer, RadixAttention):
+                return QuarkKVCacheMethod(self)
+            return None
 
         if isinstance(layer, LinearBase):
-            scheme = self.get_scheme(layer=layer, layer_name=prefix)
+            scheme = self.get_linear_scheme(layer=layer, layer_name=prefix)
             layer.scheme = scheme
             return QuarkLinearMethod(self)
 
@@ -78,7 +94,8 @@ class QuarkConfig(QuantizationConfig):
         from sglang.srt.layers.moe.fused_moe_triton.layer import FusedMoE
 
         if isinstance(layer, FusedMoE):
-            return QuarkMoEMethod.get_moe_method(self, module=layer, layer_name=prefix)
+            layer.scheme = self.get_moe_scheme(layer, prefix)
+            return QuarkFusedMoEMethod(self)
 
         return None
 
@@ -170,6 +187,37 @@ class QuarkConfig(QuantizationConfig):
             return supported
         else:
             return False
+
+    def _is_fp8_w8a8(
+        self,
+        weight_quant: Optional[dict[str, Any]],
+        input_quant: Optional[dict[str, Any]],
+    ) -> bool:
+        # Confirm weights and input quantized.
+        if weight_quant is None or input_quant is None:
+            return False
+
+        # Confirm weight scheme is supported
+        is_fp8_dtype = (
+            weight_quant.get("dtype") == "fp8_e4m3"
+            and input_quant.get("dtype") == "fp8_e4m3"
+        )
+        is_static_weight = not weight_quant.get("is_dynamic")
+        is_per_tensor_or_channel_weight = weight_quant.get("qscheme") in [
+            "per_tensor",
+            "per_channel",
+        ]
+
+        if not (is_fp8_dtype and is_static_weight and is_per_tensor_or_channel_weight):
+            return False
+
+        # Dynamic quantization is always supported if weights supported.
+        if input_quant.get("is_dynamic"):
+            return True
+
+        # Confirm activation scheme is supported.
+        is_per_tensor_activation = input_quant.get("qscheme") == "per_tensor"
+        return is_per_tensor_activation
 
     def _is_mx_fp4(
         self,
@@ -268,7 +316,7 @@ class QuarkConfig(QuantizationConfig):
             )
             return global_quant_config
 
-    def _get_scheme_from_config(self, config: dict[str, Any]) -> "QuarkScheme":
+    def _get_scheme_from_config(self, config: dict[str, Any]) -> "QuarkLinearScheme":
         if config.get("output_tensors") or config.get("bias"):
             raise NotImplementedError(
                 "Currently, Quark models with output_tensors "
@@ -279,6 +327,12 @@ class QuarkConfig(QuantizationConfig):
 
         if self._is_mx_fp4(weight_config, input_config):
             return QuarkW4A4MXFP4(weight_config, input_config)
+        if self._is_fp8_w8a8(weight_config, input_config):
+            is_fp8_w8a8_supported = self._check_scheme_supported(
+                QuarkW8A8Fp8.get_min_capability(), error=False
+            )
+            if is_fp8_w8a8_supported:
+                return QuarkW8A8Fp8(weight_config, input_config)
 
         raise NotImplementedError(
             "No quark compatible scheme was found. "
@@ -286,7 +340,9 @@ class QuarkConfig(QuantizationConfig):
             f"Input config: {input_config}"
         )
 
-    def get_scheme(self, layer: torch.nn.Module, layer_name: str) -> "QuarkScheme":
+    def get_linear_scheme(
+        self, layer: torch.nn.Module, layer_name: str
+    ) -> "QuarkLinearScheme":
 
         layer_quant_config = self._find_matched_config(layer_name, layer)
 
@@ -298,6 +354,29 @@ class QuarkConfig(QuantizationConfig):
         self._check_scheme_supported(scheme.get_min_capability())
 
         return scheme
+
+    def get_moe_scheme(
+        self,
+        module: torch.nn.Module,
+        layer_name: str,
+    ) -> "QuarkMoEScheme":
+        layer_quant_config = self._find_matched_config(layer_name, module)
+
+        if layer_quant_config.get("output_tensors") or layer_quant_config.get("bias"):
+            raise NotImplementedError(
+                "Currently, Quark models with "
+                "output_tensors and bias "
+                "quantized are not supported"
+            )
+        weight_config = layer_quant_config.get("weight")
+        input_config = layer_quant_config.get("input_tensors")
+
+        if self._is_mx_fp4(weight_config, input_config):
+            return QuarkW4A4MXFp4MoE(weight_config, input_config)
+        elif self._is_fp8_w8a8(weight_config, input_config):
+            return QuarkW8A8FP8MoE(weight_config, input_config)
+        else:
+            raise RuntimeError("Unsupported FusedMoe scheme")
 
     def get_scaled_act_names(self) -> List[str]:
         return []
@@ -322,7 +401,7 @@ class QuarkLinearMethod(LinearMethodBase):
         **extra_weight_attrs,
     ):
         """
-        Use the CompressedTensorsScheme associated with each layer to create
+        Use the QuarkLinearScheme associated with the layer to create
         the necessary parameters for the layer. See LinearMethodBase for param
         details
         """
@@ -344,7 +423,7 @@ class QuarkLinearMethod(LinearMethodBase):
         bias: Optional[torch.Tensor] = None,
     ):
         """
-        Use the output of create_weights and the CompressedTensorsScheme
+        Use the output of create_weights and the QuarkLinearScheme
         associated with the layer to apply the forward pass with the
         layer input.  See LinearMethodBase for param details
 
@@ -353,6 +432,59 @@ class QuarkLinearMethod(LinearMethodBase):
         if scheme is None:
             raise ValueError("A scheme must be defined for each layer")
         return scheme.apply_weights(layer, x, bias=bias)
+
+
+class QuarkFusedMoEMethod(FusedMoEMethodBase):
+
+    def __init__(self, quantization_config: QuarkConfig):
+        self.quantization_config = quantization_config
+
+    def process_weights_after_loading(self, layer: torch.nn.Module) -> None:
+        layer.scheme.process_weights_after_loading(layer)
+
+    def create_weights(
+        self,
+        layer: torch.nn.Module,
+        num_experts: int,
+        hidden_size: int,
+        intermediate_size_per_partition: int,
+        params_dtype: torch.dtype,
+        **extra_weight_attrs,
+    ):
+        """
+        Use the QuarkMoEScheme associated with the layer to create
+        the necessary parameters for the layer. See FusedMoEMethodBase for param
+        details
+        """
+        layer.scheme.create_weights(
+            layer=layer,
+            num_experts=num_experts,
+            hidden_size=hidden_size,
+            intermediate_size_per_partition=intermediate_size_per_partition,
+            params_dtype=params_dtype,
+            **extra_weight_attrs,
+        )
+
+    def create_moe_runner(
+        self, layer: torch.nn.Module, moe_runner_config: MoeRunnerConfig
+    ):
+        layer.scheme.create_moe_runner(layer, moe_runner_config)
+
+    def apply(
+        self,
+        layer: torch.nn.Module,
+        dispatch_output: "StandardDispatchOutput",
+    ):
+        """
+        Use the output of create_weights and the QuarkMoEScheme
+        associated with the layer to apply the forward pass with the
+        fused MoE layer. See FusedMoEMethodBase for param details
+
+        """
+        scheme = layer.scheme
+        if scheme is None:
+            raise ValueError("A scheme must be defined for each layer")
+        return scheme.apply_weights(layer, dispatch_output)
 
 
 class QuarkKVCacheMethod(BaseKVCacheMethod):
