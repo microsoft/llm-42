@@ -1,8 +1,21 @@
-# LLM-42: Enabling Determinism in LLM Inference with Verified Speculation
+<p align="center">
+  <img src="../assets/42.png" alt="LLM-42 Logo" width="180">
+</p>
 
-> Raja Gond¹, Aditya K Kamath², Ramachandran Ramjee¹, and Ashish Panwar¹
->
-> ¹Microsoft Research India &nbsp;&nbsp; ²University of Washington
+<h1 align="center">LLM-42: Enabling Determinism in LLM Inference with Verified Speculation</h1>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2601.17768"><img src="https://img.shields.io/badge/arXiv-2601.17768-b31b1b.svg" alt="arXiv"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-green.svg" alt="License"></a>
+</p>
+
+<p align="center">
+  Raja Gond¹, Aditya K Kamath², Ramachandran Ramjee¹, and Ashish Panwar¹
+  <br>
+  ¹Microsoft Research India &nbsp;&nbsp; ²University of Washington
+</p>
+
+---
 
 This directory is the artifact for the paper. It reproduces the main experimental figures.
 Each numbered sub-folder corresponds to one figure in the paper and contains a self-contained
@@ -74,7 +87,7 @@ The easiest way to reproduce everything is the orchestrator:
 ### Configuration options
 
 | Option       | Values                 | Default | Effect |
-|--------------|------------------------|---------|--------|
+|--------------|------------------------|:-------:|--------|
 | `--duration` | `quick`, `full`        | `quick` | Workload size for the long-running benchmarks. `quick` is a fast smoke test; `full` reproduces the paper. |
 | `--models`   | `8b`, `70b`, `8b,70b`  | `8b`    | Which model(s) to run for the long-running benchmarks. |
 | `--force`    | (flag)                 | off     | Re-run and overwrite existing results (see *Resume* below). |
@@ -141,10 +154,10 @@ lays out each figure with the paper's **reference** plot on the left and your
 
 ## Approximate durations
 
-Times below assume **8 H100 GPUs**; with fewer GPUs they scale up proportionally.
+> Times below assume **8 H100 GPUs**; with fewer GPUs they scale up proportionally.
 
 | Benchmark        | quick           | full        |
-|------------------|-----------------|-------------|
+|------------------|:---------------:|:-----------:|
 | `1-figure4`      | ~1 min          | ~1 min      |
 | `2-figure5`      | ~2 min          | ~2 min      |
 | `3-figure6`      | ~30 min         | ~30 min     |
