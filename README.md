@@ -2,17 +2,30 @@
   <img src="assets/42.png" alt="LLM-42 Logo" width="200">
 </p>
 
-## LLM-42: Enabling Determinism in LLM Inference with Verified Speculation
+<h2 align="center">LLM-42: Enabling Determinism in LLM Inference with Verified Speculation</h2>
 
-[![arXiv](https://img.shields.io/badge/arXiv-2601.17768-b31b1b.svg)](https://arxiv.org/abs/2601.17768)
-[![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
+<p align="center">
+  <a href="https://arxiv.org/abs/2601.17768"><img src="https://img.shields.io/badge/arXiv-2601.17768-b31b1b.svg" alt="arXiv"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-green.svg" alt="License"></a>
+</p>
 
-> For SOSP 2026 artifact evaluation, please see the `sosp-artifact/` [README](sosp-artifact/README.md).
+<p align="center">
+  <a href="sosp-artifact/README.md"><img src="https://img.shields.io/badge/SOSP_2026-Artifact_Evaluation-red?style=for-the-badge&amp;labelColor=b31b1b" alt="SOSP 2026 Artifact Evaluation"></a>
+</p>
+
+<p align="center">
+  <sub><em>For SOSP 2026 artifact evaluation, please see the <a href="sosp-artifact/README.md"><code>sosp-artifact/</code> README</a>.</em></sub>
+</p>
+
+<p align="center">
+  Raja Gond‡, Aditya K Kamath†, Ramachandran Ramjee‡, Ashish Panwar‡
+  <br>
+  ‡Microsoft Research &nbsp; †University of Washington
+</p>
+
+---
 
 **LLM-42** enables deterministic LLM inference via a **decode–verify–rollback** protocol, without rewriting GPU kernels. Built on [SGLang](https://github.com/sgl-project/sglang) v0.5.3.
-
-> Raja Gond‡, Aditya K Kamath†, Ramachandran Ramjee‡, Ashish Panwar‡  
-> ‡Microsoft Research &nbsp; †University of Washington
 
 ## How it works
 
@@ -22,7 +35,7 @@ Standard LLM serving is non-deterministic: dynamic batching changes GPU reductio
 2. **Verify** — replay a window of tokens under a fixed-shape schedule to check consistency.
 3. **Rollback** — on mismatch, discard inconsistent tokens and resume from the last verified position.
 
-Only requests marked `is_deterministic=True` incur verification; the rest run at full speed.
+> Only requests marked `is_deterministic=True` incur verification; the rest run at full speed.
 
 ## Quick start
 
@@ -56,8 +69,7 @@ python3 llm42_benchmarks/basic/client.py
 | `--llm42-window-size` | `64` | Tokens decoded before verification |
 | `--llm42-verify-batch-size` | `8` | Requests per verification batch (grouped verification) |
 
-Additional flags for benchmarking: `--enable-deterministic-inference 2` (global batch-invariant baseline), `--llm42-skip-mismatch` (mismatch rate control / synthetic mismatch injection).
-
+> **Additional flags for benchmarking:** `--enable-deterministic-inference 2` (global batch-invariant baseline), `--llm42-skip-mismatch` (mismatch rate control / synthetic mismatch injection).
 
 ## Hardware
 
@@ -87,6 +99,8 @@ Additional flags for benchmarking: `--enable-deterministic-inference 2` (global 
 ├── build_all.sh                # Build sgl-kernel + install sglang
 └── run_container.sh            # Create/attach to dev container
 ```
+
+---
 
 ## Citation
 
