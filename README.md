@@ -7,6 +7,8 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2601.17768-b31b1b.svg)](https://arxiv.org/abs/2601.17768)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
+> For SOSP 2026 artifact evaluation, please see the `sosp-artifact/` [README](sosp-artifact/README.md).
+
 **LLM-42** enables deterministic LLM inference via a **decode–verify–rollback** protocol, without rewriting GPU kernels. Built on [SGLang](https://github.com/sgl-project/sglang) v0.5.3.
 
 > Raja Gond‡, Aditya K Kamath†, Ramachandran Ramjee‡, Ashish Panwar‡  
