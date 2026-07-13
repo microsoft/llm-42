@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM-42 Artifact &mdash; Reference vs Reproduced Figures</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --ink:#1a1d21; --muted:#5b6570;
+    --line:#e3e6ea; --ref:#2563eb; --gen:#059669;
+    --ref-soft:#eff4ff; --gen-soft:#ecfdf5; --shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.06);
+    --maxw:1440px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans",sans-serif;
+    line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--ref); text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---- Header ---- */
+  header.site{
+    background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);
+    color:#fff; padding:30px 20px 26px; text-align:center;
+    border-bottom:3px solid var(--ref);
+  }
+  header.site h1{font-size:clamp(15px,2.6vw,26px); line-height:1.2; margin:0 auto 12px; max-width:none; white-space:nowrap; font-weight:700; letter-spacing:.2px}
+  header.site .authors{font-size:15px; color:#dbe4f0; margin:0 auto 4px; max-width:820px}
+  header.site .authors sup{color:#93c5fd; font-weight:600}
+  header.site .affil{font-size:13px; color:#9fb2c9; margin:0 auto}
+  header.site .affil sup{color:#93c5fd; font-weight:600}
+  header.site .tag{
+    display:inline-block; margin-top:16px; font-size:12.5px; letter-spacing:.4px;
+    color:#cbd5e1; background:rgba(148,163,184,.15); border:1px solid rgba(148,163,184,.28);
+    padding:5px 12px; border-radius:999px; text-transform:uppercase;
+  }
+
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 20px}
+
+  /* ---- Intro / hint ---- */
+  .intro{
+    background:#fffef5; border:1px solid #f1e5b8; color:#6b5e1f;
+    border-radius:10px; padding:12px 16px; margin:20px auto 4px; font-size:13.5px;
+  }
+  .intro code{background:#00000010; padding:1px 5px; border-radius:4px; font-size:.92em}
+  .intro b{color:#4d4413}
+
+  /* ---- Figure quick-nav ---- */
+  nav.figs{
+    position:sticky; top:0; z-index:30; background:rgba(244,245,247,.92);
+    backdrop-filter:saturate(1.2) blur(6px); border-bottom:1px solid var(--line);
+    padding:10px 0; margin-top:18px;
+  }
+  nav.figs .wrap{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+  nav.figs a{
+    font-size:12.5px; color:var(--muted); background:var(--card); border:1px solid var(--line);
+    padding:4px 10px; border-radius:7px; white-space:nowrap;
+  }
+  nav.figs a:hover{color:var(--ink); border-color:#c7ced6; text-decoration:none}
+
+  /* ---- Column legend ---- */
+  .legend{
+    display:grid; grid-template-columns:1fr 1fr; gap:20px;
+    max-width:var(--maxw); margin:22px auto 4px; padding:0 20px;
+  }
+  .legend .chip{
+    display:flex; align-items:center; gap:10px; font-weight:600; font-size:14px;
+    padding:10px 14px; border-radius:10px; border:1px solid var(--line); background:var(--card);
+  }
+  .legend .chip .dot{width:11px; height:11px; border-radius:50%}
+  .legend .chip.ref{border-top:3px solid var(--ref)}
+  .legend .chip.gen{border-top:3px solid var(--gen)}
+  .legend .chip.ref .dot{background:var(--ref)}
+  .legend .chip.gen .dot{background:var(--gen)}
+  .legend .chip small{font-weight:400; color:var(--muted); margin-left:auto}
+
+  /* ---- Figure cards ---- */
+  main{padding:6px 0 40px}
+  section.fig{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    box-shadow:var(--shadow); margin:18px auto; overflow:hidden; scroll-margin-top:64px;
+  }
+  .fig-head{
+    display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+    padding:14px 18px; border-bottom:1px solid var(--line); background:#fafbfc;
+  }
+  .fig-head .badge{
+    font-weight:700; font-size:13px; color:#fff; background:#334155;
+    padding:4px 10px; border-radius:7px; letter-spacing:.3px;
+  }
+  .fig-head .desc{font-size:14px; color:var(--muted)}
+
+  .panes{display:grid; grid-template-columns:1fr 1fr; gap:0; align-items:start}
+  .pane{padding:16px 18px}
+  .pane.pane-ref{border-right:1px solid var(--line); background:var(--ref-soft)}
+  .pane.pane-gen{background:var(--gen-soft)}
+  .pane .pane-tag{
+    font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+    margin:0 0 10px; display:flex; align-items:center; gap:7px;
+  }
+  .pane.pane-ref .pane-tag{color:var(--ref)}
+  .pane.pane-gen .pane-tag{color:var(--gen)}
+  .pane .pane-tag .dot{width:9px;height:9px;border-radius:50%}
+  .pane.pane-ref .pane-tag .dot{background:var(--ref)}
+  .pane.pane-gen .pane-tag .dot{background:var(--gen)}
+
+  /* ---- PDF viewers ---- */
+  .pdfwrap{margin:0 0 14px; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff}
+  .pdfwrap:last-child{margin-bottom:0}
+  .pdfbar{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:6px 10px; background:#f7f8fa; border-bottom:1px solid var(--line);
+    font-size:11.5px; color:var(--muted);
+  }
+  .pdfbar .sub{font-weight:600; text-transform:uppercase; letter-spacing:.5px}
+  .pdfbar .open{font-size:11.5px}
+  /* The box is sized to each PDF's own aspect ratio (set inline), so the plot
+     fits exactly with no internal scrollbar. #view=Fit is a safety net: if a
+     regenerated plot's ratio differs it letterboxes rather than scrolls. */
+  .pdfbox{position:relative; width:100%; min-height:120px; max-height:74vh; background:#fff}
+  .pdf{position:absolute; inset:0; width:100%; height:100%; border:0; display:block; background:#fff}
+  .missing{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:20px; text-align:center; color:var(--muted);
+    background:repeating-linear-gradient(45deg,#fafbfc,#fafbfc 12px,#f3f5f7 12px,#f3f5f7 24px);
+    font-size:13.5px;
+  }
+  .missing .big{font-size:15px; font-weight:600; color:#48515b; margin-bottom:6px}
+  .missing code{background:#00000010; padding:1px 5px; border-radius:4px; font-size:.92em}
+  .missing .hint{font-size:12px; margin-top:6px}
+
+  footer{color:var(--muted); font-size:12.5px; text-align:center; padding:26px 20px 40px}
+  footer code{background:#00000008; padding:1px 5px; border-radius:4px}
+
+  @media (max-width:980px){
+    .panes{grid-template-columns:1fr}
+    .pane.pane-ref{border-right:0; border-bottom:1px solid var(--line)}
+    .legend{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <h1>LLM-42: Enabling Determinism in LLM Inference with Verified Speculation</h1>
+  <p class="authors">Raja Gond<sup>1</sup>, Aditya K Kamath<sup>2</sup>, Ramachandran Ramjee<sup>1</sup>, and Ashish Panwar<sup>1</sup></p>
+  <p class="affil"><sup>1</sup>Microsoft Research India &nbsp;&nbsp;&bull;&nbsp;&nbsp; <sup>2</sup>University of Washington</p>
+  <span class="tag">Artifact &middot; Reference vs Reproduced Figures</span>
+</header>
+
+<div class="wrap">
+  <div class="intro">
+    <b>How to read this page.</b> The <b>left</b> column shows the <b>reference</b> figures from the paper
+    (<code>llm42-plots/reference/</code>); the <b>right</b> column shows the figures <b>reproduced</b> by your run
+    (<code>llm42-plots/</code>). Panels on the right that read &ldquo;not generated yet&rdquo; simply mean that figure
+    has not been produced &mdash; run the matching <code>run.sh</code> (or <code>run_all.sh</code>) to fill it in.
+    Every plot is loaded as its original PDF, sized to fit with no scrollbars. For best rendering, serve this folder
+    (<code>python3 -m http.server</code>) and open <code>view-artifact.html</code>.
+  </div>
+</div>
+
+<nav class="figs"><div class="wrap" id="nav"></div></nav>
+
+<div class="legend">
+  <div class="chip ref"><span class="dot"></span>Reference (paper)<small>llm42-plots/reference/</small></div>
+  <div class="chip gen"><span class="dot"></span>Reproduced (this run)<small>llm42-plots/</small></div>
+</div>
+
+<main><div class="wrap" id="grid"></div></main>
+
+<footer>
+  LLM-42 artifact &mdash; figure comparison viewer. Reference PDFs are committed under
+  <code>llm42-plots/reference/</code>; reproduced PDFs are generated into <code>llm42-plots/</code> and are not tracked in git.
+</footer>
+
+<script>
+/* a = Llama-3-8B, b = Llama-3-70B (per the benchmark plot scripts).
+   Each item is [filename, aspectRatio(W/H), sublabel?]; the aspect ratio
+   sizes the frame so the plot fits exactly (no scrollbar). */
+const FIGURES = [
+  { id:"fig4",   title:"Figure 4",   desc:"Batch-invariant matmul kernels vs. baseline torch.mm",
+    ref:[["figure4.pdf",1.20]],  gen:[["figure4.pdf",1.20]] },
+  { id:"fig5",   title:"Figure 5",   desc:"Impact of determinism on decode throughput (Llama-3-8B)",
+    ref:[["figure5.pdf",2.52]],  gen:[["figure5.pdf",2.52]] },
+  { id:"fig6a",  title:"Figure 6a",  desc:"CDF of consistent-span lengths \u2014 Llama-3-8B",
+    ref:[["figure6a.pdf",1.99]], gen:[["figure6a.pdf",2.04]] },
+  { id:"fig6b",  title:"Figure 6b",  desc:"CDF of consistent-span lengths \u2014 Llama-3-70B",
+    ref:[["figure6b.pdf",2.02]], gen:[["figure6b.pdf",2.04]] },
+  { id:"fig9a",  title:"Figure 9a",  desc:"Forward-pass latency of a single iteration vs. number of tokens (8B & 70B)",
+    ref:[["figure9a.pdf",2.02]], gen:[["figure9a.pdf",2.02]] },
+  { id:"fig9b",  title:"Figure 9b",  desc:"Rollback / recompute cost (8B & 70B)",
+    ref:[["figure9b.pdf",2.02]], gen:[["figure9b.pdf",2.02]] },
+  { id:"fig10a", title:"Figure 10a", desc:"Offline inference throughput \u2014 Llama-3-8B",
+    ref:[["figure10a.pdf",4.37]], gen:[["figure10a.pdf",3.02]] },
+  { id:"fig10b", title:"Figure 10b", desc:"Offline inference throughput \u2014 Llama-3-70B",
+    ref:[["figure10b.pdf",4.54]], gen:[["figure10b.pdf",4.54]] },
+  { id:"fig11a", title:"Figure 11a", desc:"Online E2E-latency CDF \u2014 Llama-3-8B",
+    ref:[["figure11a.pdf",4.85]], gen:[["figure11a.pdf",4.29]] },
+  { id:"fig11b", title:"Figure 11b", desc:"Online E2E-latency CDF \u2014 Llama-3-70B",
+    ref:[["figure11b.pdf",4.47]], gen:[["figure11b.pdf",4.47]] },
+  { id:"fig12a", title:"Figure 12a", desc:"Online P99 TTFT ratio \u2014 Llama-3-8B",
+    ref:[["figure12a.pdf",1.79]], gen:[["figure12a.pdf",1.66]] },
+  { id:"fig12b", title:"Figure 12b", desc:"Online P99 TTFT ratio \u2014 Llama-3-70B",
+    ref:[["figure12b.pdf",2.08]], gen:[["figure12b.pdf",2.08]] },
+  { id:"fig13a", title:"Figure 13a", desc:"Rollback-statistics heatmaps \u2014 Llama-3-8B",
+    ref:[["figure13a-recompute.pdf",1.28,"recompute"],["figure13a-throughput.pdf",1.29,"throughput"]],
+    gen:[["figure13a-recompute.pdf",1.29,"recompute"],["figure13a-throughput.pdf",1.29,"throughput"]] },
+  { id:"fig13b", title:"Figure 13b", desc:"Rollback-statistics heatmaps \u2014 Llama-3-70B",
+    ref:[["figure13b-recompute.pdf",1.29,"recompute"],["figure13b-throughput.pdf",1.29,"throughput"]],
+    gen:[["figure13b-recompute.pdf",1.29,"recompute"],["figure13b-throughput.pdf",1.29,"throughput"]] },
+];
+
+const REF_DIR = "reference/";  // reference PDFs live in llm42-plots/reference/
+const norm = items => items.map(it => ({file:it[0], ar:it[1]||2, sub:it[2]||""}));
+
+function viewer(path, ar, sub, kind){
+  const missing = kind === "gen"
+    ? '<div class="big">Not generated yet</div>Run the benchmark to produce<br><code>'+path.split("/").pop()+'</code>'
+    : '<div class="big">Reference not found</div><code>'+path+'</code>';
+  return ''
+    + '<figure class="pdfwrap">'
+    +   '<figcaption class="pdfbar"><span class="sub">'+(sub||"")+'</span>'
+    +     '<a class="open" href="'+path+'" target="_blank" rel="noopener">open \u2197</a></figcaption>'
+    +   '<div class="pdfbox" style="aspect-ratio:'+ar+'">'
+    +     '<object class="pdf" data="'+path+'#toolbar=0&navpanes=0&view=Fit" type="application/pdf">'
+    +       '<div class="missing">'+missing+'</div>'
+    +     '</object>'
+    +   '</div>'
+    + '</figure>';
+}
+
+document.getElementById("nav").innerHTML =
+  FIGURES.map(f => '<a href="#'+f.id+'">'+f.title+'</a>').join("");
+
+document.getElementById("grid").innerHTML = FIGURES.map(f => {
+  const refs = norm(f.ref).map(x => viewer(REF_DIR + x.file, x.ar, x.sub, "ref")).join("");
+  const gens = norm(f.gen).map(x => viewer(x.file, x.ar, x.sub, "gen")).join("");
+  return ''
+    + '<section class="fig" id="'+f.id+'">'
+    +   '<div class="fig-head"><span class="badge">'+f.title+'</span><span class="desc">'+f.desc+'</span></div>'
+    +   '<div class="panes">'
+    +     '<div class="pane pane-ref"><div class="pane-tag"><span class="dot"></span>Reference</div>'+refs+'</div>'
+    +     '<div class="pane pane-gen"><div class="pane-tag"><span class="dot"></span>Reproduced</div>'+gens+'</div>'
+    +   '</div>'
+    + '</section>';
+}).join("");
+
+/* When served over http(s), replace any 404 PDF with the styled placeholder
+   (over file:// the <object> fallback handles this automatically). */
+if (location.protocol === "http:" || location.protocol === "https:") {
+  document.querySelectorAll(".pdfwrap object").forEach(async obj => {
+    const src = obj.getAttribute("data").split("#")[0];
+    try {
+      const r = await fetch(src, {method:"HEAD"});
+      if (!r.ok) obj.replaceWith(obj.querySelector(".missing"));
+    } catch (e) { /* ignore network hiccups */ }
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# ---------------------------------------------------------------------------
+# Keep only source (run scripts + plotting/benchmark code) and the curated
+# reference figures. Everything a benchmark run produces is regenerated and is
+# therefore not tracked.
+# ---------------------------------------------------------------------------
+
+# Generated experiment outputs (results, per-run server logs)
+runs/
+server_logs/
+
+# Python caches (also covered by the repo-root .gitignore)
+__pycache__/
+*.pyc
+
+# Run logs, e.g. run_all_full.log, run_all_timings.log
+# (also covered by the repo-root .gitignore)
+*.log
+
+# Figures: the live llm42-plots/*.pdf are regenerated on every run and stay
+# untracked (the repo-root "*.pdf" rule already ignores them). Only the
+# curated copies under llm42-plots/reference/ are committed, so re-include those.
+llm42-plots/*.pdf
+!llm42-plots/reference/
+!llm42-plots/reference/*.pdf
