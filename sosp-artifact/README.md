@@ -4,11 +4,9 @@
 >
 > ¹Microsoft Research India &nbsp;&nbsp; ²University of Washington
 
-This directory is the artifact for the paper. It reproduces the main
-experimental figures using the LLM-42 build of SGLang from the parent
-repository. Each numbered sub-folder corresponds to one figure (or figure
-group) in the paper and contains a self-contained `run.sh`. A top-level
-`run_all.sh` runs every benchmark in order.
+This directory is the artifact for the paper. It reproduces the main experimental figures.
+Each numbered sub-folder corresponds to one figure in the paper and contains a self-contained
+`run.sh`. A top-level `run_all.sh` is the main orchastrator that runs every benchmark.
 
 ## Contents
 
@@ -23,10 +21,10 @@ group) in the paper and contains a self-contained `run.sh`. A top-level
 | `7-figure11-12/`  | Figures 11–12 | Online (QPS-driven) latency CDFs and TTFT |
 | `8-figure13/`     | Figure 13    | Rollback-statistics heatmaps (recompute & throughput) across LLM-42 configs |
 
-All generated PDFs are collected in `llm42-plots/`, together with the paper's
-reference figures under `llm42-plots/reference/` and a `view-artifact.html`
-viewer (see [Viewing the results](#viewing-the-results)). Each benchmark also
-keeps its raw results and server logs under `<benchmark>/runs/`.
+All generated PDFs are collected in `llm42-plots/`. The paper's
+figures are present for reference under `llm42-plots/reference/` and a `view-artifact.html`
+viewer (see [Viewing the results](#viewing-the-results)) is provided to compare the results. Each benchmark
+also keeps its raw results and server logs under `<benchmark>/runs/`.
 
 ## Requirements and Installation
 
@@ -73,9 +71,6 @@ The easiest way to reproduce everything is the orchestrator:
 ./run_all.sh [--duration quick|full] [--models 8b|70b|8b,70b] [--force]
 ```
 
-It runs benchmarks 1–13 in order, printing a per-benchmark timing summary to
-`run_all_timings.log` and writing all figures to `llm42-plots/`.
-
 ### Configuration options
 
 | Option       | Values                 | Default | Effect |
@@ -114,36 +109,16 @@ exist on disk is skipped, and only its plot is refreshed. This makes it safe to
 re-run `run_all.sh` after an interruption. Pass `--force` to ignore existing
 results and recompute everything.
 
-> **Note:** do not edit a `run.sh` while `run_all.sh` is executing it — bash
-> reads scripts as they run, so an in-place edit can corrupt the current run.
-
-### Approximate durations
-
-Times below assume **8 GPUs**; with fewer GPUs they scale up proportionally.
-
-| Benchmark        | quick           | full        |
-|------------------|-----------------|-------------|
-| `1-figure4`      | ~1 min          | ~1 min      |
-| `2-figure5`      | ~2 min          | ~2 min      |
-| `3-figure6`      | ~30 min         | ~30 min     |
-| `4-figure9a`     | ~2 min          | ~2 min      |
-| `5-figure9b`     | ~20 min         | ~20 min     |
-| `6-figure10`     | ~15 min         | > 24 hours  |
-| `7-figure11-12`  | ~15 min         | > 12 hours  |
-| `8-figure13`     | ~10 min         | ~6 hours    |
-
 ## Running individual benchmarks
 
 Every benchmark can also be run on its own. Just enter its folder and invoke
 `run.sh`:
 
 ```bash
-cd 4-figure9a && ./run.sh                       # forward-pass latency (8B + 70B)
-
+cd 4-figure9a && ./run.sh  # forward-pass latency (8B & 70B)
 cd 6-figure10 && ./run.sh --models 8b --duration quick   # quick offline-throughput run
-cd 8-figure13 && ./run.sh --models 8b,70b --duration full   # full rollback heatmaps
-
-cd 3-figure6  && ./run.sh --force               # re-run even if results exist
+cd 8-figure13 && ./run.sh --models 8b,70b --duration full # full rollback heatmaps
+cd 3-figure6  && ./run.sh --force  # re-run even if results exist
 ```
 
 - The long-running benchmarks (`6-figure10`, `7-figure11-12`, `8-figure13`)
@@ -162,12 +137,19 @@ reference figures are committed alongside them under `llm42-plots/reference/`.
 Once your runs are done, copy the whole `llm42-plots/` directory to your local
 machine and open `llm42-plots/view-artifact.html` in a web browser. The viewer
 lays out each figure with the paper's **reference** plot on the left and your
-**reproduced** plot on the right, so you can compare them side by side. Figures
-that were not generated (e.g. the 70B panels of an 8B-only run) show a
-"not generated yet" placeholder.
+**reproduced** plot on the right, so you can compare them side by side.
 
-```bash
-# Example: copy the folder off the GPU host, then open the viewer locally
-scp -r <user>@<gpu-host>:/path/to/sosp-artifact/llm42-plots ./llm42-plots
-# open ./llm42-plots/view-artifact.html in your browser
-```
+## Approximate durations
+
+Times below assume **8 H100 GPUs**; with fewer GPUs they scale up proportionally.
+
+| Benchmark        | quick           | full        |
+|------------------|-----------------|-------------|
+| `1-figure4`      | ~1 min          | ~1 min      |
+| `2-figure5`      | ~2 min          | ~2 min      |
+| `3-figure6`      | ~30 min         | ~30 min     |
+| `4-figure9a`     | ~2 min          | ~2 min      |
+| `5-figure9b`     | ~20 min         | ~20 min     |
+| `6-figure10`     | ~15 min         | O(24 hours) |
+| `7-figure11-12`  | ~15 min         | O(12 hours) |
+| `8-figure13`     | ~10 min         | O(6 hours) |
