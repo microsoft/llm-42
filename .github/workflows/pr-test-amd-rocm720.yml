@@ -68,7 +68,7 @@ jobs:
       multimodal_gen: ${{ steps.filter.outputs.multimodal_gen || steps.run-mode.outputs.run_all_tests }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -87,7 +87,7 @@ jobs:
 
       - name: Detect file changes
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.3
         if: steps.run-mode.outputs.run_all_tests != 'true'
         with:
           filters: |
@@ -127,7 +127,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -174,7 +174,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -217,7 +217,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -258,7 +258,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -297,7 +297,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -337,7 +337,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -377,7 +377,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -418,7 +418,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -427,7 +427,7 @@ jobs:
 
       - name: Download artifacts
         if: needs.check-changes.outputs.sgl_kernel == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: sgl-kernel/dist/
           merge-multiple: true
@@ -548,7 +548,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -557,7 +557,7 @@ jobs:
 
       - name: Download artifacts
         if: needs.check-changes.outputs.sgl_kernel == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: sgl-kernel/dist/
           merge-multiple: true
@@ -678,7 +678,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 
@@ -724,7 +724,7 @@ jobs:
     runs-on: ${{matrix.runner}}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ inputs.pr_head_sha || inputs.ref || github.sha }}
 

@@ -15,7 +15,7 @@ runs:
   using: composite
   steps:
     - name: Upload CUDA coredumps
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: cuda-coredumps-${{ github.job }}${{ inputs.artifact-suffix && format('-{0}', inputs.artifact-suffix) }}
         path: ${{ env.SGLANG_CUDA_COREDUMP_DIR || '/tmp/sglang_cuda_coredumps' }}/
