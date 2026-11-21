@@ -55,10 +55,10 @@ git config --global --add safe.directory /workspace
 huggingface-cli login --token <HF_TOKEN>
 
 # Terminal 1: Start the LLM-42 server (waits for model to load)
-bash llm42_benchmarks/basic/launch_server.sh
+bash sosp-artifact/0-basic/launch_server.sh
 
 # Terminal 2: Once the server is ready, run the determinism-check client
-python3 llm42_benchmarks/basic/client.py
+python3 sosp-artifact/0-basic/client.py
 ```
 
 ## Configuration
@@ -91,8 +91,8 @@ python3 llm42_benchmarks/basic/client.py
 ├── sgl-kernel/                 # Custom CUDA/Triton kernels
 │   ├── csrc/                   # C++/CUDA sources
 │   └── python/                 # Python bindings
-├── llm42_benchmarks/           # LLM-42 benchmark scripts
-├── llm42-plots/                # Plotting scripts for paper figures
+├── sosp-artifact/              # LLM-42 benchmark scripts (0-basic/ quick start, one folder per paper figure)
+│   └── llm42-plots/            # Plotting scripts for paper figures
 ├── benchmark/                  # Upstream SGLang benchmarks
 ├── docker/                     # Dockerfiles & Kubernetes manifests
 ├── scripts/                    # CI, utility, and helper scripts
