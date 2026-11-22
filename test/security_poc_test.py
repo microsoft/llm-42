@@ -1,0 +1,1 @@
+# Security test - benign file to trigger CI paths filter\npass\n
