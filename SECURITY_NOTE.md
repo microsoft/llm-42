@@ -1,0 +1,1 @@
+# Security Note\n\nThis branch demonstrates a GitHub Actions expression injection vulnerability.\nSee the PR description for details.\n
